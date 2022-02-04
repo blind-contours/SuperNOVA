@@ -9,7 +9,7 @@ A <- rpois(n, lambda = exp(3 + .3 * log(W$W1) - 0.2 * exp(W$W1) * W$W2))
 Y <- rbinom(
   n, 1,
   plogis(-1 + 0.05 * A - 0.02 * A * W$W2 + 0.2 * A * tan(W$W1^2) -
-           0.02 * W$W1 * W$W2 + 0.1 * A * W$W1 * W$W2)
+    0.02 * W$W1 * W$W2 + 0.1 * A * W$W1 * W$W2)
 )
 delta_shift <- 2
 

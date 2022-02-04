@@ -83,44 +83,50 @@ calc_final_effect_mod_param <- function(effect_mod_fold_results, exposure, effec
 
 calc_final_joint_shift_param <- function(joint_shift_fold_results, exposures, fold_k) {
   conditions <- exposures
-  conditions[[3]] <- paste(conditions[[1]], conditions[[2]], sep = "")
-  conditions[[4]] <- "No Shift"
-  conditions[[5]] <- "Psi"
-  psi_target <- joint_shift_fold_results[[3]]$psi - joint_shift_fold_results[[1]]$psi - joint_shift_fold_results[[2]]$psi + joint_shift_fold_results[[4]]$psi
-  psi_params <- c(joint_shift_fold_results[[1]]$psi, joint_shift_fold_results[[2]]$psi, joint_shift_fold_results[[3]]$psi, joint_shift_fold_results[[4]]$psi, psi_target)
+  conditions[[3]] <- paste(conditions[[1]], conditions[[2]], sep = "&")
+  conditions[[4]] <- "Psi"
 
-  variance_ests <- c(joint_shift_fold_results[[1]]$var, joint_shift_fold_results[[2]]$var, joint_shift_fold_results[[3]]$var, joint_shift_fold_results[[4]]$var)
-  psi_variance <- var(joint_shift_fold_results[[3]]$eif - joint_shift_fold_results[[1]]$eif - joint_shift_fold_results[[2]]$eif + joint_shift_fold_results[[4]]$eif) / length(joint_shift_fold_results[[3]]$eif)
-  variance_ests <- c(variance_ests, psi_variance)
+  joint_psi <- joint_shift_fold_results[[3]]$psi - joint_shift_fold_results[[4]]$psi
+  a_psi <- joint_shift_fold_results[[1]]$psi - joint_shift_fold_results[[4]]$psi
+  b_psi <- joint_shift_fold_results[[2]]$psi - joint_shift_fold_results[[4]]$psi
 
-  psi_se <- sqrt(psi_variance)
-  se_ests <- c(joint_shift_fold_results[[1]]$se, joint_shift_fold_results[[2]]$se, joint_shift_fold_results[[3]]$se, joint_shift_fold_results[[4]]$se, psi_se)
+  intxn_psi <- joint_psi - a_psi - b_psi
 
-  psi_CI <- c(
-    round(psi_target + stats::qnorm(0.05 / 2, lower.tail = T) * psi_se, 4),
-    round(psi_target + stats::qnorm(0.05 / 2, lower.tail = F) * psi_se, 4)
-  )
+  psi_estimates <- c(a_psi, b_psi, joint_psi, intxn_psi)
 
-  Lower_CIs <- c(
-    joint_shift_fold_results[[1]]$CI1,
-    joint_shift_fold_results[[2]]$CI1,
-    joint_shift_fold_results[[3]]$CI1,
-    joint_shift_fold_results[[4]]$CI1,
-    psi_CI[1]
-  )
+  joint_variance <- var(joint_shift_fold_results[[3]]$eif - joint_shift_fold_results[[4]]$eif) / length(joint_shift_fold_results[[4]]$eif)
+  a_psi_variance <- var(joint_shift_fold_results[[1]]$eif - joint_shift_fold_results[[4]]$eif) / length(joint_shift_fold_results[[4]]$eif)
+  b_psi_variance <- var(joint_shift_fold_results[[2]]$eif - joint_shift_fold_results[[4]]$eif) / length(joint_shift_fold_results[[4]]$eif)
 
-  Upper_CIs <- c(
-    joint_shift_fold_results[[1]]$CI2,
-    joint_shift_fold_results[[2]]$CI2,
-    joint_shift_fold_results[[3]]$CI2,
-    joint_shift_fold_results[[4]]$CI2,
-    psi_CI[2]
-  )
+  # sum(joint_variance, a_psi_variance, b_psi_variance)
+
+  psi_variance <- var((joint_shift_fold_results[[3]]$eif - joint_shift_fold_results[[4]]$eif) -
+    (joint_shift_fold_results[[2]]$eif - joint_shift_fold_results[[4]]$eif) -
+    (joint_shift_fold_results[[1]]$eif - joint_shift_fold_results[[4]]$eif)) / length(joint_shift_fold_results[[4]]$eif)
+
+  variance_ests <- c(a_psi_variance, b_psi_variance, joint_variance, psi_variance)
+
+  se_ests <- sapply(variance_ests, sqrt)
+
+  calc_CI <- function(psi, psi_se) {
+    psi_CI <- c(
+      round(psi + stats::qnorm(0.05 / 2, lower.tail = T) * psi_se, 4),
+      round(psi + stats::qnorm(0.05 / 2, lower.tail = F) * psi_se, 4)
+    )
+  }
+
+  calc_p_value <- function(psi, psi_se) {
+    2 * stats::pnorm(abs(psi / psi_se), lower.tail = F)
+  }
+
+  CIs <- mapply(calc_CI, psi_estimates, se_ests)
+  p_vals <- mapply(calc_p_value, psi_estimates, se_ests)
 
 
-  psi_p_val <- 2 * stats::pnorm(abs(psi_target / psi_se), lower.tail = F)
-  P_val_ests <- c(joint_shift_fold_results[[1]]$p_value, joint_shift_fold_results[[2]]$p_value, joint_shift_fold_results[[3]]$p_value, joint_shift_fold_results[[4]]$p_value, psi_p_val)
-  results <- data.table::data.table(conditions, psi_params, variance_ests, se_ests, Lower_CIs, Upper_CIs, P_val_ests, rep(fold_k, 5), "Interaction", conditions[[3]], length(joint_shift_fold_results[[3]]$eif))
+  Lower_CIs <- CIs[1, ]
+  Upper_CIs <- CIs[2, ]
+
+  results <- data.table::data.table(conditions, psi_estimates, variance_ests, se_ests, Lower_CIs, Upper_CIs, p_vals, rep(fold_k, 4), "Interaction", conditions[[3]], length(joint_shift_fold_results[[3]]$eif))
   names(results) <- c("Condition", "Psi", "Variance", "SE", "Lower CI", "Upper CI", "P-value", "Fold", "Type", "Variables", "N")
 
   return(results)

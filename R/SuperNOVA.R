@@ -50,8 +50,8 @@ SuperNOVA <- function(W,
                       Y,
                       delta,
                       LOD_vals = NULL,
-                      estimator = c("tmle", "onestep"),
-                      fluctuation = c("standard", "weighted"),
+                      estimator = "tmle",
+                      fluctuation = "weighted",
                       max_iter = 10,
                       Density_stack,
                       Exposures_stack,
@@ -60,8 +60,8 @@ SuperNOVA <- function(W,
                       n_folds,
                       family,
                       quantile_thresh,
-                      verbose,
-                      parallel) {
+                      verbose = FALSE,
+                      parallel = TRUE) {
 
   # check arguments and set up some objects for programmatic convenience
   call <- match.call(expand.dots = TRUE)
@@ -84,7 +84,7 @@ SuperNOVA <- function(W,
       V_names <- paste0("V", seq_len(ncol(V)))
       colnames(V) <- V_names
     }
-  }else{
+  } else {
     V_names <- NULL
   }
 
@@ -128,7 +128,7 @@ SuperNOVA <- function(W,
 
   if (!is.null(V)) {
     data_internal <- data.table::data.table(W, V, A, Y)
-  }else{
+  } else {
     data_internal <- data.table::data.table(W, A, Y)
   }
 
@@ -207,34 +207,34 @@ SuperNOVA <- function(W,
       if (length(matches) == 1 & any(grepl(paste(c(A_names, W_names, V_names), collapse = "|"), matches))) {
         exposure <- target
         covars <- c(W_names, V_names)
-        gn_exp_estim <- indiv_stoch_shift_est_g_exp(target, delta, Density_stack, covars, Av, At)
+        ind_gn_exp_estim <- indiv_stoch_shift_est_g_exp(target, delta, Density_stack, covars, Av, At)
 
-        no_shift_joint <- data.table::data.table(cbind(gn_exp_estim$noshift, gn_exp_estim$noshift, gn_exp_estim$noshift, gn_exp_estim$noshift))
-        colnames(no_shift_joint) <- c("downshift", "noshift", "upshift", "upupshift")
+        no_shift_gn_indiv <- data.table::data.table(cbind(ind_gn_exp_estim$noshift, ind_gn_exp_estim$noshift, ind_gn_exp_estim$noshift, ind_gn_exp_estim$noshift))
+        colnames(no_shift_gn_indiv) <- c("downshift", "noshift", "upshift", "upupshift")
 
         covars <- c(A_names, W_names, V_names)
-        Qn_estim <- indiv_stoch_shift_est_Q(exposure, delta, stack = Outcome_stack, covars, Av, At)
+        ind_Qn_estim <- indiv_stoch_shift_est_Q(exposure, delta, stack = Outcome_stack, covars, Av, At)
 
-        no_shift_Q <- data.table::data.table(cbind(Qn_estim$noshift, Qn_estim$noshift, Qn_estim$noshift, Qn_estim$noshift))
-        colnames(no_shift_Q) <- c("downshift", "noshift", "upshift", "upupshift")
+        ind_no_shift_Q <- data.table::data.table(cbind(ind_Qn_estim$noshift, ind_Qn_estim$noshift, ind_Qn_estim$noshift, ind_Qn_estim$noshift))
+        colnames(ind_no_shift_Q) <- c("downshift", "noshift", "upshift", "upupshift")
 
-        Hn_estims <- list()
-        Qn_estims <- list()
+        ind_Hn_estims <- list()
+        ind_Qn_estims <- list()
 
-        Hn_estim <- est_Hn(gn_exp = gn_exp_estim)
-        no_shift_Hn_estims <- est_Hn(no_shift_joint)
+        ind_Hn_estim <- est_Hn(gn_exp = ind_gn_exp_estim)
+        ind_no_shift_Hn_estims <- est_Hn(no_shift_gn_indiv)
 
-        Hn_estims[[1]] <- Hn_estim
-        Qn_estims[[1]] <- Qn_estim
+        ind_Hn_estims[[1]] <- ind_Hn_estim
+        ind_Qn_estims[[1]] <- ind_Qn_estim
 
-        Hn_estims[[2]] <- no_shift_Hn_estims
-        Qn_estims[[2]] <- no_shift_Q
+        ind_Hn_estims[[2]] <- ind_no_shift_Hn_estims
+        ind_Qn_estims[[2]] <- ind_no_shift_Q
 
         indiv_results_list <- list()
 
-        for (i in 1:length(Qn_estims)) {
-          Hn_estim <- Hn_estims[[i]]
-          Qn_estim <- Qn_estims[[i]]
+        for (i in 1:length(ind_Qn_estims)) {
+          Hn_estim <- ind_Hn_estims[[i]]
+          Qn_estim <- ind_Qn_estims[[i]]
 
           tmle_fit <- tmle_exposhift(
             data_internal = Av,
@@ -328,29 +328,29 @@ SuperNOVA <- function(W,
 
         covars <- c(W_names, V_names)
 
-        gn_exp_estims <- joint_stoch_shift_est_g_exp(exposures, delta, Density_stack, covars, Av, At)
+        joint_gn_exp_estims <- joint_stoch_shift_est_g_exp(exposures, delta, Density_stack, covars, Av, At)
 
-        gn_exp_estims[[3]] <- gn_exp_estims[[1]] * gn_exp_estims[[3]]
+        joint_gn_exp_estims[[3]] <- joint_gn_exp_estims[[1]] * joint_gn_exp_estims[[3]]
 
-        no_shift_joint <- data.table::data.table(cbind(gn_exp_estims[[3]]$noshift, gn_exp_estims[[3]]$noshift, gn_exp_estims[[3]]$noshift, gn_exp_estims[[3]]$noshift))
-        colnames(no_shift_joint) <- c("downshift", "noshift", "upshift", "upupshift")
+        joint_no_shift_joint <- data.table::data.table(cbind(joint_gn_exp_estims[[1]]$noshift, joint_gn_exp_estims[[1]]$noshift, joint_gn_exp_estims[[1]]$noshift, joint_gn_exp_estims[[1]]$noshift))
+        colnames(joint_no_shift_joint) <- c("downshift", "noshift", "upshift", "upupshift")
 
-        Hn_estims <- lapply(gn_exp_estims, est_Hn)
-        no_shift_Hn_estims <- est_Hn(no_shift_joint)
+        joint_Hn_estims <- lapply(joint_gn_exp_estims, est_Hn)
+        joint_no_shift_Hn_estims <- est_Hn(joint_no_shift_joint)
 
         covars <- c(A_names, W_names, V_names)
-        Qn_estims <- joint_stoch_shift_est_Q(exposures, delta, stack = Outcome_stack, covars, Av, At)
+        joint_Qn_estims <- joint_stoch_shift_est_Q(exposures, delta, stack = Outcome_stack, covars, Av, At)
 
-        no_shift_Q <- data.table::data.table(cbind(Qn_estims[[3]]$noshift, Qn_estims[[3]]$noshift, Qn_estims[[3]]$noshift, Qn_estims[[3]]$noshift))
-        colnames(no_shift_Q) <- c("downshift", "noshift", "upshift", "upupshift")
+        joint_no_shift_Q <- data.table::data.table(cbind(joint_Qn_estims[[1]]$noshift, joint_Qn_estims[[1]]$noshift, joint_Qn_estims[[1]]$noshift, joint_Qn_estims[[1]]$noshift))
+        colnames(joint_no_shift_Q) <- c("downshift", "noshift", "upshift", "upupshift")
 
-        Hn_estims[[4]] <- no_shift_Hn_estims
-        Qn_estims[[4]] <- no_shift_Q
+        joint_Hn_estims[[4]] <- joint_no_shift_Hn_estims
+        joint_Qn_estims[[4]] <- joint_no_shift_Q
         intxn_results_list <- list()
 
-        for (i in 1:length(Qn_estims)) {
-          Hn_estim <- Hn_estims[[i]]
-          Qn_estim <- Qn_estims[[i]]
+        for (i in 1:length(joint_Qn_estims)) {
+          Hn_estim <- joint_Hn_estims[[i]]
+          Qn_estim <- joint_Qn_estims[[i]]
 
           tmle_fit <- tmle_exposhift(
             data_internal = Av,

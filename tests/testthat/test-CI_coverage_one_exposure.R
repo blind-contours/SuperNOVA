@@ -1,5 +1,6 @@
 context("Make sure CI folds coverage and pooled results cover ground-truth for one exposure")
 library(data.table)
+library(sl3)
 set.seed(172943)
 
 # Example based on the data-generating mechanism presented in the simulation
@@ -9,7 +10,7 @@ A <- rpois(n, lambda = exp(3 + .3 * log(W$W1) - 0.2 * exp(W$W1) * W$W2))
 Y <- rbinom(
   n, 1,
   plogis(-1 + 0.05 * A - 0.02 * A * W$W2 + 0.2 * A * tan(W$W1^2) -
-           0.02 * W$W1 * W$W2 + 0.1 * A * W$W1 * W$W2)
+    0.02 * W$W1 * W$W2 + 0.1 * A * W$W1 * W$W2)
 )
 delta_shift <- 2
 
@@ -97,34 +98,34 @@ Outcome_stack <- make_learner(
 )
 
 # fit TMLE
-tmle_results <- SuperNOVA(W = W,
-                         V = NULL,
-                         A = A,
-                         Y = Y,
-                         delta = delta_shift,
-                         LOD_val = 0,
-                         estimator = "tmle",
-                         fluctuation = "standard",
-                         max_iter = 10,
-                         Density_stack = sl_density_lrnr,
-                         Exposures_stack = Exposures_stack,
-                         Covariate_stack = Covariate_stack,
-                         Outcome_stack = Outcome_stack,
-                         n_folds = 5,
-                         family = "continuous",
-                         quantile_thresh = 0,
-                         verbose = TRUE,
-                         parallel = TRUE)
+tmle_results <- SuperNOVA(
+  W = W,
+  V = NULL,
+  A = A,
+  Y = Y,
+  delta = delta_shift,
+  LOD_val = 0,
+  estimator = "tmle",
+  fluctuation = "standard",
+  max_iter = 10,
+  Density_stack = sl_density_lrnr,
+  Exposures_stack = Exposures_stack,
+  Covariate_stack = Covariate_stack,
+  Outcome_stack = Outcome_stack,
+  n_folds = 5,
+  family = "continuous",
+  quantile_thresh = 0,
+  verbose = TRUE,
+  parallel = TRUE
+)
 
 meta_results <- compute_meta_results(SuperNOVA_results = tmle_results, parameter = "Indiv Shift")
 
 pooled_tmle_results <- meta_results$`Pooled Results`[[1]]
 truth <- mean(Qn_ext_fitted$upshift - Qn_ext_fitted$noshift)
 
-all_CI_between <- between(truth, pooled_tmle_results$`Lower CI` , pooled_tmle_results$`Upper CI`)
+all_CI_between <- between(truth, pooled_tmle_results$`Lower CI`, pooled_tmle_results$`Upper CI`)
 # test for reasonable equality between estimators
 test_that("All CI bands contain truth", {
   expect_true(all(all_CI_between))
 })
-
-

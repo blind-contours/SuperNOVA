@@ -31,7 +31,7 @@ simulate_data <- function(n_obs = 2000,
   w_em <- rbinom(n_obs, 1, 0.48)
   covars <- MASS::mvrnorm(n = n_obs, mu = c(6, 7), Sigma = matrix(c(1, 0.4, 0.4, 1), 2, 2))
 
-  y <- 0.2 * log(2 * pi * mixtures[, 1]) + 0.6 * (((exp(mixtures[, 1]) / 100) * plogis(mixtures[, 3])) * w_em) + 0.4 * (plogis(mixtures[, 3])) + 0.1 * (covars[, 1] * covars[, 2]) + rnorm(dim(mixtures)[1], mean = 0, sd = 0.01)
+  y <- 0.2 * log(2 * pi * mixtures[, 1]) + 0.6 * (((exp(mixtures[, 1]) / 100) * plogis(mixtures[, 3]))^2 * w_em) + 0.4 * (plogis(mixtures[, 3])) + 0.1 * (covars[, 1] * covars[, 2]) + rnorm(dim(mixtures)[1], mean = 0, sd = 0.01)
 
   data <- as.data.frame(cbind(mixtures, w_em, covars, y))
   colnames(data) <- c("M1", "M2", "M3", "W1", "W2", "W3", "Y")

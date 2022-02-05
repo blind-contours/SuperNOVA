@@ -14,8 +14,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-
-# R/`SuperNOVA`
+# R/`SuperNOVA` <img src="man/figures/SuperNOVA_sticker.png" height="300" align="right"/>
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/blind-contours/SuperNOVA/workflows/R-CMD-check/badge.svg)](https://github.com/blind-contours/SuperNOVA/actions)

@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# R/`SuperNOVA`
+# R/`SuperNOVA` <img src="man/figures/SuperNOVA_sticker.png" height="300" align="right"/>
 
 <!-- badges: start -->
 
@@ -255,56 +255,29 @@ delta compared to no shift:
 ``` r
 indiv_shift_results
 #> # A tibble: 6 × 11
-#>   Condition      Psi Variance      SE `Lower CI` `Upper CI` `P-value`  Fold
-#>   <chr>        <dbl>    <dbl>   <dbl>      <dbl>      <dbl>     <dbl> <int>
-#> 1 M1         0.147   1.69e- 3 4.11e-2    6.62e-2    2.27e-1  3.54e- 4     1
-#> 2 V         -0.00395 2.21e+ 8 1.49e+4   -2.92e+4    2.92e+4  1.00e+ 0     1
-#> 3 M1         0.189   4.84e- 4 2.20e-2    1.46e-1    2.32e-1  8.15e-18     2
-#> 4 V          0.0408  6.66e+17 8.16e+8   -1.60e+9    1.60e+9  1.00e+ 0     2
-#> 5 M1         0.153   2.69e- 3 5.19e-2    5.17e-2    2.55e-1  3.12e- 3     3
-#> 6 V          0.0347  6.80e+16 2.61e+8   -5.11e+8    5.11e+8  1.00e+ 0     3
-#> # … with 3 more variables: Type <chr>, Variables <chr>, N <int>
+#>   Condition    Psi Variance      SE `Lower CI` `Upper CI` `P-value`  Fold Type  
+#>   <chr>      <dbl>    <dbl>   <dbl>      <dbl>      <dbl>     <dbl> <int> <chr> 
+#> 1 M1        0.147  1.34e- 3 3.66e-2    7.57e-2    2.19e-1  5.69e- 5     1 Indiv…
+#> 2 V         0.0359 6.33e+ 8 2.52e+4   -4.93e+4    4.93e+4  1.00e+ 0     1 Indiv…
+#> 3 M1        0.187  4.66e- 4 2.16e-2    1.45e-1    2.30e-1  4.08e-18     2 Indiv…
+#> 4 V         0.0403 1.07e+18 1.03e+9   -2.03e+9    2.03e+9  1.00e+ 0     2 Indiv…
+#> 5 M1        0.172  4.34e- 3 6.59e-2    4.24e-2    3.01e-1  9.22e- 3     3 Indiv…
+#> 6 V         0.0647 1.23e+18 1.11e+9   -2.17e+9    2.17e+9  1.00e+ 0     3 Indiv…
+#> # … with 2 more variables: Variables <chr>, N <int>
 ```
 
 Next we can look at effect modifications:
 
 ``` r
 em_results
-#> # A tibble: 9 × 11
-#>   Condition          Psi Variance       SE `Lower CI` `Upper CI` `P-value`  Fold
-#>   <chr>            <dbl>    <dbl>    <dbl>      <dbl>      <dbl>     <dbl> <int>
-#> 1 Level 1 Shift…  0.270   2.51e-2   0.158     -0.0402     0.581    0.0880      1
-#> 2 Level 0 Shift…  0.0520  9.09e-4   0.0301    -0.0071     0.111    0.0845      1
-#> 3 Effect Mod      0.218   2.60e-2   0.161     -0.0978     0.535    0.176       1
-#> 4 Level 1 Shift…  0.177  -1.88e-4 NaN        NaN        NaN      NaN           2
-#> 5 Level 0 Shift…  0.252   7.35e-3   0.0857     0.084      0.42     0.00328     2
-#> 6 Effect Mod     -0.0747  7.16e-3   0.0846    -0.240      0.0911   0.377       2
-#> 7 Level 1 Shift…  0.204  -4.97e-4 NaN        NaN        NaN      NaN           3
-#> 8 Level 0 Shift…  0.0947 -2.41e-3 NaN        NaN        NaN      NaN           3
-#> 9 Effect Mod      0.109  -2.91e-3 NaN        NaN        NaN      NaN           3
-#> # … with 3 more variables: Type <chr>, Variables <chr>, N <int>
+#> [1] NA
 ```
 
 And finally results for the joint shift
 
 ``` r
 joint_shift_results
-#> # A tibble: 12 × 11
-#>    Condition      Psi Variance     SE `Lower CI` `Upper CI` `P-value`  Fold
-#>    <chr>        <dbl>    <dbl>  <dbl>      <dbl>      <dbl>     <dbl> <int>
-#>  1 M1         0.147   0.00136  0.0368     0.075      0.219   6.42e- 5     1
-#>  2 M2         0.0101  0.000746 0.0273    -0.0434     0.0636  7.11e- 1     1
-#>  3 M1&M2      0.182   0.00101  0.0318     0.120      0.245   1.03e- 8     1
-#>  4 Psi        0.0250  0.00135  0.0368    -0.047      0.0971  4.96e- 1     1
-#>  5 M1         0.190   0.000488 0.0221     0.146      0.233   9.13e-18     2
-#>  6 M2         0.0108  0.000107 0.0103    -0.0094     0.0311  2.94e- 1     2
-#>  7 M1&M2      0.191   0.000548 0.0234     0.145      0.237   3.05e-16     2
-#>  8 Psi       -0.00927 0.000110 0.0105    -0.0298     0.0113  3.76e- 1     2
-#>  9 M1         0.150   0.00208  0.0456     0.0602     0.239   1.04e- 3     3
-#> 10 M2         0.0127  0.000107 0.0103    -0.0075     0.033   2.18e- 1     3
-#> 11 M1&M2      0.149   0.00161  0.0401     0.0699     0.227   2.15e- 4     3
-#> 12 Psi       -0.0138  0.000453 0.0213    -0.0555     0.028   5.18e- 1     3
-#> # … with 3 more variables: Type <chr>, Variables <chr>, N <int>
+#> [1] NA
 ```
 
 ------------------------------------------------------------------------

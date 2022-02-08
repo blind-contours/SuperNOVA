@@ -2,6 +2,7 @@
 output:
   rmarkdown::github_document
 bibliography: "inst/references.bib"
+always_allow_html: true
 ---
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
@@ -102,6 +103,8 @@ To illustrate how `SuperNOVA` may be used to ascertain the effect of a mixed exp
 ```{r example, warning=FALSE}
 library(SuperNOVA)
 library(devtools)
+library(kableExtra)
+
 load_all('~/sl3')
 set.seed(429153)
 # simulate simple data
@@ -113,7 +116,9 @@ The `simulate_data` function creates simulated data with a multivariate exposure
 ```{r simulate data, eval = TRUE}
 data_info <- simulate_data(n_obs = n_obs)
 data <- data_info$data
-head(data)
+head(data) %>%
+  kbl(caption = "Simulated Data") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
 ```
 
 ```{r setup learner stacks}
@@ -219,28 +224,36 @@ joint_shift_results <- sim_results$`Joint Shift Results`
 Let's first look at the results for individual stochastic shifts by delta compared to no shift:
 
 ```{r individual shift results}
-indiv_shift_results
+indiv_shift_results %>%
+  kbl(caption = "Individual Stochastic Intervention Results") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
 ```
 
 Next we can look at effect modifications: 
 
 ```{r effect modification results}
-em_results
+em_results %>%
+  kbl(caption = "Effect Modification Stochastic Intervention Results") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
 ```
 
 And finally results for the joint shift
 
 ```{r joint results}
-joint_shift_results
+joint_shift_results %>%
+  kbl(caption = "Interactions Stochastic Intervention Results") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+```
+
 ```
 ---
 
 ## Issues
 
 If you encounter any bugs or have any specific feature requests, please [file an
-issue](https://github.com/nhejazi/SuperNOVA/issues). Further details on filing
+issue](https://github.com/blind-contours/SuperNOVA/issues). Further details on filing
 issues are provided in our [contribution
-guidelines](https://github.com/nhejazi/SuperNOVA/blob/master/CONTRIBUTING.md).
+guidelines](https://github.com/blind-contours/SuperNOVA/blob/master/CONTRIBUTING.md).
 
 ---
 
@@ -248,7 +261,7 @@ guidelines](https://github.com/nhejazi/SuperNOVA/blob/master/CONTRIBUTING.md).
 
 Contributions are very welcome. Interested contributors should consult our
 [contribution
-guidelines](https://github.com/nhejazi/SuperNOVA/blob/master/CONTRIBUTING.md)
+guidelines](https://github.com/blind-contours/SuperNOVA/blob/master/CONTRIBUTING.md)
 prior to submitting a pull request.
 
 ---
@@ -257,39 +270,6 @@ prior to submitting a pull request.
 
 After using the `SuperNOVA` R package, please cite the following:
 
-        @article{hejazi2020efficient,
-          author = {Hejazi, Nima S and {van der Laan}, Mark J and Janes, Holly
-            E and Gilbert, Peter B and Benkeser, David C},
-          title = {Efficient nonparametric inference on the effects of
-            stochastic interventions under two-phase sampling, with
-            applications to vaccine efficacy trials},
-          year = {2020},
-          doi = {10.1111/biom.13375},
-          url = {https://doi.org/10.1111/biom.13375},
-          journal = {Biometrics},
-          publisher = {Wiley Online Library}
-        }
-
-        @article{hejazi2020SuperNOVA-joss,
-          author = {Hejazi, Nima S and Benkeser, David C},
-          title = {{SuperNOVA}: Efficient estimation of the causal effects of
-            stochastic interventions in {R}},
-          year  = {2020},
-          doi = {10.21105/joss.02447},
-          url = {https://doi.org/10.21105/joss.02447},
-          journal = {Journal of Open Source Software},
-          publisher = {The Open Journal}
-        }
-
-        @software{hejazi2022SuperNOVA-rpkg,
-          author = {Hejazi, Nima S and Benkeser, David C},
-          title = {{SuperNOVA}: Efficient Estimation of the Causal Effects of
-            Stochastic Interventions},
-          year  = {2022},
-          doi = {10.5281/zenodo.4070042},
-          url = {https://CRAN.R-project.org/package=SuperNOVA},
-          note = {R package version 0.3.7}
-        }
 
 ---
 
@@ -320,24 +300,19 @@ After using the `SuperNOVA` R package, please cite the following:
 ## Funding
 
 The development of this software was supported in part through grants from the
-National Library of Medicine (award no. [T32
-LM012417](https://reporter.nih.gov/project-details/9248418)) and the National
-Institute of Allergy and Infectious Diseases (award no.  [R01
-AI074345](https://reporter.nih.gov/project-details/9926564)) of the National
-Institutes of Health, as well as by the National Science Foundation (award no.
-[DMS 2102840](https://www.nsf.gov/awardsearch/showAward?AWD_ID=2102840)).
+
 
 ---
 
 ## License
 
-&copy; 2017-2022 [Nima S. Hejazi](https://nimahejazi.org)
+&copy; 2020-2022 [David B. McCoy](https://davidmccoy.org)
 
 The contents of this repository are distributed under the MIT license. See below
 for details:
 ```
 MIT License
-Copyright (c) 2017-2022 Nima S. Hejazi
+Copyright (c) 2020-2022 David B. McCoy
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights

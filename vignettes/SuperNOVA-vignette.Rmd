@@ -284,7 +284,7 @@ Firts, let's load the packages we'll use and set a seed for simulation:
 
 ```{r setup, message=FALSE, warning=FALSE}
 library(data.table)
-library(sl3)
+load_all('~/sl3')
 library(SuperLearner)
 library(kableExtra)
 library(SuperNOVA)
@@ -341,19 +341,19 @@ Lrnr_earth_8 <- Lrnr_earth$new(linpreds = FALSE, degree = 3,  fast.beta	= 0)
 Lrnr_earth_9 <- Lrnr_earth$new(linpreds = FALSE, degree = 3, fast.k	= 10, pmethod="cv", nfold = 5)
 Lrnr_earth_10 <- Lrnr_earth$new(linpreds = FALSE, degree = 2, pmethod = "exhaustive")
 Lrnr_earth_11 <- Lrnr_earth$new(linpreds = FALSE, degree = 2, pmethod = "exhaustive", fast.k = 0)
-
-two_ways <- combn(c("X1", "X2", "X3", "X4", "X5", "X6", "X7"), m = 2)
-interactions <- lapply(seq_len(ncol(two_ways)), function(x) as.vector(two_ways[,x]))
-lrn_interaction <- make_learner(Lrnr_define_interactions, interactions)
-lrn_glm <- make_learner(Lrnr_glm)
-lasso_learner <- Lrnr_glmnet$new(alpha = 1)
-ridge_learner <- Lrnr_glmnet$new(alpha = 0)
-enet_learner <- Lrnr_glmnet$new(alpha = 0.5)
-lrn_glm_interaction <- make_learner(Pipeline, lrn_interaction, lrn_glm)
-lrn_lasso_interaction <- make_learner(Pipeline, lrn_interaction, lasso_learner)
-lrn_ridge_interaction <- make_learner(Pipeline, lrn_interaction, ridge_learner)
-lrn_enet_interaction <- make_learner(Pipeline, lrn_interaction, enet_learner)
-lrn_ranger <- Lrnr_ranger$new(num.trees = 1000)
+# 
+# two_ways <- combn(c("X1", "X2", "X3", "X4", "X5", "X6", "X7"), m = 2)
+# interactions <- lapply(seq_len(ncol(two_ways)), function(x) as.vector(two_ways[,x]))
+# lrn_interaction <- make_learner(Lrnr_define_interactions, interactions)
+# lrn_glm <- make_learner(Lrnr_glm)
+# lasso_learner <- Lrnr_glmnet$new(alpha = 1)
+# ridge_learner <- Lrnr_glmnet$new(alpha = 0)
+# enet_learner <- Lrnr_glmnet$new(alpha = 0.5)
+# lrn_glm_interaction <- make_learner(Pipeline, lrn_interaction, lrn_glm)
+# lrn_lasso_interaction <- make_learner(Pipeline, lrn_interaction, lasso_learner)
+# lrn_ridge_interaction <- make_learner(Pipeline, lrn_interaction, ridge_learner)
+# lrn_enet_interaction <- make_learner(Pipeline, lrn_interaction, enet_learner)
+# lrn_ranger <- Lrnr_ranger$new(num.trees = 1000)
 
 learners <- c(
   Lrnr_earth_1,
@@ -366,12 +366,12 @@ learners <- c(
   Lrnr_earth_8,
   Lrnr_earth_9,
   Lrnr_earth_10,
-  Lrnr_earth_11,
-  lrn_glm_interaction,
-  lrn_lasso_interaction,
-  lrn_ridge_interaction,
-  lrn_enet_interaction,
-  lrn_ranger
+  Lrnr_earth_11
+  # lrn_glm_interaction,
+  # lrn_lasso_interaction,
+  # lrn_ridge_interaction,
+  # lrn_enet_interaction,
+  # lrn_ranger
 )
 
 names(learners) <- c(
@@ -385,12 +385,12 @@ names(learners) <- c(
   "full earth 8",
   "full earth 9",
   "full earth 10",
-  "full earth 11",
-  "glm_interaction",
-  "lasso_interaction",
-  "ridge_interaction",
-  "enet_interaction",
-  "ranger"
+  "full earth 11"
+  # "glm_interaction",
+  # "lasso_interaction",
+  # "ridge_interaction",
+  # "enet_interaction",
+  # "ranger"
 )
 
 
@@ -474,12 +474,11 @@ sim_results <- SuperNOVA(W = W,
                          LOD_val = 0,
                          estimator = "tmle",
                          fluctuation = "standard",
-                         max_iter = 10,
                          Density_stack = sl_density_lrnr,
                          Exposures_stack = Exposures_stack,
                          Covariate_stack = Covariate_stack,
                          Outcome_stack = Outcome_stack,
-                         n_folds = 20,
+                         n_folds = 3,
                          family = "continuous",
                          quantile_thresh = 0.25,
                          verbose = TRUE,

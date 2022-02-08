@@ -51,7 +51,7 @@ SuperNOVA <- function(W,
                       delta,
                       LOD_vals = NULL,
                       estimator = "tmle",
-                      fluctuation = "weighted",
+                      fluctuation = "standard",
                       max_iter = 10,
                       Density_stack,
                       Exposures_stack,
@@ -87,7 +87,6 @@ SuperNOVA <- function(W,
   } else {
     V_names <- NULL
   }
-
 
   # coerce W to matrix and, if no names in W, assign them generically
   A <- data.frame(A)
@@ -149,8 +148,6 @@ SuperNOVA <- function(W,
     At <- data_internal[data_internal$folds != fold_k, ]
     Av <- data_internal[data_internal$folds == fold_k, ]
 
-    # samp_weights <- samp_estim <- C_samp <- rep(1, dim(Av)[1])
-
     covars <- W_names
     exposures <- c(A_names, V_names)
 
@@ -175,12 +172,9 @@ SuperNOVA <- function(W,
   common_variables <- Reduce(intersect, fold_basis_results)
 
   fold_basis_results <- foreach::foreach(fold_k = unique(data_internal$folds), .combine = "rbind") %dopar% {
-    At <- data_internal[data_internal$folds != fold_k, ]
-    Av <- data_internal[data_internal$folds == fold_k, ]
 
+  # for (fold_k in unique(data_internal$folds)) {
 
-    # basis_used <- stringi::stri_remove_empty(basis_used, na_empty = FALSE)
-    # gn_cens_weights <- rep(1, nrow(Av))
 
     x <- c("Condition", "Psi", "Variance", "SE", "Lower CI", "Upper CI", "P-value", "Fold", "Type", "Variables", "N")
     within_fold_indiv_stoch_shift_df <- data.frame(matrix(ncol = 11, nrow = 0))
@@ -191,57 +185,54 @@ SuperNOVA <- function(W,
     colnames(within_fold_eff_mod_stoch_shift_df) <- x
     colnames(within_fold_intxn_stoch_shift_df) <- x
 
+    At <- data_internal[data_internal$folds != fold_k, ]
+    Av <- data_internal[data_internal$folds == fold_k, ]
+
     for (i in 1:length(common_variables)) {
-      target <- common_variables[i]
-      match_list <- list()
 
-      for (j in 1:length(c(A_names, V_names))) {
-        var <- c(A_names, V_names)[j]
-        matches <- stringr::str_match(target, var)
-        matches[is.na(matches)] <- ""
-        match_list[j] <- matches[[1]]
-      }
+      hits <- extract_vars_from_basis(common_variables, i, A_names, V_names)
 
-      matches <- unlist(match_list[!match_list %in% ""])
+      matches <- hits$matches
+      target <- hits$target
 
       if (length(matches) == 1 & any(grepl(paste(c(A_names, W_names, V_names), collapse = "|"), matches))) {
         exposure <- target
         covars <- c(W_names, V_names)
         ind_gn_exp_estim <- indiv_stoch_shift_est_g_exp(target, delta, Density_stack, covars, Av, At)
 
-        no_shift_gn_indiv <- data.table::data.table(cbind(ind_gn_exp_estim$noshift, ind_gn_exp_estim$noshift, ind_gn_exp_estim$noshift, ind_gn_exp_estim$noshift))
-        colnames(no_shift_gn_indiv) <- c("downshift", "noshift", "upshift", "upupshift")
+        # no_shift_gn_indiv <- data.table::data.table(cbind(ind_gn_exp_estim$noshift, ind_gn_exp_estim$noshift, ind_gn_exp_estim$noshift, ind_gn_exp_estim$noshift))
+        # colnames(no_shift_gn_indiv) <- c("downshift", "noshift", "upshift", "upupshift")
 
         covars <- c(A_names, W_names, V_names)
         ind_Qn_estim <- indiv_stoch_shift_est_Q(exposure, delta, stack = Outcome_stack, covars, Av, At)
 
-        ind_no_shift_Q <- data.table::data.table(cbind(ind_Qn_estim$noshift, ind_Qn_estim$noshift, ind_Qn_estim$noshift, ind_Qn_estim$noshift))
-        colnames(ind_no_shift_Q) <- c("downshift", "noshift", "upshift", "upupshift")
+        # ind_no_shift_Q <- data.table::data.table(cbind(ind_Qn_estim$noshift, ind_Qn_estim$noshift, ind_Qn_estim$noshift, ind_Qn_estim$noshift))
+        # colnames(ind_no_shift_Q) <- c("downshift", "noshift", "upshift", "upupshift")
 
-        ind_Hn_estims <- list()
-        ind_Qn_estims <- list()
+        # ind_Hn_estims <- list()
+        # ind_Qn_estims <- list()
 
         ind_Hn_estim <- est_Hn(gn_exp = ind_gn_exp_estim)
-        ind_no_shift_Hn_estims <- est_Hn(no_shift_gn_indiv)
+        # ind_no_shift_Hn_estims <- est_Hn(no_shift_gn_indiv)
 
-        ind_Hn_estims[[1]] <- ind_Hn_estim
-        ind_Qn_estims[[1]] <- ind_Qn_estim
+        # ind_Hn_estims[[1]] <- ind_Hn_estim
+        # ind_Qn_estims[[1]] <- ind_Qn_estim
+        #
+        # ind_Hn_estims[[2]] <- ind_no_shift_Hn_estims
+        # ind_Qn_estims[[2]] <- ind_no_shift_Q
 
-        ind_Hn_estims[[2]] <- ind_no_shift_Hn_estims
-        ind_Qn_estims[[2]] <- ind_no_shift_Q
+        # indiv_results_list <- list()
 
-        indiv_results_list <- list()
-
-        for (i in 1:length(ind_Qn_estims)) {
-          Hn_estim <- ind_Hn_estims[[i]]
-          Qn_estim <- ind_Qn_estims[[i]]
+        # for (i in 1:length(ind_Qn_estims)) {
+        #   Hn_estim <- ind_Hn_estims[[i]]
+        #   Qn_estim <- ind_Qn_estims[[i]]
 
           tmle_fit <- tmle_exposhift(
             data_internal = Av,
             V = V_in,
             delta = delta,
-            Qn_estim = Qn_estim,
-            Hn_estim = Hn_estim,
+            Qn_estim = ind_Qn_estim,
+            Hn_estim = ind_Hn_estim,
             fluctuation = fluctuation,
             max_iter = max_iter,
             eif_reg_type = eif_reg_type,
@@ -249,14 +240,14 @@ SuperNOVA <- function(W,
             ipcw_efficiency = ipcw_efficiency
           )
 
-          indiv_results_list[[i]] <- tmle_fit
-        }
 
         tmle_fit$call <- call
 
-        indiv_shift_in_fold <- calc_final_ind_shift_param(indiv_results_list, exposure, fold_k)
+        indiv_shift_in_fold <- calc_final_ind_shift_param(tmle_fit, exposure, fold_k)
         within_fold_indiv_stoch_shift_df <- rbind(within_fold_indiv_stoch_shift_df, indiv_shift_in_fold)
+
       } else if (length(matches) == 2 & any(grepl(paste(c(A_names), collapse = "|"), matches)) & any(grepl(paste(c(V_names), collapse = "|"), matches)) & !is.null(V_names)) {
+
         exposure <- stringr::str_extract(matches, paste(c(A_names), collapse = "|"))
         effect_m_name <- stringr::str_extract(matches, paste(c(V_names), collapse = "|"))
         exposure <- exposure[!is.na(exposure)]
@@ -264,64 +255,31 @@ SuperNOVA <- function(W,
 
         covars <- c(W_names)
         gn_exp_estim <- indiv_stoch_shift_est_g_exp(exposure, delta, Density_stack, covars, Av, At)
+        Hn_estim <- est_Hn(gn_exp = gn_exp_estim)
 
-        no_shift_joint <- data.table::data.table(cbind(gn_exp_estim$noshift, gn_exp_estim$noshift, gn_exp_estim$noshift, gn_exp_estim$noshift))
-        colnames(no_shift_joint) <- c("downshift", "noshift", "upshift", "upupshift")
 
         covars <- c(A_names, W_names)
         Qn_estim <- indiv_stoch_shift_est_Q(exposure, delta, stack = Outcome_stack, covars, Av, At)
 
-        no_shift_Q <- data.table::data.table(cbind(Qn_estim$noshift, Qn_estim$noshift, Qn_estim$noshift, Qn_estim$noshift))
-        colnames(no_shift_Q) <- c("downshift", "noshift", "upshift", "upupshift")
+        tmle_fit <- tmle_exposhift(
+          data_internal = Av,
+          V = V_in,
+          delta = delta,
+          Qn_estim = Qn_estim,
+          Hn_estim = Hn_estim,
+          fluctuation = fluctuation,
+          max_iter = max_iter
+        )
 
-        Hn_estims <- list()
-        Qn_estims <- list()
-
-        Hn_estim <- est_Hn(gn_exp = gn_exp_estim)
-        no_shift_Hn_estims <- est_Hn(no_shift_joint)
-
-        Hn_estims[[1]] <- Hn_estim
-        Qn_estims[[1]] <- Qn_estim
-
-        Hn_estims[[2]] <- no_shift_Hn_estims
-        Qn_estims[[2]] <- no_shift_Q
-
-        indiv_results_list <- list()
-
-        effect_m_levels <- as.character(unlist(unique(V[, effect_m_name])))
-        shift_types_list <- list()
-        for (j in 1:length(Qn_estims)) {
-          effect_m_results_list <- list()
-          for (index in 1:length(effect_m_levels)) {
-            i <- effect_m_levels[index]
-
-            Av_sub <- Av[Av[, get(effect_m_name) == i], ]
-            # samp_estim_sub <- samp_estim[Av[, get(effect_m_name) == i]]
-            # gn_cens_weights_sub <- gn_cens_weights[Av[, get(effect_m_name) == i]]
-            Qn_estim_sub <- Qn_estims[[j]][Av[, get(effect_m_name) == i], ]
-            Hn_estim_sub <- Hn_estims[[j]][Av[, get(effect_m_name) == i], ]
-
-            tmle_fit <- tmle_exposhift(
-              data_internal = Av_sub,
-              C_samp = rep(1, dim(Av_sub)[1]),
-              V = V_in,
-              delta = delta,
-              Qn_estim = Qn_estim_sub,
-              Hn_estim = Hn_estim_sub,
-              fluctuation = fluctuation,
-              max_iter = max_iter,
-              eif_reg_type = eif_reg_type,
-              samp_fit_args = samp_fit_args,
-              ipcw_efficiency = FALSE
-            )
-
-            effect_m_results_list[[i]] <- tmle_fit
-          }
-
-          shift_types_list[[j]] <- effect_m_results_list
+        if(length(unique(Av[[effect_m_name]])) > 2){
+          V <- ifelse(Av[[effect_m_name]] >= quantile(Av[[effect_m_name]], 0.5)[[1]],1, 0)
+        }else{
+          V <- Av[[effect_m_name]]
         }
-        effect_mod_in_fold <- calc_final_effect_mod_param(shift_types_list, exposure, effect_m_name, fold_k)
+
+        effect_mod_in_fold <- calc_final_effect_mod_param(tmle_fit, exposure, effect_modifier = V, effect_m_name, fold_k)
         within_fold_eff_mod_stoch_shift_df <- rbind(within_fold_eff_mod_stoch_shift_df, effect_mod_in_fold)
+
       } else if (length(matches) == 2 & all(grepl(paste(c(A_names), collapse = "|"), matches))) {
         exposures <- as.list(matches)
         exposures[[3]] <- matches
@@ -332,20 +290,21 @@ SuperNOVA <- function(W,
 
         joint_gn_exp_estims[[3]] <- joint_gn_exp_estims[[1]] * joint_gn_exp_estims[[3]]
 
-        joint_no_shift_joint <- data.table::data.table(cbind(joint_gn_exp_estims[[1]]$noshift, joint_gn_exp_estims[[1]]$noshift, joint_gn_exp_estims[[1]]$noshift, joint_gn_exp_estims[[1]]$noshift))
-        colnames(joint_no_shift_joint) <- c("downshift", "noshift", "upshift", "upupshift")
+        # joint_no_shift_joint <- data.table::data.table(cbind(joint_gn_exp_estims[[1]]$noshift, joint_gn_exp_estims[[1]]$noshift, joint_gn_exp_estims[[1]]$noshift, joint_gn_exp_estims[[1]]$noshift))
+        # colnames(joint_no_shift_joint) <- c("downshift", "noshift", "upshift", "upupshift")
 
         joint_Hn_estims <- lapply(joint_gn_exp_estims, est_Hn)
-        joint_no_shift_Hn_estims <- est_Hn(joint_no_shift_joint)
+        # joint_no_shift_Hn_estims <- est_Hn(joint_no_shift_joint)
 
         covars <- c(A_names, W_names, V_names)
         joint_Qn_estims <- joint_stoch_shift_est_Q(exposures, delta, stack = Outcome_stack, covars, Av, At)
 
-        joint_no_shift_Q <- data.table::data.table(cbind(joint_Qn_estims[[1]]$noshift, joint_Qn_estims[[1]]$noshift, joint_Qn_estims[[1]]$noshift, joint_Qn_estims[[1]]$noshift))
-        colnames(joint_no_shift_Q) <- c("downshift", "noshift", "upshift", "upupshift")
+        # joint_no_shift_Q <- data.table::data.table(cbind(joint_Qn_estims[[1]]$noshift, joint_Qn_estims[[1]]$noshift, joint_Qn_estims[[1]]$noshift, joint_Qn_estims[[1]]$noshift))
+        # colnames(joint_no_shift_Q) <- c("downshift", "noshift", "upshift", "upupshift")
 
-        joint_Hn_estims[[4]] <- joint_no_shift_Hn_estims
-        joint_Qn_estims[[4]] <- joint_no_shift_Q
+        # joint_Hn_estims[[4]] <- joint_no_shift_Hn_estims
+        # joint_Qn_estims[[4]] <- joint_no_shift_Q
+
         intxn_results_list <- list()
 
         for (i in 1:length(joint_Qn_estims)) {
@@ -378,9 +337,6 @@ SuperNOVA <- function(W,
     results
   }
 
-
-  # results <-
-  #   fold_basis_results %>% dplyr::group_by(Type, Variables, Condition) %>% dplyr::mutate(`Proportion in Folds` = dplyr::n() / n_folds) %>% dplyr::ungroup()
 
   groups <-
     fold_basis_results %>% dplyr::group_by(Type)

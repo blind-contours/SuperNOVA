@@ -14,8 +14,9 @@ simulate_data <- function(n_obs = 2000,
                           mu = c(2.5, 3, 4),
                           sigma_mod = matrix(c(1, 0.5, 0.8, 0.5, 1, 0.7, 0.8, 0.7, 1),
                             nrow = 3,
-                            ncol = 3
-                          )) {
+                            ncol = 3),
+                            effect_mod_binary = FALSE
+                          ) {
   mixtures <- MASS::mvrnorm(n = n_obs, mu = mu, Sigma = sigma_mod)
 
   mixtures[mixtures < 0] <- 0.001
@@ -28,10 +29,15 @@ simulate_data <- function(n_obs = 2000,
   # w <- bindata::rmvbin(n_obs, margprob = c(0.5, 0.5), bincorr = m)
   # cor(w)
 
-  w_em <- rbinom(n_obs, 1, 0.48)
+  if (effect_mod_binary == TRUE) {
+    w_em <- rbinom(n_obs, 1, 0.48)
+  }else{
+    w_em <- rnorm(n_obs, mean = 2, sd = 0.4)
+  }
+
   covars <- MASS::mvrnorm(n = n_obs, mu = c(6, 7), Sigma = matrix(c(1, 0.4, 0.4, 1), 2, 2))
 
-  y <- 0.2 * log(2 * pi * mixtures[, 1]) + 0.6 * (((exp(mixtures[, 1]) / 100) * plogis(mixtures[, 3]))^2 * w_em) + 0.4 * (plogis(mixtures[, 3])) + 0.1 * (covars[, 1] * covars[, 2]) + rnorm(dim(mixtures)[1], mean = 0, sd = 0.01)
+  y <- 0.2 * log(2 * pi * mixtures[, 1]) + 0.6 * plogis(mixtures[, 3]) * w_em + 0.4 * (plogis(mixtures[, 3]) * exp(mixtures[, 1]) / 100) + 0.1 * covars[, 1] + 0.3 * covars[, 2] + rnorm(dim(mixtures)[1], mean = 0, sd = 0.01)
 
   data <- as.data.frame(cbind(mixtures, w_em, covars, y))
   colnames(data) <- c("M1", "M2", "M3", "W1", "W2", "W3", "Y")

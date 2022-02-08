@@ -186,6 +186,7 @@ tmle_exposhift <- function(data_internal,
       fluc_mod_out = fitted_fluc_mod,
       C_samp = C_samp,
       ipc_weights = (gn_cens_weights * samp_weights[C_samp == 1])
+
     )
 
     # create output object
@@ -201,7 +202,15 @@ tmle_exposhift <- function(data_internal,
         n_iter = n_steps,
         estimator = "tmle",
         .outcome = list(data_internal$Y),
-        .delta = delta
+        .delta = delta,
+        Qn_shift_star = list(fitted_fluc_mod$Qn_shift_star),
+        Qn_noshift_star = list(fitted_fluc_mod$Qn_noshift_star),
+        noshift_psi = tmle_eif_out[["no shift psi"]],
+        noshift_var = tmle_eif_out[["no shift var"]],
+        noshift_se = tmle_eif_out[["no shift se"]],
+        noshift_CI = tmle_eif_out[["no shift CI"]],
+        p_value = tmle_eif_out[["p_value"]],
+        noshift_eif = list(tmle_eif_out[["no shift eif"]])
       ),
       recursive = FALSE
     )

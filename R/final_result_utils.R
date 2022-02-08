@@ -11,69 +11,65 @@
 #'
 
 
-calc_final_ind_shift_param <- function(indiv_shift_fold_results, exposure, fold_k) {
+calc_final_ind_shift_param <- function(tmle_fit, exposure, fold_k) {
   condition <- exposure
-  psi_param <- indiv_shift_fold_results[[1]]$psi - indiv_shift_fold_results[[2]]$psi
-  variance_est <- var(indiv_shift_fold_results[[1]]$eif - indiv_shift_fold_results[[2]]$eif) / length(indiv_shift_fold_results[[1]]$eif)
+  psi_param <- tmle_fit$psi - tmle_fit$noshift_psi
+  variance_est <- var(tmle_fit$eif - tmle_fit$noshift_eif) / length(tmle_fit$eif)
   se_est <- sqrt(variance_est)
-  CI <- c(
-    round(psi_param + stats::qnorm(0.05 / 2, lower.tail = T) * se_est, 4),
-    round(psi_param + stats::qnorm(0.05 / 2, lower.tail = F) * se_est, 4)
-  )
+  CI <- calc_CIs(psi_param, se_est)
 
   Lower_CI <- CI[1]
   Upper_CI <- CI[2]
   p.value <- 2 * stats::pnorm(abs(psi_param / se_est), lower.tail = F)
 
-  n <- length(indiv_shift_fold_results[[1]]$eif)
+  n <- length(tmle_fit$eif)
 
   results <- data.table::data.table(condition, psi_param, variance_est, se_est, Lower_CI, Upper_CI, p.value, fold_k, "Indiv Shift", exposure, n)
+
   names(results) <- c("Condition", "Psi", "Variance", "SE", "Lower CI", "Upper CI", "P-value", "Fold", "Type", "Variables", "N")
 
   return(results)
 }
 
-calc_final_effect_mod_param <- function(effect_mod_fold_results, exposure, effect_m_name, fold_k) {
-  level_1_psi <- effect_mod_fold_results[[1]]$`1`$psi - effect_mod_fold_results[[2]]$`1`$psi
-  level_0_psi <- effect_mod_fold_results[[1]]$`0`$psi - effect_mod_fold_results[[2]]$`0`$psi
+calc_final_effect_mod_param <- function(tmle_fit, exposure, effect_modifier, effect_m_name, fold_k) {
 
-  psi_diff <- level_1_psi - level_0_psi
+  inverse_prop_positive <- ifelse(effect_modifier == 1,  1/(table(effect_modifier)[[2]] / length(effect_modifier)), 0)
+  inverse_prop_negative <- ifelse(effect_modifier == 0,  1/(table(effect_modifier)[[1]] / length(effect_modifier)), 0)
 
-  level_1_var <- effect_mod_fold_results[[1]]$`1`$var - effect_mod_fold_results[[2]]$`1`$var
-  level_0_var <- effect_mod_fold_results[[1]]$`0`$var - effect_mod_fold_results[[2]]$`0`$var
+  inverse_prop_eif_pos <- inverse_prop_positive * tmle_fit$eif
+  inverse_prop_eif_neg <- inverse_prop_negative * tmle_fit$eif
 
-  psi_se <- sqrt(sum(level_1_var, level_0_var))
+  psi_em_one <- mean(tmle_fit$Qn_shift_star[effect_modifier == 1])
+  psi_em_zero <- mean(tmle_fit$Qn_shift_star[effect_modifier == 0])
 
-  psi_CI <- c(
-    round(psi_diff + stats::qnorm(0.05 / 2, lower.tail = T) * psi_se, 4),
-    round(psi_diff + stats::qnorm(0.05 / 2, lower.tail = F) * psi_se, 4)
-  )
+  psi_diff <- psi_em_one - psi_em_zero
 
-  level_1_CI <- c(
-    round(level_1_psi + stats::qnorm(0.05 / 2, lower.tail = T) * sqrt(level_1_var), 4),
-    round(level_1_psi + stats::qnorm(0.05 / 2, lower.tail = F) * sqrt(level_1_var), 4)
-  )
+  psi_diff_eif <- inverse_prop_eif_pos - inverse_prop_eif_neg
+  psi_diff_var <- var(psi_diff_eif) / length(psi_diff_eif)
 
-  level_0_CI <- c(
-    round(level_0_psi + stats::qnorm(0.05 / 2, lower.tail = T) * sqrt(level_0_var), 4),
-    round(level_0_psi + stats::qnorm(0.05 / 2, lower.tail = F) * sqrt(level_0_var), 4)
-  )
+  psi_one_var <- var(tmle_fit$eif[effect_modifier == 1]) / length(tmle_fit$eif)
+  psi_zero_var <- var(tmle_fit$eif[effect_modifier == 0]) / length(tmle_fit$eif)
 
-  psi_p_val <- 2 * stats::pnorm(abs(psi_diff / psi_se), lower.tail = F)
-  level_1_p_val <- 2 * stats::pnorm(abs(level_1_psi / sqrt(level_1_var)), lower.tail = F)
-  level_0_p_val <- 2 * stats::pnorm(abs(level_0_psi / sqrt(level_0_var)), lower.tail = F)
+  psi_diff_se <- sqrt(psi_diff_var)
 
-  psi_params <- c(level_1_psi, level_0_psi, psi_diff)
-  variance_ests <- c(level_1_var, level_0_var, sum(level_1_var, level_0_var))
-  se_ests <- c(sqrt(level_1_var), sqrt(level_0_var), psi_se)
+  psi_diff_CI <- calc_CIs(psi_diff, psi_diff_se)
+  CIs <- mapply(calc_CIs, c(psi_em_one, psi_em_zero, psi_diff), c(sqrt(psi_one_var), sqrt(psi_zero_var), psi_diff_se))
 
-  Lower_CIs <- c(level_1_CI[1], level_0_CI[1], psi_CI[1])
-  Upper_CIs <- c(level_1_CI[2], level_0_CI[2], psi_CI[2])
+  psi_p_val <- calc_pvals(psi_diff, psi_diff_se)
+  level_1_p_val <-calc_pvals(psi_em_one, psi_one_var)
+  level_0_p_val <- calc_pvals(psi_em_zero, psi_zero_var)
+
+  psi_params <- c(psi_em_one, psi_em_zero, psi_diff)
+  variance_ests <- c(psi_one_var, psi_zero_var, psi_diff_var)
+  se_ests <- c(sqrt(psi_one_var), sqrt(psi_zero_var), psi_diff_se)
+
+  Lower_CIs <- c(CIs[,1][1], CIs[,2][1], CIs[,3][1])
+  Upper_CIs <- c(CIs[,1][2], CIs[,2][2], CIs[,3][2])
 
   P_val_ests <- c(level_1_p_val, level_0_p_val, psi_p_val)
   condition <- c(paste("Level 1 Shift Diff in ", effect_m_name), paste("Level 0 Shift Diff in", effect_m_name), "Effect Mod")
 
-  n <- sum(length(effect_mod_fold_results[[1]]$`1`$eif), length(effect_mod_fold_results[[1]]$`0`$eif))
+  n <- length(tmle_fit$eif)
 
   results <- data.table::data.table(condition, psi_params, variance_ests, se_ests, Lower_CIs, Upper_CIs, P_val_ests, fold_k, "Effect Mod", paste(exposure, effect_m_name, sep = ""), n)
   names(results) <- c("Condition", "Psi", "Variance", "SE", "Lower CI", "Upper CI", "P-value", "Fold", "Type", "Variables", "N")
@@ -86,48 +82,16 @@ calc_final_joint_shift_param <- function(joint_shift_fold_results, exposures, fo
   conditions[[3]] <- paste(conditions[[1]], conditions[[2]], sep = "&")
   conditions[[4]] <- "Psi"
 
-  joint_psi <- joint_shift_fold_results[[3]]$psi - joint_shift_fold_results[[4]]$psi
-  a_psi <- joint_shift_fold_results[[1]]$psi - joint_shift_fold_results[[4]]$psi
-  b_psi <- joint_shift_fold_results[[2]]$psi - joint_shift_fold_results[[4]]$psi
+  results <- lapply(joint_shift_fold_results, calc_joint_results)
+  results_table <- do.call(rbind, results)
 
-  intxn_psi <- joint_psi - a_psi - b_psi
+  intxn_results <- calc_intxn_results(results_table, joint_shift_fold_results)
 
-  psi_estimates <- c(a_psi, b_psi, joint_psi, intxn_psi)
+  joint_intxn_results <- rbind(results_table,intxn_results)
 
-  joint_variance <- var(joint_shift_fold_results[[3]]$eif - joint_shift_fold_results[[4]]$eif) / length(joint_shift_fold_results[[4]]$eif)
-  a_psi_variance <- var(joint_shift_fold_results[[1]]$eif - joint_shift_fold_results[[4]]$eif) / length(joint_shift_fold_results[[4]]$eif)
-  b_psi_variance <- var(joint_shift_fold_results[[2]]$eif - joint_shift_fold_results[[4]]$eif) / length(joint_shift_fold_results[[4]]$eif)
+  joint_intxn_results <- as.data.frame(cbind(conditions,joint_intxn_results, rep(fold_k, 4), "Interaction", conditions[[3]], length(joint_shift_fold_results[[3]]$eif)))
 
-  # sum(joint_variance, a_psi_variance, b_psi_variance)
-
-  psi_variance <- var((joint_shift_fold_results[[3]]$eif - joint_shift_fold_results[[4]]$eif) -
-    (joint_shift_fold_results[[2]]$eif - joint_shift_fold_results[[4]]$eif) -
-    (joint_shift_fold_results[[1]]$eif - joint_shift_fold_results[[4]]$eif)) / length(joint_shift_fold_results[[4]]$eif)
-
-  variance_ests <- c(a_psi_variance, b_psi_variance, joint_variance, psi_variance)
-
-  se_ests <- sapply(variance_ests, sqrt)
-
-  calc_CI <- function(psi, psi_se) {
-    psi_CI <- c(
-      round(psi + stats::qnorm(0.05 / 2, lower.tail = T) * psi_se, 4),
-      round(psi + stats::qnorm(0.05 / 2, lower.tail = F) * psi_se, 4)
-    )
-  }
-
-  calc_p_value <- function(psi, psi_se) {
-    2 * stats::pnorm(abs(psi / psi_se), lower.tail = F)
-  }
-
-  CIs <- mapply(calc_CI, psi_estimates, se_ests)
-  p_vals <- mapply(calc_p_value, psi_estimates, se_ests)
-
-
-  Lower_CIs <- CIs[1, ]
-  Upper_CIs <- CIs[2, ]
-
-  results <- data.table::data.table(conditions, psi_estimates, variance_ests, se_ests, Lower_CIs, Upper_CIs, p_vals, rep(fold_k, 4), "Interaction", conditions[[3]], length(joint_shift_fold_results[[3]]$eif))
-  names(results) <- c("Condition", "Psi", "Variance", "SE", "Lower CI", "Upper CI", "P-value", "Fold", "Type", "Variables", "N")
-
-  return(results)
+  names(joint_intxn_results) <- c("Condition","Psi", "Variance", "SE", "Lower CI", "Upper CI", "P-value", "Fold", "Type", "Variables", "N")
+  rownames(joint_intxn_results) <- NULL
+  return(joint_intxn_results)
 }

@@ -141,8 +141,78 @@
 #'     )
 #'   }
 #' }
+#'
+#'
+###############################################################################
+calc_joint_results <- function(results_element) {
+  psi <- results_element$psi - results_element$noshift_psi
+  psi_var <- var(results_element$eif - results_element$noshift_eif) / length(results_element$eif)
+  se_ests <- sqrt(psi_var)
+  CI <- SuperNOVA::calc_CIs(psi, se_ests)
+  p_vals <- SuperNOVA::calc_p_value(psi, se_ests)
+
+  joint_results <- list(psi, psi_var, se_ests, CI[1], CI[2], p_vals)
+
+  return(joint_results)
+}
 
 ###############################################################################
+calc_intxn_results <- function(results_table, joint_shift_fold_results) {
+  intxn_psi <- results_table[[3,1]] - results_table[[2,1]] - results_table[[1,1]]
+
+  psi_variance <- var((joint_shift_fold_results[[3]]$eif - joint_shift_fold_results[[3]]$noshift_eif) -
+                        (joint_shift_fold_results[[2]]$eif - joint_shift_fold_results[[2]]$noshift_eif) -
+                        (joint_shift_fold_results[[1]]$eif - joint_shift_fold_results[[1]]$noshift_eif)) / length(joint_shift_fold_results[[1]]$eif)
+
+  psi_se <- sqrt(psi_variance)
+
+  CI <- SuperNOVA::calc_CIs(intxn_psi, psi_se)
+  p_vals <- SuperNOVA::calc_p_value(intxn_psi, psi_se)
+
+  intxn_results <- list(intxn_psi, psi_variance, psi_se, CI[1], CI[2], p_vals)
+
+  return(intxn_results)
+}
+
+###############################################################################
+
+calc_CIs <- function(psi, psi_se) {
+  psi_CIs <- c(
+    round(psi + stats::qnorm(0.05 / 2, lower.tail = T) * psi_se, 4),
+    round(psi + stats::qnorm(0.05 / 2, lower.tail = F) * psi_se, 4)
+  )
+  return(psi_CIs)
+}
+
+###############################################################################
+
+calc_p_value <- function(psi, psi_se) {
+  2 * stats::pnorm(abs(psi / psi_se), lower.tail = F)
+}
+
+###############################################################################
+
+extract_vars_from_basis <- function(common_variables, i, A_names, V_names) {
+  target <- common_variables[i]
+  match_list <- list()
+
+  for (j in 1:length(c(A_names, V_names))) {
+    var <- c(A_names, V_names)[j]
+    matches <- stringr::str_match(target, var)
+    matches[is.na(matches)] <- ""
+    match_list[j] <- matches[[1]]
+  }
+
+  matches <- unlist(match_list[!match_list %in% ""])
+  return(list("matches" = matches, "target" = target))
+}
+
+###############################################################################
+
+calc_pvals <- function(psi, variance) {
+  p_value <- 2 * stats::pnorm(abs(psi / sqrt(variance)), lower.tail = F)
+  return(p_value)
+}
 
 is.CVtreeMLE <- function(x) {
   class(x) == "CVtreeMLE"

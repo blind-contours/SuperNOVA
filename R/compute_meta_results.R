@@ -62,6 +62,7 @@ compute_meta_results <- function(SuperNOVA_results, parameter) {
     point_size <- 3
     plot_width <- 10
     plot_height <- 8
+    color_vals <- c("#311885", "#E69F00", "#56B4E9")
     text_theme <- ggplot2::element_text(size = text_size, color = "black")
     axis_text_theme <- ggplot2::element_text(size = text_size, color = "black")
 
@@ -79,7 +80,9 @@ compute_meta_results <- function(SuperNOVA_results, parameter) {
       ggplot2::labs(x = "Psi", y = "Fold", color = "") +
       ggplot2::ggtitle(title) +
       ggplot2::theme_classic() +
-      ggplot2::theme(text = text_theme, axis.text = axis_text_theme, legend.position = "none")
+      ggplot2::theme(text = text_theme, axis.text = axis_text_theme, legend.position = "none") +
+      ggplot2::scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9"))
+
     # ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45))
 
     plot_list[[i]] <- plot

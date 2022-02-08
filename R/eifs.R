@@ -61,13 +61,24 @@ eif <- function(Y,
 
   # compute substitution estimator of the stochastic shift parameter
   param_obs_est <- rep(0, length(C_samp))
+  noshift_param_obs_est <- rep(0, length(C_samp))
+
   param_obs_est[C_samp == 1] <- ipc_weights_norm * Qn_shift
   psi <- sum(param_obs_est)
 
+  # no shift
+  noshift_param_obs_est[C_samp == 1] <- ipc_weights_norm * Qn_noshift
+  noshift_psi <- sum(noshift_param_obs_est)
+
   # compute the efficient influence function (EIF)
   eif <- rep(0, length(C_samp))
+  eif_no_shift <- rep(0, length(C_samp))
+
   eif[C_samp == 1] <-
     ipc_weights * (Hn$noshift * (Y - Qn_noshift) + (Qn_shift - psi))
+
+  eif_no_shift[C_samp == 1] <-
+    ipc_weights * (Hn$noshift * (Y - Qn_noshift) + (Qn_noshift - noshift_psi))
 
   # this will be the outcome of the extra regression
   eif_unweighted <- rep(0, length(C_samp))
@@ -82,12 +93,20 @@ eif <- function(Y,
 
   # compute the variance based on the EIF and scale by number of observations
   var_eif <- stats::var(eif) / length(Y)
+  var_noshift_eif <- stats::var(eif_no_shift) / length(Y)
 
   # compute the confidence intervales based on the EIF
   se <- sqrt(var_eif)
+  se_noshift <- sqrt(var_noshift_eif)
+
   CI <- c(
     round(psi + stats::qnorm(0.05 / 2, lower.tail = T) * se, 4),
     round(psi + stats::qnorm(0.05 / 2, lower.tail = F) * se, 4)
+  )
+
+  CI_noshift <- c(
+    round(noshift_psi + stats::qnorm(0.05 / 2, lower.tail = T) * se_noshift, 4),
+    round(noshift_psi + stats::qnorm(0.05 / 2, lower.tail = F) * se_noshift, 4)
   )
 
   p.value <- round(2 * stats::pnorm(abs(psi / se), lower.tail = F), 6)
@@ -100,9 +119,16 @@ eif <- function(Y,
     CI <- CI,
     p_value <- p.value,
     eif = eif,
-    eif_unweighted = eif_unweighted
+    eif_unweighted = eif_unweighted,
+    noshift_psi = noshift_psi,
+    noshift_var = var_noshift_eif,
+    noshift_se = se_noshift,
+    noshift_CI = CI_noshift,
+    noshift_eif = eif_no_shift
   )
-  names(out) <- c("psi", "var", "se", "CI", "p_value", "eif", "eif_unweighted")
+
+  names(out) <- c("psi", "var", "se", "CI", "p_value", "eif", "eif_unweighted",
+                  "no shift psi", "no shift var", "no shift se", "no shift CI", "no shift eif")
   return(out)
 }
 

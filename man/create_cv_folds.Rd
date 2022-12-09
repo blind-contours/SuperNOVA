@@ -7,15 +7,16 @@
 create_cv_folds(V, Y, verbose = F)
 }
 \arguments{
-\item{V}{number of folds}
-
-\item{Y}{Outcome variable. If binary will be used for stratification.}
-
 \item{verbose}{If T will display extra output.}
+
+\item{v}{number of folds}
+
+\item{y}{Outcome variable. If binary will be used for stratification.}
 }
 \value{
 Vector of fold assignments.
 }
 \description{
-Stratified CV to insure balance (by one grouping variable, Y)
+Creates a dummy variable that partitions the data into v
+equal sized groups for v-fold CV.
 }

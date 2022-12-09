@@ -15,6 +15,7 @@ so it ought not be bounded from above.}
 A \code{numeric} vector of the same length as \code{vals}, where the
 returned values are bounded such that the minimum is no lower than 1/n, for
 the sample size n.
+@export
 }
 \description{
 Bound Generalized Propensity Score

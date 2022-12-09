@@ -184,7 +184,7 @@ Where:
 \begin{equation} \label{eq2}
 \begin{split}
 E[Y_{g^o_{\delta_1,\delta_2}}] &= E_W [\int_{a_{1,\delta_1} a_{2, \delta_2}} E(Y|A=a_{1,\delta_1},a_{2,\delta_2} , W)g^o_{\delta_1,\delta_2}(a|W)]\\
-E[Y_{g^o_{\delta_1}}] &= E_W [\int_{a_1} E(Y|A=a_{1, \delta_1}, W)g^o_{\delta_1}(a|W)]\\
+E[Y_{g^o_{\delta_1}}] &= E_W [\int_{a_1} E(Y|A=a_{1, \delta_1}, W)g^o_{\delta_    1}(a|W)]\\
 E[Y_{g^o_{\delta_2}}] &= E_W [\int_{a_2} E(Y|A=a_{2, \delta_2}, W)g^o_{\delta_2}(a|W)]\\
 E[Y_{g^o_{1,2}}] &= E_W [\int_{a_1,a_2} E(Y|A=a_1,a_2, W)g^o_{1,2}(a|W)]
 \end{split}
@@ -277,218 +277,6 @@ $\overline{Q}_0(A_1, A_2, W)$, using data-adaptive regression techniques. Then o
 
 The above theory works for stochastic shift situations where the $A$ is known \textit{a priori}. This is not the case for mixtures where we are interested in first identifying which variables are "important" given the fit of the best estimator and estimating the stochastic shift for these variable sets. Because the data is being used to both identify a target parameter and make estimates given this parameter, sample splitting (cross-validation) is used to avoid bias from over fitting, but still uses the entire data set to estimate a data-adaptive parameter. V-fold cross-validation involves: (i) ${1,..., n}$, observations, is divided into $V$ equal size subgroups, (ii) for each $v$, an estimation-sample, notationally $P_{n,v}$ , is defined by the v-th subgroup of size n/V, while the parameter-generating sample, $P_{n,v^c}$, is its complement. More concretely, for split $v$ the empirical distribution, $P_{n,v^c}$, is used to define the exposure(s) $A$ given our $\textit{a priori}$ basis function algorithm which outputs the target variables based on our ANOVA test of the basis functions used. The observations not in $P_{n,v^c}$, namely the empirical distribution for $P_{n,v}$ then is used to generate the parameter of interest. That is, if we had 1000 observations and 4 folds, our estimation sample $P_{n,v}$ would be of size 250. For each fold, the respective 750 observations would be used to train our estimators $g_n$ and $Q_n$ and given these estimators we then get predictions given the respective 250 observations. The predicted density, $g_n$ and outcome $Q_n$ are then used to construct our clever covariate for the shift intervention, $H_n(a_i, w_i)$ for the TMLE update within the fold. Therefore, TMLE updated estimates are given for each fold using the respective estimation sample data $P_{n,v}$. 
 
-
-## Application:
-
-Firts, let's load the packages we'll use and set a seed for simulation:
-
-```{r setup, message=FALSE, warning=FALSE}
-library(data.table)
-load_all('~/sl3')
-library(SuperLearner)
-library(kableExtra)
-library(SuperNOVA)
-
-set.seed(429151)
-```
-
-Below we show implementation of `SuperNOVA` using simulated data. Because estimates are given for each data-adaptively identified parameter for each fold, after the demonstration we also show our pooled estimate approach for parameters that are found across all the folds. 
-
-Simulate some toy data that has both interaction and effect modification.
-
-```{r simulate data, eval = TRUE}
-data_info <- simulate_data()
-data <- data_info$data
-```
-
-
-Partition the data into nodes that will be passed to `SuperNOVA`
-```{r partition data, eval = TRUE}
-
-W <- data[,c("W2", "W3")]
-A <- data[,c("M1", "M2", "M3")]
-V <- data[,c("W1")]
-Y <- data[,"Y"]
-
-```
-
-Setup the Super Learner libraries that will be used for each of our nuisance parameters
-
-```{r setup our Super Learner libraries, eval = TRUE }
-
-# this is our density estimator for g_n
-sl_density_lrnr <- make_density_superlearner()
-
-# Lrnr_HAL_1 <- Lrnr_hal9001$new(max_degree = 1)
-# Lrnr_HAL_2 <- Lrnr_hal9001$new(max_degree = 2, smoothness_orders = 0, num_knots = c(50, 25))
-# Lrnr_HAL_3 <- Lrnr_hal9001$new(max_degree = 2, smoothness_orders = 0, num_knots = c(200, 100))
-# Lrnr_HAL_4 <- Lrnr_hal9001$new(max_degree = 3, smoothness_orders = 0, num_knots = c(200, 100, 50))
-# Lrnr_HAL_5 <- Lrnr_hal9001$new(max_degree = 3, smoothness_orders = 0, num_knots = c(300, 200, 100))
-
-# Lrnr_quantile_dist_glmnet_1 <- Lrnr_quantile_dist_glmnet$new(lambda = NULL, quantiles = 4, degree = 2, q_tails = 0.05)
-# Lrnr_quantile_dist_glmnet_2 <- Lrnr_quantile_dist_glmnet$new(lambda = NULL, quantiles = 10, degree = 2, q_tails = 0.1)
-# Lrnr_quantile_dist_glmnet_3 <- Lrnr_quantile_dist_glmnet$new(lambda = NULL, quantiles = 30, degree = 2, q_tails = 0.1)
-
-
-Lrnr_earth_1 <- Lrnr_earth$new(linpreds = FALSE, degree = 1)
-Lrnr_earth_2 <- Lrnr_earth$new(linpreds = FALSE, degree = 2)
-Lrnr_earth_3 <- Lrnr_earth$new(linpreds = FALSE, degree = 2, pmethod = "none")
-Lrnr_earth_4 <- Lrnr_earth$new(linpreds = FALSE, degree = 3, thresh = 0.0005)
-Lrnr_earth_5 <- Lrnr_earth$new(linpreds = FALSE, degree = 4)
-Lrnr_earth_6 <- Lrnr_earth$new(linpreds = FALSE, degree = 2,  fast.k	= 10)
-Lrnr_earth_7 <- Lrnr_earth$new(linpreds = FALSE, degree = 2,  fast.k	= 5)
-Lrnr_earth_8 <- Lrnr_earth$new(linpreds = FALSE, degree = 3,  fast.beta	= 0)
-Lrnr_earth_9 <- Lrnr_earth$new(linpreds = FALSE, degree = 3, fast.k	= 10, pmethod="cv", nfold = 5)
-Lrnr_earth_10 <- Lrnr_earth$new(linpreds = FALSE, degree = 2, pmethod = "exhaustive")
-Lrnr_earth_11 <- Lrnr_earth$new(linpreds = FALSE, degree = 2, pmethod = "exhaustive", fast.k = 0)
-# 
-# two_ways <- combn(c("X1", "X2", "X3", "X4", "X5", "X6", "X7"), m = 2)
-# interactions <- lapply(seq_len(ncol(two_ways)), function(x) as.vector(two_ways[,x]))
-# lrn_interaction <- make_learner(Lrnr_define_interactions, interactions)
-# lrn_glm <- make_learner(Lrnr_glm)
-# lasso_learner <- Lrnr_glmnet$new(alpha = 1)
-# ridge_learner <- Lrnr_glmnet$new(alpha = 0)
-# enet_learner <- Lrnr_glmnet$new(alpha = 0.5)
-# lrn_glm_interaction <- make_learner(Pipeline, lrn_interaction, lrn_glm)
-# lrn_lasso_interaction <- make_learner(Pipeline, lrn_interaction, lasso_learner)
-# lrn_ridge_interaction <- make_learner(Pipeline, lrn_interaction, ridge_learner)
-# lrn_enet_interaction <- make_learner(Pipeline, lrn_interaction, enet_learner)
-# lrn_ranger <- Lrnr_ranger$new(num.trees = 1000)
-
-learners <- c(
-  Lrnr_earth_1,
-  Lrnr_earth_2,
-  Lrnr_earth_3,
-  Lrnr_earth_4,
-  Lrnr_earth_5, 
-  Lrnr_earth_6,
-  Lrnr_earth_7,
-  Lrnr_earth_8,
-  Lrnr_earth_9,
-  Lrnr_earth_10,
-  Lrnr_earth_11
-  # lrn_glm_interaction,
-  # lrn_lasso_interaction,
-  # lrn_ridge_interaction,
-  # lrn_enet_interaction,
-  # lrn_ranger
-)
-
-names(learners) <- c(
-  "full earth 1",
-  "full earth 2",
-  "full earth 3",
-  "full earth 4",
-  "full earth 5",
-  "full earth 6",
-  "full earth 7",
-  "full earth 8",
-  "full earth 9",
-  "full earth 10",
-  "full earth 11"
-  # "glm_interaction",
-  # "lasso_interaction",
-  # "ridge_interaction",
-  # "enet_interaction",
-  # "ranger"
-)
-
-
-Exposures_stack <- make_learner(Stack, learners)
-
-# task <- sl3::make_sl3_Task(
-#     data = data, covariates = c("M1", "M2", "M3"),
-#     outcome = "Y",
-#     outcome_type = "continuous"
-#   )
-# 
-#   discrete_sl <- sl3::Lrnr_sl$new(
-#     learners = Exposures_stack,
-#     metalearner = discrete_sl_metalrn,
-#   )
-# 
-#   sl_fit <- discrete_sl$train(task)
-
-## we will do the same thing to create a stack of MLE basis function models for the iterative backfitting of Y|W but we will limit the complexity of this SL a little because of usually higher dimensionality of W in real data compared to the previous stack for exposures: 
-
-Lrnr_glm_basic <- Lrnr_glm$new()
-Lrnr_mean_base <- Lrnr_mean$new()
-
-# this is our estimator for the iterative backfitting on the exposures - the Super Learner made of basis function estimators, E(Y*|A,V)
-Lrnr_ridge <- Lrnr_glmnet$new(alpha = 0)
-Lrnr_lasso <- Lrnr_glmnet$new(alpha = 1)
-
-learners <- c(
-  Lrnr_earth_1,
-  Lrnr_earth_2,
-  Lrnr_earth_3,
-  Lrnr_earth_4,
-  # Lrnr_HAL_1,
-  # Lrnr_HAL_2,
-  Lrnr_glm_basic,
-  Lrnr_mean_base,
-  Lrnr_ridge,
-  Lrnr_lasso
-)
-
-names(learners) <- c(
-  "full earth 1",
-  "full earth 2",
-  "full earth 3",
-  "full earth 4",
-  # "Lrnr_HAL_1",
-  # "Lrnr_HAL_2",
-  "Lrnr_glm",
-  "Lrnr_mean",
-  "Lrnr_ridge",
-  "Lrnr_lasso"
-)
-
-Covariate_stack <- make_learner(Stack, learners)
-
-
-# this is our estimator for outcome estimation E(Y|A,W) given shifts in the data-adaptively identified exposure variables
-mean_lrnr <- Lrnr_mean$new()
-fglm_lrnr <- Lrnr_glm_fast$new()
-rf_lrnr <- Lrnr_ranger$new()
-lasso_learner <- Lrnr_glmnet$new(alpha = 1)
-ridge_learner <- Lrnr_glmnet$new(alpha = 0)
-lrn_polspline <- Lrnr_polspline$new()
-lrn_ranger100 <- make_learner(Lrnr_ranger, num.trees = 100)
-hal_lrnr <- Lrnr_hal9001$new(max_degree = 3, n_folds = 3)
-
-Outcome_stack <- make_learner(
-  Stack, mean_lrnr, fglm_lrnr, rf_lrnr, lasso_learner, ridge_learner, lrn_polspline, lrn_ranger100
-)
-```
-
-
-Run the `SuperNOVA` main function passing in the data, number of folds, limit of detection censoring, delta to shift by, type of estimator and fluctuation, stacks of SL estimators for each nuisance parameter, quantile to threshold basis functions and whether to parallel process. 
-
-```{r run SuperNOVA, eval = TRUE}
-sim_results <- SuperNOVA(W = W,
-                         V = V,
-                         A = A,
-                         Y = Y,
-                         delta = 1,
-                         LOD_val = 0,
-                         estimator = "tmle",
-                         fluctuation = "standard",
-                         Density_stack = sl_density_lrnr,
-                         Exposures_stack = Exposures_stack,
-                         Covariate_stack = Covariate_stack,
-                         Outcome_stack = Outcome_stack,
-                         n_folds = 3,
-                         family = "continuous",
-                         quantile_thresh = 0.25,
-                         verbose = TRUE,
-                         parallel = TRUE) 
-
-indiv_shift_results <- sim_results$`Indiv Shift Results`
-em_results <- sim_results$`Effect Mod Results`
-joint_shift_results <- sim_results$`Joint Shift Results`
-```
-
 ## Pooling Estimates Found Across the Folds
 
 Because `SuperNOVA` gets the TMLE updated shift parameter for each condition (individual, effect modification or joint), for each fold, when many folds are used the resulting tables can be very large. For estimates that are found across all folds (are consistently found in the data adaptive procedure) we can pool the effects across the folds similar to a meta-analysis. We should therefore give effect sizes with a higher precision (i.e. a smaller standard error derived from the efficient influence function (EIF)) a greater weight. If we want to calculate the pooled effect size under the fixed-effect model, we therefore simply use a weighted average of all studies. To calculate the weight $w_k$ for each fold $k$, we can use the standard error, which we square to obtain the variance $s^2_k$ of each effect size. Since a lower variance indicates higher precision, the inverse of the variance is used to determine the weight of each fold estimate.
@@ -503,101 +291,92 @@ Because we use the inverse of the variance, we can call this parameter the inver
 
 The variance of the combined effect across the folds is defined as the reciprocal of the sum of the weights, or $v. = \frac{1}{\sum_{i=1}^K w_i}$ and likewise the standard error is $\sqrt{v.}$. Pooled confidence intervals and p-values are calculated in the normal way based on the calculated $\hat{\psi}$ and $v.$. Below we show the results tables output by the `SuperNOVA` for each parameter for each fold then we show output from the `compute_meta_results` function which calculates the pooled esimtates and creates plots. 
 
-## Results Individual Stochastic Shifts
 
-The expected outcome for individual stochastic shifting of data-adaptively identified exposures in a mixture is given in
-`Indiv Shift Results` from the `SuperNOVA` fit object. 
+## Application:
 
-```{r results indiv shift, eval = TRUE}
-indiv_shift_results <- sim_results$`Indiv Shift Results`
-setorder(indiv_shift_results, Condition)
-indiv_shift_results
+Firts, let's load the packages we'll use and set a seed for simulation:
 
-indiv_shift_results %>%
-  kbl(caption = "Individual Stochastic Shift Results") %>%
-  kable_classic(full_width = F, html_font = "Cambria")
+```{r setup, message=FALSE, warning=FALSE}
+library(data.table)
+load_all("~/sl3")
+# library(SuperLearner)
+library(kableExtra)
+library(SuperNOVA)
+
+seed <- 325911
 ```
 
-The expected outcome for individual stochastic shifting of data-adaptively identified exposure in a mixture through strata of a data-adaptively identified effect modifier is given in`Effect Mod Results` from the `SuperNOVA` fit object. 
+Below we show implementation of `SuperNOVA` using simulated data. Because estimates are given for each data-adaptively identified parameter for each fold, after the demonstration we also show our pooled estimate approach for parameters that are found across all the folds. 
 
-```{r results em shift, eval = TRUE}
-em_results <- sim_results$`Effect Mod Results`
-setorder(em_results, Fold)
-em_results %>%
-  kbl(caption = "Effect Modification Stochastic Shift Results") %>%
-  kable_classic(full_width = F, html_font = "Cambria")
-```
-The expected outcome for joint stochastic shifting of data-adaptively identified set of exposures in a mixture is given in`Effect Mod Results` from the `SuperNOVA` fit object. 
-
-```{r results joint shift, eval = TRUE}
-joint_shift_results <- sim_results$`Joint Shift Results`
-setorder(joint_shift_results, Fold)
-
-joint_shift_results %>%
-  kbl(caption = "Joint Stochastic Shift Results") %>%
-  kable_classic(full_width = F, html_font = "Cambria")
-```
-
-```{r plot indiv results, fig.show="hold", eval = TRUE}
-indiv_plots <- compute_meta_results(indiv_shift_results, parameter = "Indiv Results")
-indiv_plots$M1
-```
-
-```{r plot effect mod results,  fig.show="hold", eval = TRUE}
-em_plots <- compute_meta_results(em_results, parameter = "Effect Mod")
-names(em_plots)
-em_plots$`Effect Mod`
-em_plots$`Level 1 Shift Diff in V`
-em_plots$`Level 0 Shift Diff in V`
-```
-
-```{r plot joint shift results, fig.show="hold", eval = TRUE}
-joint_plots <- compute_meta_results(joint_shift_results, parameter = "Joint Shift")
-names(joint_plots)
-joint_plots$`Psi-M1M2`
-joint_plots$`Psi-M1M3`
-```
 ## NIEHS Mixture Workshop Data
 
 The `SupernOVA` package comes with 2 datasets from the 2015-NIEHS-Mixtures-Workshop simulation data (https://github.com/niehs-prime/2015-NIEHS-MIxtures-Workshop). Let's load this data and run `SuperNOVA` to see if we identify 1. any interactions in the mixture variables or any marginally important mixture variables and/or 2. any effect modifying variables.
 
 ```{r NIEHS example}
-data("NIEHS_data_1", package="SuperNOVA")
+data("NIEHS_data_1", package = "SuperNOVA")
 ```
 
 ```{r NIEH Nodes  }
 NIEHS_data_1$W <- rnorm(nrow(NIEHS_data_1), mean = 0, sd = 0.1)
-W <- NIEHS_data_1[,c("W")]
-A <- NIEHS_data_1[,c("X1", "X2", "X3", "X4", "X5", "X6", "X7")]
-V <- NIEHS_data_1[,c("Z")]
-Y <- NIEHS_data_1[,"Y"]
-
+w <- NIEHS_data_1[, c("W", "Z")]
+a <- NIEHS_data_1[, c("X1", "X2", "X3", "X4", "X5", "X6", "X7")]
+y <- NIEHS_data_1[, "Y"]
 ```
 
 
-```{r run SuperNOVA, eval = TRUE}
-sim_results <- SuperNOVA(W = W,
-                         V = V,
-                         A = A,
-                         Y = Y,
-                         delta = 1,
-                         LOD_val = 0,
-                         estimator = "tmle",
-                         fluctuation = "standard",
-                         max_iter = 10,
-                         Density_stack = sl_density_lrnr,
-                         Exposures_stack = Exposures_stack,
-                         Covariate_stack = Covariate_stack,
-                         Outcome_stack = Outcome_stack,
-                         n_folds = 10,
-                         family = "continuous",
-                         quantile_thresh = 0.25,
-                         verbose = TRUE,
-                         parallel = TRUE) 
+```{r run SuperNOVA NIEHS data, eval = TRUE}
+NIEH_results <- SuperNOVA(
+  w = w,
+  a = a,
+  y = y,
+  delta = 1,
+  estimator = "tmle",
+  fluctuation = "standard",
+  n_folds = 5,
+  family = "continuous",
+  quantile_thresh = 0.25,
+  verbose = TRUE,
+  parallel = TRUE,
+  num_cores = 5
+)
 
-indiv_shift_results <- sim_results$`Indiv Shift Results`
-em_results <- sim_results$`Effect Mod Results`
-joint_shift_results <- sim_results$`Joint Shift Results`
+indiv_shift_results <- NIEH_results$`Indiv Shift Results`
+em_results <- NIEH_results$`Effect Mod Results`
+joint_shift_results <- NIEH_results$`Joint Shift Results`
+```
+
+```{r basis function proportions}
+indiv_shift_results %>%
+  kbl(caption = "Effect Modification Results") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+```
+
+```{r basis function proportions}
+joint_shift_results %>%
+  kbl(caption = "Interaction Results") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+```
+
+```{r NIEH indiv results, fig.show="hold", eval = TRUE}
+indiv_plots <- compute_meta_results(SuperNOVA_results = NIEH_results, parameter = "Indiv Shift")
+names(indiv_plots$Plots)
+indiv_plots$Plots$X7
+
+indiv_plots$`Pooled Results`$X7 %>%
+  kbl(caption = "Individual Stochastic Shift Results") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+```
+
+```{r NIEH effect mod results, fig.show="hold", eval = TRUE}
+effect_mod_plots <- compute_meta_results(SuperNOVA_results = sim_results, parameter = "Effect Mod")
+names(effect_mod_plots$Plots)
+effect_mod_plots$Plots$`Effect Mod`
+```
+
+```{r NIEH join results, fig.show="hold", eval = TRUE}
+joint_plots <- compute_meta_results(SuperNOVA_results = sim_results, parameter = "Joint Shift")
+names(joint_plots$Plots)
+joint_plots$Plots$`Psi-X5&X7`
 ```
 
 

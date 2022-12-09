@@ -2,39 +2,41 @@
 % Please edit documentation in R/SuperNOVA.R
 \name{SuperNOVA}
 \alias{SuperNOVA}
-\title{Data-Adaptive Efficient Estimation of Interactions and Effect Modification using Stochastic Shift Interventions}
+\title{Data-adaptive efficient estimation of interactions and effect
+modification using stochastic shift interventions}
 \usage{
 SuperNOVA(
-  W,
-  V,
-  A,
-  Y,
+  w,
+  a,
+  z = NULL,
+  y,
   delta,
-  LOD_vals = NULL,
-  estimator = c("tmle", "onestep"),
-  fluctuation = c("standard", "weighted"),
-  max_iter = 10,
-  sl_density_lrnr,
-  Q1_stack,
-  Q2_stack,
+  estimator = "tmle",
+  fluctuation = "standard",
+  pi_learner = NULL,
+  mu_learner = NULL,
+  g_learner = NULL,
+  e_learner = NULL,
+  em_learner = NULL,
+  zeta_learner = NULL,
   n_folds,
-  family,
-  quantile_thresh,
-  verbose,
-  parallel
+  family = "continuous",
+  quantile_thresh = 0.5,
+  verbose = FALSE,
+  parallel = TRUE,
+  parallel_type = "multi_session",
+  num_cores = 2,
+  seed = seed
 )
 }
 \arguments{
-\item{W}{A \code{matrix}, \code{data.frame}, or similar containing a set of
+\item{w}{A \code{matrix}, \code{data.frame}, or similar containing a set of
 baseline covariates.}
 
-\item{V}{\code{matrix}, \code{data.frame}, or similar containing a set of
-baseline covariates considered to be possible effect modifiers of exposure}
+\item{a}{\code{matrix}, \code{data.frame}, or similar containing an
+individual or set of mediators}
 
-\item{A}{\code{matrix}, \code{data.frame}, or similar containing an individual or set of
-exposures}
-
-\item{Y}{\code{numeric} vector of the observed outcomes.}
+\item{y}{\code{numeric} vector of the observed outcomes.}
 
 \item{delta}{A \code{numeric} value indicating the shift in the exposures to
 be used in defining the target parameter. This is defined with respect to
@@ -48,34 +50,70 @@ targeted maximum likelihood or \code{"onestep"} for a one-step estimator.}
 and "weighted" for where to place the auxiliary covariate in the logistic
 tilting regression.}
 
-\item{max_iter}{A \code{numeric} integer giving the maximum number of steps
-to be taken in iterating to a solution of the efficient influence function.}
+\item{pi_learner}{Learners used to fit Super Learner ensembles to densities
+via \pkg{sl3}}
 
-\item{sl_density_lrnr}{Learners used to fit Super Learner ensembles to densities via \pkg{sl3}}
+\item{mu_learner}{Learners used to fit Super Learner ensembles to the outcome
+model via \pkg{sl3}}
 
-\item{Q1_stack}{Learners used to fit Super Learner ensembles to the outcome model via \pkg{sl3}}
+\item{g_learner}{Learners used to fit Super Learner ensembles to the g mech
+g(A|W) - a probability estimator not a density estimator used in mediation
+via \pkg{sl3}}
+
+\item{e_learner}{Learners used to fit Super Learner ensembles to the e mech
+g(A|Z,W) - a probability estimator not a density estimator used in mediation
+via \pkg{sl3}}
+
+\item{zeta_learner}{Learners used to fit Super Learner ensembles to the outcome
+model via \pkg{sl3}}
 
 \item{n_folds}{Number of folds to use in cross-validation}
 
 \item{family}{Outcome type family}
 
-\item{quantile_thresh}{Threshold based on quantiles of the f-statistic used to identify "important" basis functions in the data-adaptive procedure}
+\item{quantile_thresh}{Threshold based on quantiles of the f-statistic used
+to identify "important" basis functions in the data-adaptive procedure}
 
 \item{verbose}{Whether to run verbosely}
 
 \item{parallel}{TRUE/FALSE parallelize across cores}
+
+\item{seed}{\code{numeric} seed value to be passed to all functions}
 }
 \value{
-
+S3 object of class \code{SuperNOVA} containing the results of the
+procedure to compute a TML or one-step estimate of the counterfactual mean
+under a modified treatment policy that shifts a continuous-valued exposure
+by a scalar amount \code{delta}. These exposure are data-adaptively
+identified using the CV-TMLE procedure.
 }
 \description{
-Data-Adaptive Efficient Estimation of Interactions and Effect Modification using Stochastic Shift Interventions
+Data-adaptive efficient estimation of interactions and effect
+modification using stochastic shift interventions
 }
 \details{
-Treat variables identified in the same basis functions in ensemble b-spline models as
-a data-adaptive parameter. Given variable sets identified, depending on if basis functions contain
-variables for \code{A} or \code{AV} construct targeted minimum loss estimations of
-the counterfactual mean differences under various target parameters for individual variables, effect modifying variables,
-or interacting variables. Ensemble machine learning may be used to construct the initial
-estimates of nuisance functions using \pkg{sl3}.
+Treat variables identified in the same basis functions in ensemble
+b-spline models as a data-adaptive parameter. Given variable sets identified,
+depending on if basis functions contain variables for \code{A} or \code{AV} construct
+targeted minimum loss estimations of the counterfactual mean differences
+under various target parameters for individual variables, effect modifying
+variables, or interacting variables. Ensemble machine learning may be used
+to construct the initial estimates of nuisance functions using \pkg{sl3}.
+}
+\examples{
+seed <- 429153
+n_obs <- 300
+W <- replicate(2, rbinom(n_obs, 1, 0.5))
+A <- rnorm(n_obs, mean = 2 * W, sd = 1)
+Y <- rbinom(n_obs, 1, plogis(A + W + rnorm(n_obs, mean = 0, sd = 1)))
+example_results <- SuperNOVA(
+ w = W,
+ a = A,
+ z = Z,
+ y = Y,
+ delta = 0.5,
+ estimator = "tmle",
+ seed = seed,
+ n_folds = 2
+)
 }

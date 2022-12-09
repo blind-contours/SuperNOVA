@@ -1,8 +1,11 @@
-#' Title
+#' DGP for testing SuperNOVA
 #'
-#' @param n_obs
-#' @param mu
-#' @param sigma_mod
+#' @param n_obs Number of observations
+#' @param mu Vector of means for exposures
+#' @param sigma_mod Sigma matrix of exposures
+#' @param effect_mod_binary TRUE/FALSE Whether the effect modifier is binary
+#' @param delta_1 Delta for M1 Exposure
+#' @param delta_2 Delta for M3 Exposure
 #'
 #' @return
 #' @export
@@ -10,56 +13,52 @@
 #' @importFrom bindata rmvbin
 
 #' @examples
-simulate_data <- function(n_obs = 2000,
-                          mu = c(2.5, 3, 4),
-                          sigma_mod = matrix(c(1, 0.5, 0.8, 0.5, 1, 0.7, 0.8, 0.7, 1),
+simulate_data <- function(n_obs = 100000,
+                          shift_var_index = 1,
+                          sigma_mod = matrix(
+                            c(
+                              1, 0.5, 0.8, 0.5,
+                              1, 0.7, 0.8, 0.7, 1
+                            ),
                             nrow = 3,
-                            ncol = 3),
-                            effect_mod_binary = FALSE
-                          ) {
-  mixtures <- MASS::mvrnorm(n = n_obs, mu = mu, Sigma = sigma_mod)
+                            ncol = 3
+                          ),
+                          delta = 1) {
 
-  mixtures[mixtures < 0] <- 0.001
+  covars <- MASS::mvrnorm(
+    n = n_obs, mu = c(6, 7),
+    Sigma = matrix(c(1, 0.4, 0.4, 1), 2, 2)
+  )
 
-  ## Construct a binary correlation matrix
-  # m <- matrix(c(1,rho,rho,1), ncol=2)
-  #
-  # ## Simulate 10000 x-y pairs, and check that they have the specified
-  # ## correlation structure
-  # w <- bindata::rmvbin(n_obs, margprob = c(0.5, 0.5), bincorr = m)
-  # cor(w)
+  mu_1 <- mean(exp(covars[,1] / 4))
+  mu_2 <- mean(covars[,2]/5)
+  mu_3 <- 2
 
-  if (effect_mod_binary == TRUE) {
-    w_em <- rbinom(n_obs, 1, 0.48)
-  }else{
-    w_em <- rnorm(n_obs, mean = 2, sd = 0.4)
+  mixtures <- MASS::mvrnorm(n = n_obs,
+                            mu = c(mu_1, mu_2, mu_3),
+                            Sigma = sigma_mod)
+
+
+  y_mean = function(mixtures, covars) {
+    0.1 * log(4 * pi * mixtures[, 1]) + 0.6 * plogis(2 * mixtures[, 3]) *
+      covars[, 1] + 0.4 * (plogis(2*mixtures[, 3]) * exp(mixtures[, 1]) / 100) + 0.1 *
+      covars[, 1] + 0.3 * covars[, 2]
   }
 
-  covars <- MASS::mvrnorm(n = n_obs, mu = c(6, 7), Sigma = matrix(c(1, 0.4, 0.4, 1), 2, 2))
+  y <- y_mean(mixtures, covars)
 
-  y <- 0.2 * log(2 * pi * mixtures[, 1]) + 0.6 * plogis(mixtures[, 3]) * w_em + 0.4 * (plogis(mixtures[, 3]) * exp(mixtures[, 1]) / 100) + 0.1 * covars[, 1] + 0.3 * covars[, 2] + rnorm(dim(mixtures)[1], mean = 0, sd = 0.01)
+  mixtures[, shift_var_index] <- mixtures[, shift_var_index]+delta
 
-  data <- as.data.frame(cbind(mixtures, w_em, covars, y))
-  colnames(data) <- c("M1", "M2", "M3", "W1", "W2", "W3", "Y")
+  y_shifted <- y_mean(mixtures, covars)
 
-  m1_w1_plot <- ggplot2::ggplot(data = data, ggplot2::aes(x = data$M1, y = data$Y, group = data$W1, color = as.factor(data$W1))) +
-    ggplot2::geom_point() +
-    ggplot2::xlab("Mixture 1") +
-    ggplot2::ylab("Outcome") +
-    ggplot2::labs(color = "Covariate 1")
-
-  m2_w1_plot <- ggplot2::ggplot(data = data, ggplot2::aes(x = data$M2, y = data$Y, group = data$W1, color = as.factor(data$W1))) +
-    ggplot2::geom_point() +
-    ggplot2::xlab("Mixture 3") +
-    ggplot2::ylab("Outcome") +
-    ggplot2::labs(color = "Covariate 1")
-
-  m3_w1_plot <- ggplot2::ggplot(data = data, ggplot2::aes(x = data$M3, y = data$Y, group = data$W1, color = as.factor(data$W1))) +
-    ggplot2::geom_point() +
-    ggplot2::xlab("Mixture 3") +
-    ggplot2::ylab("Outcome") +
-    ggplot2::labs(color = "Covariate 1")
+  effect = mean(
+    y_shifted -
+      y
+  )
 
 
-  return(list("data" = data, "plot 1" = m1_w1_plot, "plot 2" = m2_w1_plot, "plot 3" = m3_w1_plot))
+  data <- as.data.frame(cbind(mixtures, covars, y, y_shifted))
+  colnames(data) <- c("M1", "M2", "M3", "W1", "W2", "Y", "Y_shifted")
+
+  return(list("data" = data, "effect" = effect))
 }

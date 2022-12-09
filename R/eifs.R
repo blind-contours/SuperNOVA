@@ -1,7 +1,3 @@
-
-
-utils::globalVariables(c("..v_names"))
-
 #' Compute the Shift Parameter Estimate and the Efficient Influence Function
 #'
 #' @details Estimate the value of the causal parameter alongside statistical
@@ -36,54 +32,35 @@ utils::globalVariables(c("..v_names"))
 #'  based on the efficient influence function (EIF), the estimate of the EIF
 #'  incorporating inverse probability of censoring weights, and the estimate of
 #'  the EIF without the application of such weights.
-eif <- function(Y,
-                Qn,
-                Hn,
+eif <- function(y,
+                qn,
+                hn,
                 estimator = c("tmle", "onestep"),
-                fluc_mod_out = NULL,
-                C_samp = rep(1, length(Y)),
-                ipc_weights = rep(1, length(Y))) {
-
+                fluc_mod_out = NULL) {
   # set TMLE as default estimator type
   estimator <- match.arg(estimator)
 
   # set Qn to use based on estimator type
   if (estimator == "tmle") {
-    Qn_shift <- fluc_mod_out$Qn_shift_star
-    Qn_noshift <- fluc_mod_out$Qn_noshift_star
+    qn_shift <- fluc_mod_out$qn_shift_star
+    qn_noshift <- fluc_mod_out$qn_noshift_star
   } else if (estimator == "onestep") {
-    Qn_shift <- Qn$upshift
-    Qn_noshift <- Qn$noshift
+    qn_shift <- qn$upshift
+    qn_noshift <- qn$noshift
   }
 
-  # normalize inverse probability of censoring weights
-  ipc_weights_norm <- ipc_weights / sum(ipc_weights)
-
-  # compute substitution estimator of the stochastic shift parameter
-  param_obs_est <- rep(0, length(C_samp))
-  noshift_param_obs_est <- rep(0, length(C_samp))
-
-  param_obs_est[C_samp == 1] <- ipc_weights_norm * Qn_shift
-  psi <- sum(param_obs_est)
-
-  # no shift
-  noshift_param_obs_est[C_samp == 1] <- ipc_weights_norm * Qn_noshift
-  noshift_psi <- sum(noshift_param_obs_est)
+  psi <- mean(qn_shift)
+  noshift_psi <- mean(y)
 
   # compute the efficient influence function (EIF)
-  eif <- rep(0, length(C_samp))
-  eif_no_shift <- rep(0, length(C_samp))
+  eif <- rep(0, length(qn_shift))
+  eif_no_shift <- rep(0, length(qn_shift))
 
-  eif[C_samp == 1] <-
-    ipc_weights * (Hn$noshift * (Y - Qn_noshift) + (Qn_shift - psi))
+  eif <-
+    (hn$noshift * (y - qn_noshift) + (qn_shift - psi))
 
-  eif_no_shift[C_samp == 1] <-
-    ipc_weights * (Hn$noshift * (Y - Qn_noshift) + (Qn_noshift - noshift_psi))
+  eif_no_shift <- y - qn_noshift
 
-  # this will be the outcome of the extra regression
-  eif_unweighted <- rep(0, length(C_samp))
-  eif_unweighted[C_samp == 1] <-
-    (Hn$noshift * (Y - Qn_noshift) + (Qn_shift - psi))
 
   # add mean of EIF to parameter estimate if fitting one-step
   # NOTE: the estimate of psi is updated _after_ evaluating the EIF
@@ -92,8 +69,8 @@ eif <- function(Y,
   }
 
   # compute the variance based on the EIF and scale by number of observations
-  var_eif <- stats::var(eif) / length(Y)
-  var_noshift_eif <- stats::var(eif_no_shift) / length(Y)
+  var_eif <- stats::var(eif) / length(y)
+  var_noshift_eif <- stats::var(eif_no_shift) / length(y)
 
   # compute the confidence intervales based on the EIF
   se <- sqrt(var_eif)
@@ -119,7 +96,6 @@ eif <- function(Y,
     CI <- CI,
     p_value <- p.value,
     eif = eif,
-    eif_unweighted = eif_unweighted,
     noshift_psi = noshift_psi,
     noshift_var = var_noshift_eif,
     noshift_se = se_noshift,
@@ -127,8 +103,10 @@ eif <- function(Y,
     noshift_eif = eif_no_shift
   )
 
-  names(out) <- c("psi", "var", "se", "CI", "p_value", "eif", "eif_unweighted",
-                  "no shift psi", "no shift var", "no shift se", "no shift CI", "no shift eif")
+  names(out) <- c(
+    "psi", "var", "se", "CI", "p_value", "eif",
+    "no shift psi", "no shift var", "no shift se", "no shift CI", "no shift eif"
+  )
   return(out)
 }
 

@@ -1,182 +1,92 @@
-fit_basis_estimators <- function(At,
+#' @title Fit the zeta learner, a highly flexible estimator using splines
+#' or basis functions in order to identify variable sets for the shift
+#' interventions.
+#'
+#' @details Finds the best fitting flexible estimator using a discrete
+#' Super Learner. This function non-parametrically does variable importance
+#' of variable sets, such as identificaiton of two mixture components or
+#' mixture components and baseline covariates which explain the outcome given
+#' an ANOVA like decomposition. We use an F-statistic to threshold the
+#' importance of variable sets and treat these variable sets as the data-
+#' adaptive parameter.
+#'
+#' @param at Training dataframe
+#' @param covars Covariates to be used as predictors in the Super Learner
+#' @param outcome Variable name for the outcome
+#' @param zeta_learner Stack of algorithms made in SL 3 used in ensemble machine
+#' learning to fit Y|A,W
+#' @param fold Current fold in the cross-validation
+#' @param max_iter Max number of iterations of iterative backfitting algorithm
+#' @param verbose Run in verbose setting
+#' @param seed Seed number for consistent results
+#' @import sl3
+#' @importFrom pre pre maxdepth_sampler
+#' @importFrom magrittr %>%
+#' @importFrom rlang .data
+#' @importFrom dplyr group_by filter top_n
+#' @return Rules object. TODO: add more detail here.
+#' @examples
+
+#' @export
+
+fit_basis_estimators <- function(at,
                                  covars,
-                                 exposures,
                                  outcome,
                                  family,
                                  quantile_thresh,
-                                 Exposures_stack,
-                                 Covariate_stack,
+                                 zeta_learner,
                                  fold,
-                                 max_iter,
-                                 verbose) {
+                                 seed) {
   future::plan(future::sequential, gc = TRUE)
+  set.seed(seed)
 
   task <- sl3::make_sl3_Task(
-    data = At, covariates = covars,
+    data = at, covariates = covars,
     outcome = outcome,
     outcome_type = family
   )
 
-  discrete_sl_metalrn <- sl3::Lrnr_cv_selector$new()
+  discrete_sl_metalrn <- sl3::Lrnr_cv_selector$new(sl3::loss_squared_error)
 
   covar_discrete_sl <- sl3::Lrnr_sl$new(
-    learners = Covariate_stack,
+    learners = zeta_learner,
     metalearner = discrete_sl_metalrn
   )
-  # delayed_sl_fit <- delayed_learner_train(discrete_sl, task)
 
   sl_fit <- covar_discrete_sl$train(task)
 
-  ## calculate remaining variance unexplained by W in residuals
-  QbarW_initial <- sl_fit$predict()
-
-  At <- cbind(At, QbarW_initial)
-
-  task <- sl3::make_sl3_Task(
-    data = At, covariates = exposures,
-    outcome = outcome,
-    outcome_type = family
-  )
-
-  exposure_discrete_sl <- sl3::Lrnr_sl$new(
-    learners = Exposures_stack,
-    metalearner = discrete_sl_metalrn,
-  )
-
-  sl_fit <- exposure_discrete_sl$train(task)
-
-  QbarAW_initial <- sl_fit$predict()
-
-  At <- cbind(At, QbarAW_initial)
-
-  iter <- 0
-  stop <- FALSE
-
-  At_no_offset <- data.table::copy(At)
-  At_no_offset$QbarW_initial <- 0
-  At_no_offset$QbarAW_initial <- 0
-
-  while (stop == FALSE) {
-    iter <- iter + 1
-
-    offset_task <- sl3::make_sl3_Task(
-      data = At, covariates = covars,
-      outcome = outcome,
-      outcome_type = family,
-      offset = "QbarAW_initial"
-    )
-
-    no_offset_task <- sl3::sl3_Task$new(
-      data = At_no_offset,
-      covariates = covars,
-      outcome = outcome,
-      outcome_type = family,
-      offset = "QbarAW_initial"
-    )
-
-    sl_fit_backfit_offset <- covar_discrete_sl$train(offset_task)
-
-    # preds_offset <- sl_fit_backfit$predict()
-    g_preds_no_offset <- sl_fit_backfit_offset$predict(no_offset_task)
-    g_preds_offset <- sl_fit_backfit_offset$predict(offset_task)
-
-    At[, "QbarW_now"] <- g_preds_no_offset
-
-    task_offset <- sl3::make_sl3_Task(
-      data = At,
-      covariates = exposures,
-      outcome = outcome,
-      outcome_type = family,
-      offset = "QbarW_initial"
-    )
-
-    no_offset_task <- sl3::sl3_Task$new(
-      data = At_no_offset,
-      covariates = exposures,
-      outcome = outcome,
-      outcome_type = family,
-      offset = "QbarW_initial"
-    )
-
-    sl_fit <- exposure_discrete_sl$train(task_offset)
-
-    f_preds_offset <- sl_fit$predict(task_offset)
-    f_preds_no_offset <- sl_fit$predict(no_offset_task)
-
-    At[, "QbarAW_now"] <- f_preds_no_offset
-
-    curr_diff <- abs(g_preds_offset - f_preds_offset)
-
-    if (verbose) {
-      if (iter == 1) {
-        print(paste(
-          "Fold: ", fold, "|",
-          "Process: ", "Exposure Basis Backfitting", "|",
-          "Iteration: ", iter, "|",
-          "Delta: ", "None", "|",
-          "Diff: ", mean(curr_diff)
-        ))
-      } else {
-        print(paste(
-          "Fold: ", fold, "|",
-          "Process: ", "Exposure Basis Backfitting", "|",
-          "Iteration: ", iter, "|",
-          "Delta: ", mean(curr_diff - prev_diff), "|",
-          "Diff: ", mean(curr_diff)
-        ))
-      }
-    }
-
-    At[, "QbarW_initial"] <- At$QbarW_now
-    At[, "QbarAW_initial"] <- At$QbarAW_now
-
-    if (iter == 1) {
-      stop <- FALSE
-      prev_diff <- curr_diff
-    } else if (abs(mean(curr_diff - prev_diff)) <= 0.001) {
-      stop <- TRUE
-    } else if (iter >= max_iter) {
-      stop <- TRUE
-    } else {
-      stop <- FALSE
-      prev_diff <- curr_diff
-    }
-  }
-
-  # task <- make_sl3_Task(
-  #   data = data, covariates = covars,
-  #   outcome = outcome, outcome_type = "continuous"
-  # )
-  #
-  # discrete_sl_metalrn <- Lrnr_cv_selector$new()
-  #
-  # discrete_sl <- Lrnr_sl$new(
-  #   learners = Q1_stack,
-  #   metalearner = discrete_sl_metalrn
-  # )
-  #
-  # sl_fit <- discrete_sl$train(task)
   selected_learner <- sl_fit$learner_fits[[which(sl_fit$coefficients == 1)]]
   learner_name <- selected_learner$name
-  full_residual_SS <- (At[, get(outcome)] - f_preds_offset)^2
+  full_residual_SS <- (at[, get(outcome)] - sl_fit$predict())^2
+
 
   if (grepl("earth", learner_name)) {
-    best_model_basis <- as.data.frame(model.matrix(selected_learner$fit_object))
-    # bx <- best_model_basis[, -1]
-    # colnames(bx) <- colnames(best_model_basis)[-1]
-    full_lm_mod <- lm(At[, get(outcome)] ~ ., data = as.data.frame(best_model_basis))
+    best_model_basis <- as.data.frame(model.matrix(
+      selected_learner$fit_object
+    ))
+    full_lm_mod <- lm(at[, get(outcome)] ~ .,
+      data = as.data.frame(best_model_basis)
+    )
 
     anova_fit <- anova(full_lm_mod)
 
     if (quantile_thresh != 0) {
-      anova_fit <- subset(anova_fit, `F value` > quantile(anova_fit$`F value`, quantile_thresh, na.rm = TRUE))
+      anova_fit <- subset(anova_fit, `F value` >
+        quantile(anova_fit$`F value`,
+          quantile_thresh,
+          na.rm = TRUE
+        ))
     }
 
     anova_basis <- rownames(anova_fit)
   }
 
-  if (grepl("poly", learner_name)) {
-    best_model_basis <- polspline::design.polymars(selected_learner$fit_object, x = data[, ..covars])
+  if (grepl("polspline", learner_name)) {
+    best_model_basis <- polspline::design.polymars(
+      selected_learner$fit_object,
+      x = data[, ..covars]
+    )
+
     best_model_basis <- best_model_basis[, -1]
 
     pred1 <- selected_learner$fit_object$model$pred1
@@ -209,18 +119,27 @@ fit_basis_estimators <- function(At,
     splines[is.na(splines)] <- ""
     splines[splines == 0] <- ""
 
-    colnames(best_model_basis) <- paste(splines$pred1, splines$knot1, splines$pred2, splines$knot2, sep = "")
-    polymars_model <- lm(data[, get(outcome)] ~ ., data = as.data.frame(best_model_basis))
+    colnames(best_model_basis) <- paste(splines$pred1, splines$knot1,
+      splines$pred2, splines$knot2,
+      sep = ""
+    )
+    polymars_model <- lm(data[, get(outcome)] ~ .,
+      data = as.data.frame(best_model_basis)
+    )
+
     anova_fit <- anova(polymars_model)
 
     if (quantile_thresh != 0) {
-      anova_fit <- subset(anova_fit, `F value` > quantile(anova_fit$`F value`, quantile_thresh, na.rm = TRUE))
+      anova_fit <- subset(anova_fit, `F value` > quantile(anova_fit$`F value`,
+        quantile_thresh,
+        na.rm = TRUE
+      ))
     }
   }
 
   match_list <- list()
   i <- 1
-  for (j in exposures) {
+  for (j in covars) {
     matches <- stringr::str_match(rownames(anova_fit), j)
     matches[is.na(matches)] <- ""
     match_list[[i]] <- matches

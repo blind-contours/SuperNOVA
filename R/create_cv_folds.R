@@ -1,12 +1,14 @@
-#' Stratified CV to insure balance (by one grouping variable, Y)
-#'
-#' @param V number of folds
-#' @param Y Outcome variable. If binary will be used for stratification.
+#' @title Stratified CV to insure balance (by one grouping variable, Y)
+#' @description Creates a dummy variable that partitions the data into v
+#' equal sized groups for v-fold CV.
+#' @param v number of folds
+#' @param y Outcome variable. If binary will be used for stratification.
 #' @param verbose If T will display extra output.
 #'
 #' @return Vector of fold assignments.
 #'
 #' @importFrom cvTools cvFolds
+#' @export
 create_cv_folds <- function(V, Y, verbose = F) {
   Ys <- unique(Y)
   nys <- length(Ys)

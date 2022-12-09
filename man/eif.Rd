@@ -4,17 +4,18 @@
 \alias{eif}
 \title{Compute the Shift Parameter Estimate and the Efficient Influence Function}
 \usage{
-eif(
-  Y,
-  Qn,
-  Hn,
-  estimator = c("tmle", "onestep"),
-  fluc_mod_out = NULL,
-  C_samp = rep(1, length(Y)),
-  ipc_weights = rep(1, length(Y))
-)
+eif(y, qn, hn, estimator = c("tmle", "onestep"), fluc_mod_out = NULL)
 }
 \arguments{
+\item{estimator}{The type of estimator to be fit, either \code{"tmle"} for
+targeted maximum likelihood estimation or \code{"onestep"} for a one-step
+estimator.}
+
+\item{fluc_mod_out}{An object giving values of the logistic tilting model
+for targeted minimum loss estimation. This type of object should be the
+output of the internal routines to perform this step of the TML estimation
+procedure, as given by \code{\link{fit_fluctuation}}.}
+
 \item{Y}{A \code{numeric} vector of the observed outcomes.}
 
 \item{Qn}{An object providing the value of the outcome evaluated after
@@ -25,15 +26,6 @@ constructed by a call to the internal function \code{est_Q}.}
 constructed from the treatment mechanism and required for targeted minimum
 loss-based estimation. This object object should be passed in after being
 constructed by a call to the internal function \code{est_Hn}.}
-
-\item{estimator}{The type of estimator to be fit, either \code{"tmle"} for
-targeted maximum likelihood estimation or \code{"onestep"} for a one-step
-estimator.}
-
-\item{fluc_mod_out}{An object giving values of the logistic tilting model
-for targeted minimum loss estimation. This type of object should be the
-output of the internal routines to perform this step of the TML estimation
-procedure, as given by \code{\link{fit_fluctuation}}.}
 
 \item{C_samp}{Indicator for missingness due to exclusion from second-phase
 sample. Used for compatibility with the IPCW-TML estimation routine.}

@@ -5,21 +5,15 @@
 \title{Fit One-Dimensional Fluctuation Model for Updating Initial Estimates}
 \usage{
 fit_fluctuation(
-  Y,
+  y,
   Qn_scaled,
   Hn,
-  ipc_weights = rep(1, length(Y)),
+  ipc_weights = rep(1, length(y)),
   method = c("standard", "weighted"),
   flucmod_tol = 50
 )
 }
 \arguments{
-\item{Y}{A \code{numeric} vector corresponding to an outcome variable.}
-
-\item{Qn_scaled}{An object providing the value of the outcome evaluate
-after inducing a shift in the exposure. This object should be passed in
-after being constructed by a call to \code{\link{est_Q}}.}
-
 \item{Hn}{An object providing values of the auxiliary ("clever") covariate,
 constructed from the treatment mechanism and required for targeted minimum
 loss estimation. This object object should be passed in after being
@@ -35,6 +29,12 @@ and "standard". Consult the literature for details on the differences.}
 
 \item{flucmod_tol}{A \code{numeric} indicating the largest value to be
 tolerated in the fluctuation model for the targeted minimum loss estimator.}
+
+\item{Y}{A \code{numeric} vector corresponding to an outcome variable.}
+
+\item{qn_estim}{An object providing the value of the outcome evaluate
+after inducing a shift in the exposure. This object should be passed in
+after being constructed by a call to \code{\link{est_Q}}.}
 }
 \value{
 A \code{list} containing the fluctuation model (a \code{glm} object)

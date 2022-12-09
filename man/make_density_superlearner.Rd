@@ -9,9 +9,6 @@ make_density_superlearner()
 \arguments{
 \item{sigma_mod}{}
 }
-\value{
-
-}
 \description{
 Title
 }

@@ -2,20 +2,28 @@
 % Please edit documentation in R/simulate_data.R
 \name{simulate_data}
 \alias{simulate_data}
-\title{Title}
+\title{DGP for testing SuperNOVA}
 \usage{
 simulate_data(
-  n_obs = 2000,
-  mu = c(2.5, 3, 4),
-  sigma_mod = matrix(c(1, 0.5, 0.8, 0.5, 1, 0.7, 0.8, 0.7, 1), nrow = 3, ncol = 3)
+  n_obs = 1e+05,
+  shift_var_index = 1,
+  sigma_mod = matrix(c(1, 0.5, 0.8, 0.5, 1, 0.7, 0.8, 0.7, 1), nrow = 3, ncol = 3),
+  delta = 1
 )
 }
 \arguments{
-\item{sigma_mod}{}
-}
-\value{
+\item{n_obs}{Number of observations}
 
+\item{sigma_mod}{Sigma matrix of exposures}
+
+\item{mu}{Vector of means for exposures}
+
+\item{effect_mod_binary}{TRUE/FALSE Whether the effect modifier is binary}
+
+\item{delta_1}{Delta for M1 Exposure}
+
+\item{delta_2}{Delta for M3 Exposure}
 }
 \description{
-Title
+DGP for testing SuperNOVA
 }

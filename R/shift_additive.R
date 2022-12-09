@@ -10,7 +10,7 @@
 #'  computed for the treatment \code{A}.
 #'
 #' @return A \code{numeric} vector containing the shifted exposure values.
-shift_additive <- function(A, W = NULL, delta) {
-  shifted_treatment <- A + delta
+shift_additive <- function(a, w = NULL, delta) {
+  shifted_treatment <- a + delta
   return(shifted_treatment)
 }

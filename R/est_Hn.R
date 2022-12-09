@@ -12,7 +12,8 @@
 #' @return A \code{data.table} with two columns, containing estimates of the
 #'  auxiliary covariate at the natural value of the exposure H(A, W) and at the
 #'  shifted value of the exposure H(A + delta, W).
-est_Hn <- function(gn_exp) {
+#' @export
+est_hn <- function(gn_exp) {
   # set any g(a|w) = 0 values to a very small value above zero
   gn_exp$noshift <- bound_propensity(gn_exp$noshift)
 

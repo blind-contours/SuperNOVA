@@ -7,24 +7,40 @@ Intervention}
 \usage{
 tmle_exposhift(
   data_internal,
-  C_samp = rep(1, nrow(data_internal)),
-  V = NULL,
   delta,
-  samp_estim,
-  gn_cens_weights,
-  Qn_estim,
-  Hn_estim,
+  Qn_scaled,
+  Hn,
   fluctuation = c("standard", "weighted"),
-  max_iter = 10,
   eif_reg_type = c("hal", "glm"),
-  samp_fit_args,
-  ipcw_efficiency = TRUE
+  y
 )
 }
 \arguments{
 \item{data_internal}{A \code{data.table} constructed internally by a call to
 \code{\link{txshift}}. This contains most of the data for computing the
 targeted minimum loss (TML) estimator.}
+
+\item{delta}{A \code{numeric} value indicating the shift in the treatment to
+be used in defining the target parameter. This is defined with respect to
+the scale of the treatment (A).}
+
+\item{Hn}{An object providing values of the auxiliary ("clever")
+covariate, constructed from the treatment mechanism and required for
+targeted minimum loss-based estimation. This object object should be passed
+in after being constructed by a call to \code{\link{est_Hn}}.}
+
+\item{fluctuation}{The method to be used in the submodel fluctuation step
+(targeting step) to compute the TML estimator. The choices are "standard"
+and "weighted" for where to place the auxiliary covariate in the logistic
+tilting regression.}
+
+\item{eif_reg_type}{Whether a flexible nonparametric function ought to be
+used in the dimension-reduced nuisance regression of the targeting step for
+the censored data case. By default, the method used is a nonparametric
+regression based on the Highly Adaptive Lasso (from \pkg{hal9001}).
+Set this to \code{"glm"} to instead use a simple linear regression model.
+In this step, the efficient influence function (EIF) is regressed against
+covariates contributing to the censoring mechanism (i.e., EIF ~ V | C = 1).}
 
 \item{C_samp}{A \code{numeric} indicator for whether a given observation was
 included in the second-stage sample, used to compute an IPC-weighted
@@ -38,10 +54,6 @@ preceding argument \code{C_samp} must be 1. To specify this, pass in a
 NAMED \code{list} identifying variables amongst W, A, Y that are thought to
 have played a role in defining the sampling mechanism.}
 
-\item{delta}{A \code{numeric} value indicating the shift in the treatment to
-be used in defining the target parameter. This is defined with respect to
-the scale of the treatment (A).}
-
 \item{samp_estim}{An object providing the value of the sampling mechanism
 evaluated across the full data. This object is passed in after being
 constructed by a call to the internal function \code{\link{est_samp}}.}
@@ -52,26 +64,8 @@ constructed by a call to the internal function \code{\link{est_samp}}.}
 imposing a shift in the treatment. This object is passed in after being
 constructed by a call to the internal function \code{\link{est_Q}}.}
 
-\item{Hn_estim}{An object providing values of the auxiliary ("clever")
-covariate, constructed from the treatment mechanism and required for
-targeted minimum loss-based estimation. This object object should be passed
-in after being constructed by a call to \code{\link{est_Hn}}.}
-
-\item{fluctuation}{The method to be used in the submodel fluctuation step
-(targeting step) to compute the TML estimator. The choices are "standard"
-and "weighted" for where to place the auxiliary covariate in the logistic
-tilting regression.}
-
 \item{max_iter}{A \code{numeric} integer giving the maximum number of steps
 to be taken in iterating to a solution of the efficient influence function.}
-
-\item{eif_reg_type}{Whether a flexible nonparametric function ought to be
-used in the dimension-reduced nuisance regression of the targeting step for
-the censored data case. By default, the method used is a nonparametric
-regression based on the Highly Adaptive Lasso (from \pkg{hal9001}).
-Set this to \code{"glm"} to instead use a simple linear regression model.
-In this step, the efficient influence function (EIF) is regressed against
-covariates contributing to the censoring mechanism (i.e., EIF ~ V | C = 1).}
 
 \item{samp_fit_args}{A \code{list} of arguments, all but one of which are
 passed to \code{\link{est_samp}}. For details, consult the documentation

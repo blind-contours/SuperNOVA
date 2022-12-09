@@ -48,51 +48,49 @@ the original stochastic intervention methodology from one treatment/exposure var
 joint stochastic interventions on two variables which allows for the construction of a non-parametric
 interaction parameter. Likewise, `SuperNOVA` also estimates both individual stochastic intervention outcomes
 under some delta shift compared to outcome under no intervention and a target parameter for effect modification which
-is the difference in mean outcomes under intervention compared to no intervention across strata of an effect modifier. 
+is the difference in mean outcomes under intervention compared to no intervention across strata of an effect modifier which is data-adaptively determined.
+Future work will also include stochastic shift mediation analysis which is under development.
 
-Of course, it is not known a priori in most cases what variables are interacting or modifying effects and 
-therefore it is necessary to identify these variable sets first. As such `SuperNOVA` uses V-fold cross-validation framework to estimate a data-adaptive parameter in training folds and a non-parametric interaction target parameter in estimation folds. Our data-adaptive parameters are variable sets used in basis functions in the best fitting multivariate adaptive regression spline model. The best fitting model is determined using a Super Learner which selects the model from an ensemble with the lowest cross-validated MSE. Variable sets are considered important based on ANOVA-like variance decompositions for the basis functions in the best fitting model. Individual variables and variable sets used in all the training folds are considered consistent predictors. The interaction target parameter is applied to variable sets composed of two variables in the mixed exposure. This target parameter is the expected outcome under a dual shift of both variables by some delta compared to the sum of individual shifts. Other parameters exist for effect modification and individual variable shifts. Cross-validated targeted minimum loss-based estimation (TMLE) is used to update the initial expected outcomes given stochastic shift interventions.  This method, called SuperNOVA, guarantees consistency, efficiency, and multiple robustness. SuperNOVA provides researchers with V-fold specific and pooled results for each target parameter. Additional information is provided in the vignette. 
+Of course, it is not known a priori in most cases what variables are interacting or modifying effects (especially in the case of a mixed exposure) and 
+therefore it is necessary to identify these variable sets first. As such `SuperNOVA` uses k-fold cross-validation framework to estimate a data-adaptive parameter in training folds and a non-parametric interaction target parameter in estimation folds. Our data-adaptive parameters are variable sets used in basis functions in the best fitting multivariate adaptive regression spline model or highly adaptive lasso model. The best fitting model is determined using a Super Learner which selects the model from an ensemble with the lowest cross-validated MSE. Variable sets are considered important based on ANOVA-like variance decompositions for the basis functions in the best fitting model. Individual variables and variable sets used in all the training folds are considered consistent predictors. The interaction target parameter is applied to variable sets composed of two variables in the mixed exposure. This target parameter is the expected outcome under a dual shift of both variables by some delta compared to the sum of individual shifts. Other parameters exist for effect modification and individual variable shifts. Cross-validated targeted minimum loss-based estimation (TMLE) is used to update the initial expected outcomes given stochastic shift interventions.  This method, called SuperNOVA, guarantees consistency, efficiency, and multiple robustness. SuperNOVA provides researchers with k-fold specific and pooled results for each target parameter. Additional information is provided in the vignette. 
 
 `SuperNOVA` integrates with the [`sl3`
 package](https://github.com/tlverse/sl3) [@coyle-sl3-rpkg] to allow for ensemble
 machine learning to be leveraged in the estimation procedure for each nuisance parameter 
-and estimation of the data-adaptive parameters in the iterative backfitting procedure used to identify basis functions in the best fittin model. There are several stacks of machine learning algorithms used that are constructed from `sl3`. 
+and estimation of the data-adaptive parameters. 
+There are several stacks of machine learning algorithms used that are 
+constructed from `sl3` automatically. If the stack parameters are NULL, 
+SuperNOVA automatically builds ensembles of machine learning algorithms
+that are flexible yet not overly computationally taxing.
 
 ---
 
 ## Installation
 
-For standard use, we recommend installing the package from
-[CRAN](https://CRAN.R-project.org/package=SuperNOVA) via
+_Note:_ Because `SuperNOVA` package (currently) depends on `sl3` that allows 
+ensemble machine learning to be used for 
+nuisance parameter estimation and `sl3` is not on CRAN the `SuperNOVA` package 
+is not available on CRAN and must be downloaded here. 
 
-```{r cran-installation, eval = FALSE}
-install.packages("SuperNOVA")
-```
-
-_Note:_ If `SuperNOVA` is installed from
-[CRAN](https://CRAN.R-project.org/package=SuperNOVA), the `sl3`, an enhancing
-dependency that allows ensemble machine learning to be used for nuisance
-parameter estimation, won't be included. We highly recommend additionally     
-installing `sl3` from GitHub via
-[`remotes`](https://CRAN.R-project.org/package=remotes):
-
-```{r sl3-gh-master-installation, eval = FALSE}
-remotes::install_github("tlverse/sl3@devel")
-```
-
-For the latest features, install the most recent _stable version_  of `SuperNOVA`
-from GitHub via [`remotes`](https://CRAN.R-project.org/package=remotes):
 
 ```{r gh-master-installation, eval = FALSE}
 remotes::install_github("blind-contours/SuperNOVA@main")
 ```
 
-To contribute, install the _development version_ of `SuperNOVA` from GitHub via
+`SuperNOVA` uses `sl3` so please download sl3 from:
+```{r sl3_install, eval = FALSE}
+remotes::install_github("tlverse/sl3@devel")
+```
+
+
+To contribute, install the _mediation_ version of `SuperNOVA` from GitHub via
 [`remotes`](https://CRAN.R-project.org/package=remotes):
 
 ```{r gh-devel-installation, eval = FALSE}
-remotes::install_github("blind-contours/SuperNOVA@devel")
+remotes::install_github("blind-contours/SuperNOVA@mediation")
 ```
+
+This is under development and issues should be written in the issues page.
 
 ---
 
@@ -105,116 +103,60 @@ library(SuperNOVA)
 library(devtools)
 library(kableExtra)
 
-load_all('~/sl3')
+load_all("~/sl3")
 set.seed(429153)
 # simulate simple data
-n_obs <- 400
+n_obs <- 100000
 ```
 
 
 The `simulate_data` function creates simulated data with a multivariate exposure, covariates (confounders), and a continuous outcome.
 ```{r simulate data, eval = TRUE}
-data_info <- simulate_data(n_obs = n_obs)
-data <- data_info$data
+data <- simulate_data(n_obs = n_obs, shift_var_index = c(1))
+effect <- data$effect
+data <- data$data
 head(data) %>%
   kbl(caption = "Simulated Data") %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
 
-```{r setup learner stacks}
+The `shift_var_index` parameter above shifts a variable set and gets the expected outcome under this shift. 
+Here, we shift our first exposure variable and true effect for this DGP is: 
 
-## this is the stack of learners to learn the density of our exposures, or the g mechanism
-sl_density_lrnr <- make_density_superlearner()
-
-# this stack will be used to find basis functions in the mixture during an iterative backfitting procedure, details in vignette
-Lrnr_earth_1 <- Lrnr_earth$new(linpreds = FALSE, degree = 1)
-Lrnr_earth_2 <- Lrnr_earth$new(linpreds = FALSE, degree = 2)
-Lrnr_earth_3 <- Lrnr_earth$new(linpreds = FALSE, degree = 2, pmethod = "none")
-
-learners <- c(
-  Lrnr_earth_1,
-  Lrnr_earth_2,
-  Lrnr_earth_3
-)
-
-names(learners) <- c(
-  "full earth 1",
-  "full earth 2",
-  "full earth 3"
-)
-
-Exposures_stack <- make_learner(Stack, learners)
-
-## this is the stack of learners used to estimate Y given covariates in the iterative backfitting procedure
-
-Lrnr_glm_basic <- Lrnr_glm$new()
-Lrnr_mean_base <- Lrnr_mean$new()
-
-Lrnr_ridge <- Lrnr_glmnet$new(alpha = 0)
-Lrnr_lasso <- Lrnr_glmnet$new(alpha = 1)
-
-learners <- c(
-  Lrnr_earth_1,
-  Lrnr_earth_2,
-  Lrnr_earth_3,
-  Lrnr_glm_basic,
-  Lrnr_mean_base,
-  Lrnr_ridge,
-  Lrnr_lasso
-)
-
-names(learners) <- c(
-  "full earth 1",
-  "full earth 2",
-  "full earth 3",
-  "Lrnr_glm",
-  "Lrnr_mean",
-  "Lrnr_ridge",
-  "Lrnr_lasso"
-)
-
-Covariate_stack <- make_learner(Stack, learners)
-
-## and now we make the estimators for our Q or outcome mechanism: 
-
-mean_lrnr <- Lrnr_mean$new()
-fglm_lrnr <- Lrnr_glm_fast$new()
-rf_lrnr <- Lrnr_ranger$new()
-lasso_learner <- Lrnr_glmnet$new(alpha = 1)
-ridge_learner <- Lrnr_glmnet$new(alpha = 0)
-lrn_polspline <- Lrnr_polspline$new()
-lrn_ranger100 <- make_learner(Lrnr_ranger, num.trees = 100)
-hal_lrnr <- Lrnr_hal9001$new(max_degree = 3, n_folds = 3)
-
-Outcome_stack <- make_learner(
-  Stack, mean_lrnr, fglm_lrnr, rf_lrnr, lasso_learner, ridge_learner, lrn_polspline, lrn_ranger100, Lrnr_earth_1, Lrnr_earth_2, Lrnr_earth_3
-)
-
+```{r effect, eval = TRUE}
+effect
 ```
 
+And therefore, in `SuperNOVA` we would expect most of the fold CIs to cover
+this number and the pooled estimate to also cover this true effect. Let's
+run `SuperNOVA` to see if it correctly identifies the exposures that drive 
+the outcome and any interaction/effect modification that exists in the DGP.
 
+Of note, there are three exposures M1, M2, M3 - M1 and M3 have individual effects
+and interactions that drive the outcome. There is also effect modification 
+between M3 and W1. 
 
 
 ```{r run SuperNOVA, eval = TRUE}
-W <- data[, c("W2", "W3")]
-A <- data[, c("M1", "M2", "M3")]
-V <- data[, c("W1")]
-Y <- data[, c("Y")]
+data_sample <- data[sample(nrow(data), 1000), ]
 
+w <- data_sample[, c("W1", "W2")]
+a <- data_sample[, c("M1", "M2", "M3")]
+y <- data_sample$Y
 
-sim_results <- SuperNOVA(W = W,
-                         V = V,
-                         A = A,
-                         Y = Y,
-                         delta = 1,
-                         LOD_val = 0,
-                         Density_stack = sl_density_lrnr,
-                         Exposures_stack = Exposures_stack,
-                         Covariate_stack = Covariate_stack,
-                         Outcome_stack = Outcome_stack,
-                         n_folds = 3,
-                         family = "continuous",
-                         quantile_thresh = 0) 
+ptm <- proc.time()
+sim_results <- SuperNOVA(
+  w = w,
+  a = a,
+  y = y,
+  delta = 1,
+  n_folds = 5,
+  num_cores = 6,
+  family = "continuous",
+  quantile_thresh = 0,
+  seed = 294580
+)
+proc.time() - ptm
 
 indiv_shift_results <- sim_results$`Indiv Shift Results`
 em_results <- sim_results$`Effect Mod Results`
@@ -224,23 +166,23 @@ joint_shift_results <- sim_results$`Joint Shift Results`
 Let's first look at the results for individual stochastic shifts by delta compared to no shift:
 
 ```{r individual shift results}
-indiv_shift_results %>%
-  kbl(caption = "Individual Stochastic Intervention Results") %>%
+indiv_shift_results$M1 %>%
+  kbl(caption = "Individual Stochastic Intervention Results for M1") %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
 
 Next we can look at effect modifications: 
 
 ```{r effect modification results}
-em_results %>%
-  kbl(caption = "Effect Modification Stochastic Intervention Results") %>%
+em_results$M3W1 %>%
+  kbl(caption = "Effect Modification Stochastic Intervention Results for M3 and W1") %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
 
-And finally results for the joint shift
+And finally results for the joint shift which is a joint shift compared to additive individual shifts.
 
 ```{r joint results}
-joint_shift_results %>%
+joint_shift_results$M1M3 %>%
   kbl(caption = "Interactions Stochastic Intervention Results") %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```

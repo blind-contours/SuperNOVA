@@ -1,11 +1,44 @@
-joint_stoch_shift_est_Q <- function(exposures, delta, stack, covars, Av, At) {
+#' Estimate the Outcome Mechanism
+#'
+#' @details Compute the outcome regression for the observed data, including
+#'  with the shift imposed by the intervention. This returns the outcome
+#'  regression for the observed data (at A) and under the counterfactual shift
+#'  shift (at A + delta).
+#'
+#' @param exposures A \code{character} vector of exposures to be shifted.
+#' @param covars A \code{character} vector covariates to adjust for.
+#' @param delta A \code{numeric} indicating the magnitude of the shift to be
+#'  computed for the exposure \code{A}. This is passed to the internal
+#'  \code{\link{shift_additive}} and is currently limited to additive shifts.
+#' @param mu_learner Object containing a set of instantiated learners from the
+#'  \pkg{sl3}, to be used in fitting an ensemble model.
+##' @param av A \code{dataframe} of validation data specific to the fold
+#'  @param at A \code{dataframe} of training data specific to the fold
+#'
+#' @importFrom stats glm as.formula predict
+#' @importFrom data.table as.data.table setnames copy set
+#' @importFrom stringr str_detect
+#' @importFrom assertthat assert_that
+#' @export
+#' @return A \code{data.table} with two columns, containing estimates of the
+#'  outcome mechanism at the natural value of the exposure Q(A, W) and an
+#'  upshift of the exposure Q(A + delta, W).
+
+joint_stoch_shift_est_Q <- function(exposures,
+                                    delta,
+                                    mu_learner,
+                                    covars,
+                                    av,
+                                    at,
+                                    y_name) {
   future::plan(future::sequential, gc = TRUE)
 
   # scale the outcome for logit transform
-  At$y_star <- scale_to_unit(vals = At$Y)
-  Av$y_star <- scale_to_unit(vals = Av$Y)
+  y_star_av <- scale_to_unit(vals = av$y)
+  y_star_at <- scale_to_unit(vals = at$y)
 
-  Y_names <- "y_star"
+  av$y <- y_star_av
+  at$y <- y_star_at
 
   results <- list()
 
@@ -13,81 +46,81 @@ joint_stoch_shift_est_Q <- function(exposures, delta, stack, covars, Av, At) {
     exposure <- exposures[[i]]
 
     # need a data set with the exposure stochastically shifted DOWNWARDS A-delta
-    Av_downshifted <- data.table::copy(Av)
-    data.table::set(Av_downshifted, j = exposure, value = shift_additive(
-      A = subset(Av, select = exposure), delta = -delta
+    av_downshifted <- data.table::copy(av)
+    data.table::set(av_downshifted, j = exposure, value = shift_additive(
+      a = subset(av, select = exposure), delta = -delta
     ))
 
     # need a data set with the exposure stochastically shifted UPWARDS A+delta
-    Av_upshifted <- data.table::copy(Av)
-    data.table::set(Av_upshifted, j = exposure, value = shift_additive(
-      A = subset(Av, select = exposure), delta = delta
+    av_upshifted <- data.table::copy(av)
+    data.table::set(av_upshifted, j = exposure, value = shift_additive(
+      a = subset(av, select = exposure), delta = delta
     ))
 
     # need a data set with the exposure stochastically shifted UPWARDS A+2delta
-    Av_upupshifted <- data.table::copy(Av)
-    data.table::set(Av_upupshifted, j = exposure, value = shift_additive(
-      A = subset(Av, select = exposure), delta = 2 * delta
+    av_upupshifted <- data.table::copy(av)
+    data.table::set(av_upupshifted, j = exposure, value = shift_additive(
+      a = subset(av, select = exposure), delta = 2 * delta
     ))
 
-    # Outcome mechanism
     sl <- Lrnr_sl$new(
-      learners = stack
+      learners = mu_learner,
+      metalearner = sl3::Lrnr_nnls$new()
     )
 
-    At_task_noshift <- sl3::sl3_Task$new(
-      data = At,
+    at_task_noshift <- sl3::sl3_Task$new(
+      data = at,
       covariates = covars,
-      outcome = Y_names
+      outcome = "y",
+      outcome_type = "quasibinomial"
     )
 
-    Av_task_noshift <- sl3::sl3_Task$new(
-      data = Av,
+    av_task_noshift <- sl3::sl3_Task$new(
+      data = av,
       covariates = covars,
-      outcome = Y_names
+      outcome = "y",
+      outcome_type = "quasibinomial"
     )
 
-    Av_task_upshift <- sl3::sl3_Task$new(
-      data = Av_upshifted,
+    av_task_upshift <- sl3::sl3_Task$new(
+      data = av_upshifted,
       covariates = covars,
-      outcome = Y_names
+      outcome = "y",
+      outcome_type = "quasibinomial"
     )
 
-    Av_task_upupshift <- sl3::sl3_Task$new(
-      data = Av_upupshifted,
+    av_task_upupshift <- sl3::sl3_Task$new(
+      data = av_upupshifted,
       covariates = covars,
-      outcome = Y_names
+      outcome = "y",
+      outcome_type = "quasibinomial"
     )
 
-    Av_task_downshift <- sl3::sl3_Task$new(
-      data = Av_downshifted,
+    av_task_downshift <- sl3::sl3_Task$new(
+      data = av_downshifted,
       covariates = covars,
-      outcome = Y_names
+      outcome = "y",
+      outcome_type = "quasibinomial"
     )
 
-    sl_fit <- sl$train(At_task_noshift)
+    sl_fit <- sl$train(at_task_noshift)
 
     # fit new Super Learner to the natural (no shift) data and predict
-    Av_pred_star_Qn <- sl_fit$predict(Av_task_noshift)
-    Av_pred_star_Qn <- ifelse(Av_pred_star_Qn >= 1.0, 1.0, Av_pred_star_Qn)
-    Av_pred_star_Qn <- ifelse(Av_pred_star_Qn <= 0, 0, Av_pred_star_Qn)
-
+    av_pred_star_qn <- bound_precision(sl_fit$predict(av_task_noshift))
     # predict with Super Learner from unshifted data on the shifted data
-    Av_pred_star_Qn_upshifted <- sl_fit$predict(Av_task_upshift)
-    Av_pred_star_Qn_upshifted <- ifelse(Av_pred_star_Qn_upshifted >= 1.0, 1.0, Av_pred_star_Qn_upshifted)
-    Av_pred_star_Qn_upshifted <- ifelse(Av_pred_star_Qn_upshifted <= 0, 0, Av_pred_star_Qn_upshifted)
-
+    av_pred_star_qn_upshifted <- bound_precision(sl_fit$predict(av_task_upshift))
     # predict with Super Learner from unshifted data on the shifted data
-    Av_pred_star_Qn_upupshifted <- sl_fit$predict(Av_task_upupshift)
-    Av_pred_star_Qn_upupshifted <- ifelse(Av_pred_star_Qn_upupshifted >= 1.0, 1.0, Av_pred_star_Qn_upupshifted)
-    Av_pred_star_Qn_upupshifted <- ifelse(Av_pred_star_Qn_upupshifted <= 0, 0, Av_pred_star_Qn_upupshifted)
-
-    Av_pred_star_Qn_downshifted <- sl_fit$predict(Av_task_downshift)
-    Av_pred_star_Qn_downshifted <- ifelse(Av_pred_star_Qn_downshifted >= 1.0, 1.0, Av_pred_star_Qn_downshifted)
-    Av_pred_star_Qn_downshifted <- ifelse(Av_pred_star_Qn_downshifted <= 0, 0, Av_pred_star_Qn_downshifted)
+    av_pred_star_qn_upupshifted <- bound_precision(sl_fit$predict(av_task_upupshift))
+    av_pred_star_qn_downshifted <- bound_precision(sl_fit$predict(av_task_downshift))
 
     # create output data frame and return result
-    out <- data.table::as.data.table(cbind(Av_pred_star_Qn, Av_pred_star_Qn_upshifted, Av_pred_star_Qn_upupshifted, Av_pred_star_Qn_downshifted))
+    out <- data.table::as.data.table(cbind(
+      av_pred_star_qn,
+      av_pred_star_qn_upshifted,
+      av_pred_star_qn_upupshifted,
+      av_pred_star_qn_downshifted
+    ))
+
     data.table::setnames(out, c("noshift", "upshift", "upupshift", "downshift"))
 
     results[[i]] <- out

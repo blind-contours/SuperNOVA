@@ -2,15 +2,12 @@
 % Please edit documentation in R/final_result_utils.R
 \name{calc_final_ind_shift_param}
 \alias{calc_final_ind_shift_param}
-\title{Calculate Final Results}
+\title{Calculates the Individual Shift Parameter}
 \usage{
-calc_final_ind_shift_param(indiv_shift_fold_results, exposure, fold_k)
+calc_final_ind_shift_param(tmle_fit, exposure, fold_k)
 }
 \description{
-Calculate Final Results
-}
-\details{
-Set of functions that calculate the final target parameter
-depending on single variable shift, effect modification shift,
-or a joint stochastic intervention.
+Simply subtract the psi estimates of a shift compared to no
+shift. Use the delta method to do the same thing for the eif to derive
+variance estimates for this new parameter.
 }

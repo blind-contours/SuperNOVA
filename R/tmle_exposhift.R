@@ -27,7 +27,7 @@
 #' @param Qn_estim An object providing the value of the outcome evaluated after
 #'  imposing a shift in the treatment. This object is passed in after being
 #'  constructed by a call to the internal function \code{\link{est_Q}}.
-#' @param Hn_estim An object providing values of the auxiliary ("clever")
+#' @param Hn An object providing values of the auxiliary ("clever")
 #'  covariate, constructed from the treatment mechanism and required for
 #'  targeted minimum loss-based estimation. This object object should be passed
 #'  in after being constructed by a call to \code{\link{est_Hn}}.
@@ -59,166 +59,68 @@
 #' @importFrom data.table as.data.table setnames
 #' @importFrom stringr str_detect
 #' @importFrom Rdpack reprompt
+#' @export
 #'
 #' @return S3 object of class \code{txshift} containing the results of the
 #'  procedure to compute a TML estimate of the treatment shift parameter.
 tmle_exposhift <- function(data_internal,
-                           C_samp = rep(1, nrow(data_internal)),
-                           V = NULL,
                            delta,
-                           samp_estim = rep(1, nrow(data_internal)),
-                           gn_cens_weights = rep(1, nrow(data_internal)),
-                           Qn_estim,
-                           Hn_estim,
+                           Qn_scaled,
+                           Hn,
                            fluctuation = c("standard", "weighted"),
-                           max_iter = 10,
                            eif_reg_type = c("hal", "glm"),
-                           samp_fit_args,
-                           ipcw_efficiency = TRUE) {
+                           y) {
   # initialize counter
   n_steps <- 0
 
-  # construct (two-phase) sampling mechanism weights
-  samp_weights <- C_samp / samp_estim
+  # fit logistic regression to fluctuate along the sub-model
+  fitted_fluc_mod <- fit_fluctuation(
+    y = y,
+    Qn_scaled = Qn_scaled,
+    Hn = Hn,
+    method = fluctuation
+  )
 
-  # invoke efficient IPCW-TMLE if satisfied; otherwise ineffecient variant
-  if (!all(C_samp == 1) && ipcw_efficiency) {
-    # checks for necessary components for augmented EIF procedure
-    assertthat::assert_that(!is.null(samp_estim))
-    assertthat::assert_that(!is.null(V))
+  # compute TML estimate and EIF for the treatment shift parameter
+  tmle_eif_out <- eif(
+    y = y,
+    qn = Qn_scaled,
+    hn = Hn,
+    estimator = "tmle",
+    fluc_mod_out = fitted_fluc_mod
+  )
 
-    # bookkeeping for convergence of iterative procedure
-    eif_mean <- Inf
-    eif_tol <- 1 / length(samp_weights)
-    conv_res <- matrix(replicate(3, rep(NA_real_, max_iter)), nrow = max_iter)
 
-    # quantities to be updated across targeting iterations
-    pi_mech_star <- samp_estim
-    Qn_estim_updated <- Qn_estim
-
-    # iterate procedure until convergence conditions are satisfied
-    while (abs(eif_mean) > eif_tol && n_steps <= max_iter) {
-      # iterate counter
-      n_steps <- n_steps + 1
-
-      # update fluctuation model, re-compute EIF, overwrite EIF
-      tmle_ipcw_eif <- ipcw_eif_update(
-        data_internal = data_internal,
-        C_samp = C_samp,
-        V = V,
-        ipc_mech = pi_mech_star,
-        # NOTE: we update pi_mech_star and samp_weights in this procedure, so
-        #       only need to rescale by factor gn_cens_weights each iteration
-        ipc_weights = (gn_cens_weights * samp_weights[C_samp == 1]),
-        Qn_estim = Qn_estim_updated,
-        # NOTE: directly pass in Hn since gn never updated in this procedure
-        Hn_estim = Hn_estim,
-        estimator = "tmle",
-        fluctuation = fluctuation,
-        eif_reg_type = eif_reg_type
-      )
-
-      # overwrite and update quantities to be used in the next iteration
-      Qn_estim_updated <- data.table::as.data.table(
-        list(
-          # NOTE: need to re-scale estimated Q_n within bounds of Y
-          scale_to_unit(
-            vals = tmle_ipcw_eif$fluc_mod_out$Qn_noshift_star
-          ),
-          scale_to_unit(
-            vals = tmle_ipcw_eif$fluc_mod_out$Qn_shift_star
-          )
-        )
-      )
-      data.table::setnames(Qn_estim_updated, names(Qn_estim))
-
-      # updated sampling weights and stabilize
-      samp_weights <- tmle_ipcw_eif$ipc_weights
-      pi_mech_star <- tmle_ipcw_eif$pi_mech_star
-
-      # compute updated mean of efficient influence function and save
-      eif_ipcw <- tmle_ipcw_eif$eif_eval$eif -
-        tmle_ipcw_eif$ipcw_eif_component
-      eif_mean <- mean(eif_ipcw)
-      eif_var <- var(eif_ipcw) / length(samp_weights)
-      conv_res[n_steps, ] <- c(tmle_ipcw_eif$eif_eval$psi, eif_var, eif_mean)
-
-      # TMLE convergence criterion based on re-scaled standard error
-      tol_scaling <- 1 / (max(10, log(length(samp_weights))))
-      eif_tol <- sqrt(eif_var) * tol_scaling
-    }
-
-    # set to DT and subset to only the useful convergence results
-    conv_res <- data.table::as.data.table(conv_res)
-    data.table::setnames(conv_res, c("psi", "var", "eif_mean"))
-    conv_res <- conv_res[!is.na(rowSums(conv_res)), ]
-
-    # create output object
-    txshift_out <- unlist(
-      list(
-        psi = as.numeric(unlist(conv_res[n_steps, "psi"])),
-        var = as.numeric(unlist(conv_res[n_steps, "var"])),
-        eif = list(eif_ipcw),
-        .iter_res = list(conv_res),
-        n_iter = n_steps,
-        estimator = "tmle",
-        .outcome = list(data_internal$Y),
-        .delta = delta
-      ),
-      recursive = FALSE
-    )
-  } else {
-    # fit logistic regression to fluctuate along the sub-model
-    fitted_fluc_mod <- fit_fluctuation(
-      Y = data_internal$Y,
-      Qn_scaled = Qn_estim,
-      Hn = Hn_estim,
-      ipc_weights = (gn_cens_weights * samp_weights[C_samp == 1]),
-      method = fluctuation
-    )
-
-    # compute TML estimate and EIF for the treatment shift parameter
-    tmle_eif_out <- eif(
-      Y = data_internal$Y,
-      Qn = Qn_estim,
-      Hn = Hn_estim,
+  # create output object
+  exposure_shift_out <- unlist(
+    list(
+      psi = tmle_eif_out[["psi"]],
+      var = tmle_eif_out[["var"]],
+      se = tmle_eif_out[["se"]],
+      ci = tmle_eif_out[["CI"]],
+      p_value = tmle_eif_out[["p_value"]],
+      eif = list(tmle_eif_out[["eif"]]),
+      .iter_res = NULL,
+      n_iter = n_steps,
       estimator = "tmle",
-      fluc_mod_out = fitted_fluc_mod,
-      C_samp = C_samp,
-      ipc_weights = (gn_cens_weights * samp_weights[C_samp == 1])
+      .outcome = list(data_internal$y),
+      .delta = delta,
+      qn_shift_star = list(fitted_fluc_mod$qn_shift_star),
+      qn_noshift_star = list(fitted_fluc_mod$qn_noshift_star),
+      noshift_psi = tmle_eif_out[["no shift psi"]],
+      noshift_var = tmle_eif_out[["no shift var"]],
+      noshift_se = tmle_eif_out[["no shift se"]],
+      noshift_CI = tmle_eif_out[["no shift CI"]],
+      p_value = tmle_eif_out[["p_value"]],
+      noshift_eif = list(tmle_eif_out[["no shift eif"]])
+    ),
+    recursive = FALSE
+  )
 
-    )
-
-    # create output object
-    txshift_out <- unlist(
-      list(
-        psi = tmle_eif_out[["psi"]],
-        var = tmle_eif_out[["var"]],
-        se = tmle_eif_out[["se"]],
-        CI = tmle_eif_out[["CI"]],
-        p_value = tmle_eif_out[["p_value"]],
-        eif = list(tmle_eif_out[["eif"]]),
-        .iter_res = NULL,
-        n_iter = n_steps,
-        estimator = "tmle",
-        .outcome = list(data_internal$Y),
-        .delta = delta,
-        Qn_shift_star = list(fitted_fluc_mod$Qn_shift_star),
-        Qn_noshift_star = list(fitted_fluc_mod$Qn_noshift_star),
-        noshift_psi = tmle_eif_out[["no shift psi"]],
-        noshift_var = tmle_eif_out[["no shift var"]],
-        noshift_se = tmle_eif_out[["no shift se"]],
-        noshift_CI = tmle_eif_out[["no shift CI"]],
-        p_value = tmle_eif_out[["p_value"]],
-        noshift_eif = list(tmle_eif_out[["no shift eif"]])
-      ),
-      recursive = FALSE
-    )
-  }
 
   # S3-ify and return output object
-  class(txshift_out) <- "txshift"
-  return(txshift_out)
+  class(exposure_shift_out) <- "SuperNOVA"
+  return(exposure_shift_out)
 }
 
 ###############################################################################
@@ -231,7 +133,7 @@ tmle_exposhift <- function(data_internal,
 #'  TML estimator of the counterfactual mean under a modified treatment policy.
 #'
 #' @param Y A \code{numeric} vector corresponding to an outcome variable.
-#' @param Qn_scaled An object providing the value of the outcome evaluate
+#' @param qn_estim An object providing the value of the outcome evaluate
 #'  after inducing a shift in the exposure. This object should be passed in
 #'  after being constructed by a call to \code{\link{est_Q}}.
 #' @param Hn An object providing values of the auxiliary ("clever") covariate,
@@ -249,23 +151,21 @@ tmle_exposhift <- function(data_internal,
 #'
 #' @importFrom stats qlogis glm fitted predict as.formula coef
 #' @importFrom data.table as.data.table setnames
-#'
+#' @export
 #' @return A \code{list} containing the fluctuation model (a \code{glm} object)
 #'  produced by logistic regression, a \code{character} vector indicating the
 #'  type of fluctuation (whether the auxiliary covariates was used as a weight
 #'  or included directly in the model formula), the updated estimates of the
 #'  outcome regression under the shifted value of the exposure, and the updated
 #'  estimates of the outcome regression under the natural value of exposure.
-fit_fluctuation <- function(Y,
+fit_fluctuation <- function(y,
                             Qn_scaled,
                             Hn,
-                            ipc_weights = rep(1, length(Y)),
+                            ipc_weights = rep(1, length(y)),
                             method = c("standard", "weighted"),
                             flucmod_tol = 50) {
-
-  # scale the outcome for the logit transform
   y_star <- scale_to_unit(
-    vals = Y
+    vals = y
   )
 
   # bound precision for use of logit transform
@@ -291,7 +191,7 @@ fit_fluctuation <- function(Y,
           Hn = Hn$noshift
         )),
         weights = ipc_weights,
-        family = "binomial",
+        family = "quasibinomial",
         start = 0
       )
     )
@@ -358,8 +258,8 @@ fit_fluctuation <- function(Y,
   Qn_noshift_star_unit <- unname(stats::fitted(fluctuation_model))
   Qn_noshift_star <- scale_to_original(
     scaled_vals = Qn_noshift_star_unit,
-    max_orig = max(Y),
-    min_orig = min(Y)
+    max_orig = max(y),
+    min_orig = min(y)
   )
 
   # need to logit transform Qn(d(A,W),W)
@@ -392,16 +292,16 @@ fit_fluctuation <- function(Y,
 
   Qn_shift_star <- scale_to_original(
     scaled_vals = Qn_shift_star_unit,
-    max_orig = max(Y),
-    min_orig = min(Y)
+    max_orig = max(y),
+    min_orig = min(y)
   )
 
   # return the fit model object
   out <- list(
     fluc_fit = fluctuation_model,
     covar_method = method,
-    Qn_shift_star = as.numeric(Qn_shift_star),
-    Qn_noshift_star = as.numeric(Qn_noshift_star)
+    qn_shift_star = as.numeric(Qn_shift_star),
+    qn_noshift_star = as.numeric(Qn_noshift_star)
   )
   return(out)
 }

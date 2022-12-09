@@ -16,6 +16,7 @@ application \code{stats::qlogis}.}
 A \code{numeric} vector of the same length as \code{vals}, where
 the returned values are bounded to machine precision. This is intended to
 avoid numerical instability issues.
+@export
 }
 \description{
 Bound Precision

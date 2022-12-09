@@ -13,6 +13,7 @@
 #' @return A \code{numeric} vector of the same length as \code{vals}, where
 #'  the returned values are bounded to machine precision. This is intended to
 #'  avoid numerical instability issues.
+#'  @export
 bound_precision <- function(vals) {
   assertthat::assert_that(!(max(vals) > 1 | min(vals) < 0))
   vals[vals == 0] <- .Machine$double.neg.eps
@@ -35,6 +36,7 @@ bound_precision <- function(vals) {
 #' @return A \code{numeric} vector of the same length as \code{vals}, where the
 #'  returned values are bounded such that the minimum is no lower than 1/n, for
 #'  the sample size n.
+#'  @export
 bound_propensity <- function(vals) {
   # bound likelihood component g(a|w) away from 0 only
   propensity_bound <- 1 / length(vals)
@@ -55,6 +57,7 @@ bound_propensity <- function(vals) {
 #'
 #' @return A \code{numeric} vector of the same length as \code{vals}, where the
 #'  values are re-scaled to lie in unit interval [0, 1].
+#' @export
 scale_to_unit <- function(vals) {
   # compute re-scaled value in interval [0,1]
   scaled_vals <- (vals - min(vals)) / (max(vals) - min(vals))
@@ -78,6 +81,7 @@ scale_to_unit <- function(vals) {
 #'
 #' @return A \code{numeric} vector of the same length as \code{scaled_vals},
 #'  where the values are re-scaled to lie in their original/natural interval.
+#' @export
 scale_to_original <- function(scaled_vals, max_orig, min_orig) {
   scaled_orig <- scaled_vals * (max_orig - min_orig) + min_orig
   return(scaled_orig)

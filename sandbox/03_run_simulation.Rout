@@ -1,0 +1,111 @@
+
+R version 3.6.3 (2020-02-29) -- "Holding the Windsock"
+Copyright (C) 2020 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # be sure to set this env variable by `export R_LIBDIR=/path/to/your/R/libs`
+> r_libdir <- Sys.getenv("R_LIBDIR")
+> 
+> # set user-specific package library
+> if (grepl("savio2", Sys.info()["nodename"])) {
++   .libPaths(r_libdir)
++   Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS="true")
++ }
+> 
+> # packages
+> library(here)
+here() starts at /global/home/users/jpduncan/R/nde-nie/tmle3mediate/sandbox
+> library(foreach)
+> library(future)
+> library(doFuture)
+Loading required package: globals
+Loading required package: iterators
+Loading required package: parallel
+> library(doRNG)
+Loading required package: rngtools
+> library(data.table)
+> library(tidyverse)
+-- Attaching packages --------------------------------------- tidyverse 1.3.0 --
+v ggplot2 3.3.0     v purrr   0.3.3
+v tibble  3.0.1     v dplyr   0.8.5
+v tidyr   1.0.2     v stringr 1.4.0
+v readr   1.3.1     v forcats 0.5.0
+-- Conflicts ------------------------------------------ tidyverse_conflicts() --
+x purrr::accumulate() masks foreach::accumulate()
+x dplyr::between()    masks data.table::between()
+x dplyr::filter()     masks stats::filter()
+x dplyr::first()      masks data.table::first()
+x dplyr::lag()        masks stats::lag()
+x dplyr::last()       masks data.table::last()
+x purrr::transpose()  masks data.table::transpose()
+x purrr::when()       masks foreach::when()
+> library(hal9001)
+Loading required package: Rcpp
+hal9001 v0.2.5: The Scalable Highly Adaptive Lasso
+> library(origami)
+origami v1.0.3: Generalized Framework for Cross-Validation
+> library(sl3)
+> library(tmle3)
+> devtools::load_all(here())
+Loading tmle3mediate
+
+Attaching package: 'testthat'
+
+The following object is masked from 'package:dplyr':
+
+    matches
+
+The following object is masked from 'package:purrr':
+
+    is_null
+
+The following object is masked from 'package:tidyr':
+
+    matches
+
+tmle3mediate v0.0.1: Targeted Learning for Causal Mediation Analysis
+> 
+> # load scripts, parallelization, PRNG
+> source(here("01_setup_data.R"))
+> source(here("02_fit_estimators.R"))
+> registerDoFuture()
+> plan(multiprocess)
+> 
+> # simulation parameters
+> set.seed(7259)
+> n_sim <- 500 # number of simulations
+> n_obs <- (cumsum(rep(sqrt(100), 8))^2)[-1] # sample sizes at root-n scale
+> 
+> # perform simulation across sample sizes
+> sim_results <- lapply(n_obs, function(sample_size) {
++   # get results in parallel
++   results <- foreach(this_iter = seq_len(n_sim),
++                      .options.multicore = list(preschedule = FALSE),
++                      .errorhandling = "remove") %dorng% {
++     data_sim <- sim_data(n_obs = sample_size)
++     est_out <- fit_estimators(data = data_sim)
++     return(est_out)
++   }
++ 
++   # concatenate iterations
++   results_out <- bind_rows(results, .id = "sim_iter")
++   return(results_out)
++ })
+Error in mcfork(detached) : 
+  unable to fork, possible reason: Cannot allocate memory
+Calls: lapply ... run.MulticoreFuture -> do.call -> <Anonymous> -> mcfork
+In addition: There were 46 warnings (use warnings() to see them)
+Execution halted
+Error while shutting down parallel: unable to terminate some child processes

@@ -25,7 +25,7 @@
 #'  upshift of the exposure Q(A + delta, W).
 
 joint_stoch_shift_est_Q <- function(exposures,
-                                    delta,
+                                    deltas,
                                     mu_learner,
                                     covars,
                                     av,
@@ -44,6 +44,8 @@ joint_stoch_shift_est_Q <- function(exposures,
 
   for (i in 1:length(exposures)) {
     exposure <- exposures[[i]]
+    delta <- deltas[[i]]
+
 
     # need a data set with the exposure stochastically shifted DOWNWARDS A-delta
     av_downshifted <- data.table::copy(av)
@@ -57,7 +59,7 @@ joint_stoch_shift_est_Q <- function(exposures,
       a = subset(av, select = exposure), delta = delta
     ))
 
-    # need a data set with the exposure stochastically shifted UPWARDS A+2delta
+    a # need a data set with the exposure stochastically shifted UPWARDS A+2delta
     av_upupshifted <- data.table::copy(av)
     data.table::set(av_upupshifted, j = exposure, value = shift_additive(
       a = subset(av, select = exposure), delta = 2 * delta

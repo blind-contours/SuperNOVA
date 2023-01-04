@@ -36,22 +36,25 @@
 #'  incorporating inverse probability of censoring weights, and the estimate of
 #'  the EIF without the application of such weights.
 calc_pooled_em_shifts <- function(y,
-                                     basis_prop_in_fold,
-                                     em_shift_results,
-                                     estimator = c("tmle", "onestep"),
-                                     fluc_mod_out = NULL,
-                                     delta,
-                                     w_names,
-                                     a_names,
-                                     y_name,
-                                     fluctuation,
-                                     em_learner) {
+                                  basis_prop_in_fold,
+                                  em_shift_results,
+                                  estimator = c("tmle", "onestep"),
+                                  fluc_mod_out = NULL,
+                                  w_names,
+                                  a_names,
+                                  y_name,
+                                  fluctuation,
+                                  em_learner) {
   # set TMLE as default estimator type
   estimator <- match.arg(estimator)
 
+  names <- names(em_shift_results)
+  names <- gsub("^.+?:", "", names)
+  names <- stringr::str_trim(names)
+
   results_list <- list()
 
-  for (var_set in unique(names(em_shift_results))) {
+  for (var_set in unique(names)) {
     var_set_results <- em_shift_results[stringr::str_detect(
       names(em_shift_results), var_set
     )]
@@ -83,9 +86,13 @@ calc_pooled_em_shifts <- function(y,
         names(test), "k_fold"
       )])
 
+      deltas <- do.call(rbind, test[stringr::str_detect(
+        names(test), "delta"
+      )])
+
       tmle_fit <- tmle_exposhift(
         data_internal = data,
-        delta = delta,
+        delta = mean(deltas),
         Qn_scaled = Qn_scaled_av,
         Hn = Hn_av,
         fluctuation = fluctuation,
@@ -105,6 +112,8 @@ calc_pooled_em_shifts <- function(y,
         fold_k = "Pooled TMLE",
         em_learner = em_learner
       )
+
+      effect_mod_in_fold$Delta <- mean(deltas)
 
       results_df <- rbind(k_fold_results, effect_mod_in_fold)
 

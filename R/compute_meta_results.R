@@ -1,10 +1,7 @@
 
 compute_meta_results <- function(supernova_results, parameter) {
   if (parameter == "Indiv Shift") {
-    stratified_results <- split(
-      supernova_results$`Indiv Shift Results`,
-      supernova_results$`Indiv Shift Results`$Variables
-    )
+    stratified_results <- supernova_results$`Indiv Shift Results`
   } else if (parameter == "Joint Shift") {
     stratified_results <-
       supernova_results$`Joint Shift Results` %>%

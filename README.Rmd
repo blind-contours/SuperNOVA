@@ -46,10 +46,9 @@ package which implements the targeted maximum likelihood (TML) estimator
 of a stochastic shift causal parameter originally proposed by @diaz2018stochastic. `SuperNOVA` extends 
 the original stochastic intervention methodology from one treatment/exposure variable to include
 joint stochastic interventions on two variables which allows for the construction of a non-parametric
-interaction parameter. Likewise, `SuperNOVA` also estimates both individual stochastic intervention outcomes
+interaction parameter and mediation. Likewise, `SuperNOVA` also estimates both individual stochastic intervention outcomes
 under some delta shift compared to outcome under no intervention and a target parameter for effect modification which
 is the difference in mean outcomes under intervention compared to no intervention across strata of an effect modifier which is data-adaptively determined.
-Future work will also include stochastic shift mediation analysis which is under development.
 
 Of course, it is not known a priori in most cases what variables are interacting or modifying effects (especially in the case of a mixed exposure) and 
 therefore it is necessary to identify these variable sets first. As such `SuperNOVA` uses k-fold cross-validation framework to estimate a data-adaptive parameter in training folds and a non-parametric interaction target parameter in estimation folds. Our data-adaptive parameters are variable sets used in basis functions in the best fitting multivariate adaptive regression spline model or highly adaptive lasso model. The best fitting model is determined using a Super Learner which selects the model from an ensemble with the lowest cross-validated MSE. Variable sets are considered important based on ANOVA-like variance decompositions for the basis functions in the best fitting model. Individual variables and variable sets used in all the training folds are considered consistent predictors. The interaction target parameter is applied to variable sets composed of two variables in the mixed exposure. This target parameter is the expected outcome under a dual shift of both variables by some delta compared to the sum of individual shifts. Other parameters exist for effect modification and individual variable shifts. Cross-validated targeted minimum loss-based estimation (TMLE) is used to update the initial expected outcomes given stochastic shift interventions.  This method, called SuperNOVA, guarantees consistency, efficiency, and multiple robustness. SuperNOVA provides researchers with k-fold specific and pooled results for each target parameter. Additional information is provided in the vignette. 
@@ -112,7 +111,7 @@ n_obs <- 100000
 
 The `simulate_data` function creates simulated data with a multivariate exposure, covariates (confounders), and a continuous outcome.
 ```{r simulate data, eval = TRUE}
-data <- simulate_data(n_obs = n_obs, shift_var_index = c(1))
+data <- simulate_data(n_obs = n_obs, shift_var_index = c(3))
 effect <- data$effect
 data <- data$data
 head(data) %>%
@@ -144,13 +143,15 @@ w <- data_sample[, c("W1", "W2")]
 a <- data_sample[, c("M1", "M2", "M3")]
 y <- data_sample$Y
 
+deltas <- list("M1" = 1, "M2" = 1, "M3" = 1)
+
 ptm <- proc.time()
 sim_results <- SuperNOVA(
   w = w,
   a = a,
   y = y,
-  delta = 1,
-  n_folds = 5,
+  delta = deltas,
+  n_folds = 2,
   num_cores = 6,
   family = "continuous",
   quantile_thresh = 0,
@@ -166,7 +167,7 @@ joint_shift_results <- sim_results$`Joint Shift Results`
 Let's first look at the results for individual stochastic shifts by delta compared to no shift:
 
 ```{r individual shift results}
-indiv_shift_results$M1 %>%
+indiv_shift_results$M3 %>%
   kbl(caption = "Individual Stochastic Intervention Results for M1") %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```

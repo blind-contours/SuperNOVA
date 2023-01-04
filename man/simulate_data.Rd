@@ -2,7 +2,7 @@
 % Please edit documentation in R/simulate_data.R
 \name{simulate_data}
 \alias{simulate_data}
-\title{DGP for testing SuperNOVA}
+\title{DGP for testing SuperNOVA without mediation}
 \usage{
 simulate_data(
   n_obs = 1e+05,
@@ -25,5 +25,5 @@ simulate_data(
 \item{delta_2}{Delta for M3 Exposure}
 }
 \description{
-DGP for testing SuperNOVA
+DGP for testing SuperNOVA without mediation
 }

@@ -5,12 +5,9 @@
 \title{Estimate the Exposure Mechanism via Generalized Propensity Score for Two
 Exposure Variable}
 \usage{
-joint_stoch_shift_est_g_exp(exposures, delta, pi_learner, covars, av, at)
+joint_stoch_shift_est_g_exp(exposures, deltas, pi_learner, covars, av, at)
 }
 \arguments{
-\item{delta}{A \code{numeric} value identifying a shift in the observed
-value of the exposure under which observations are to be evaluated.}
-
 \item{pi_learner}{Object containing a set of instantiated learners
 from \pkg{sl3}, to be used in fitting an ensemble model.}
 
@@ -22,6 +19,9 @@ from \pkg{sl3}, to be used in fitting an ensemble model.}
 
 \item{exposure}{A \code{vector} of characters labeling the exposure
 variables.}
+
+\item{delta}{A \code{numeric} value identifying a shift in the observed
+value of the exposure under which observations are to be evaluated.}
 }
 \value{
 A \code{data.table} with four columns, containing estimates of the

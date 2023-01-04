@@ -1,6 +1,6 @@
 library(txshift)
 
-data_sample <-  data[sample(nrow(data), 2000), ]
+data_sample <- data[sample(nrow(data), 2000), ]
 
 w <- data_sample[, c("W1", "W2")]
 a <- data_sample[, c("M1", "M2", "M3")]
@@ -8,7 +8,7 @@ y <- data_sample$Y
 
 txshift_results <- txshift(
   W = w,
-  A = a[,1],
+  A = a[, 1],
   Y = y,
   delta = 1,
   estimator = "tmle",

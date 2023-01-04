@@ -1,9 +1,9 @@
-#' Compute the Pooled Interaction Shift Parameter Estimate From the Fold
+#' Compute the Pooled Mediation Shift Parameter Estimate From the Fold
 #' Specific Results
 #'
 #' @details Estimate the value of the pooled causal parameter alongside statistical
 #'  inference for the parameter estimate based on the nuisance parameters from
-#'  the fold specific results for the interaction parameter. We stack the nuisance parameters needed to
+#'  the fold specific results for the mediation parameter. We stack the nuisance parameters needed to
 #'  compute the efficient influence
 #'  function of the target parameter, which takes the following form:
 #'  %D(P)(o) = H(a,w)(y - \bar{Q}(a,w)) + \bar{Q}(d(a,w)) - \psi(P)
@@ -35,28 +35,27 @@
 #'  based on the efficient influence function (EIF), the estimate of the EIF
 #'  incorporating inverse probability of censoring weights, and the estimate of
 #'  the EIF without the application of such weights.
-calc_pooled_intxn_shifts <- function(basis_prop_in_fold,
-                                     intxn_shift_results,
-                                     estimator = c("tmle", "onestep"),
-                                     fluc_mod_out = NULL,
-                                     delta,
-                                     a_names,
-                                     w_names,
-                                     z_names,
-                                     y_name,
-                                     fluctuation) {
+calc_pooled_med_shifts <- function(basis_prop_in_fold,
+                                   med_shift_results,
+                                   estimator = c("tmle", "onestep"),
+                                   fluc_mod_out = NULL,
+                                   a_names,
+                                   w_names,
+                                   z_names,
+                                   y_name,
+                                   fluctuation) {
   # set TMLE as default estimator type
   estimator <- match.arg(estimator)
 
-  names <- names(intxn_shift_results)
+  names <- names(med_shift_results)
   names <- gsub("^.+?:", "", names)
   names <- stringr::str_trim(names)
 
   results_list <- list()
 
   for (var_set in unique(names)) {
-    var_set_results <- intxn_shift_results[stringr::str_detect(
-      names(intxn_shift_results), var_set
+    var_set_results <- med_shift_results[stringr::str_detect(
+      names(med_shift_results), var_set
     )]
 
     if (length(var_set_results) != 0) {
@@ -64,33 +63,20 @@ calc_pooled_intxn_shifts <- function(basis_prop_in_fold,
 
       # Get clever covariate for each shift for each fold ----
 
-      Hn <- test[stringr::str_detect(names(test), "Hn")]
-      Hn_unlist <- unlist(Hn, recursive = FALSE)
+      Hn_a_shift <- test[stringr::str_detect(names(test), "Hn_a_shift")]
+      Hn_a_shift <- do.call(rbind, Hn_a_shift)
 
-      Hn_1 <- do.call(rbind, Hn_unlist[stringr::str_detect(
-        names(Hn_unlist), "Hn1"
-      )])
-      Hn_2 <- do.call(rbind, Hn_unlist[stringr::str_detect(
-        names(Hn_unlist), "Hn2"
-      )])
-      Hn_3 <- do.call(rbind, Hn_unlist[stringr::str_detect(
-        names(Hn_unlist), "Hn3"
-      )])
+      Hn_a_z_shift <- test[stringr::str_detect(names(test), "Hn_az_shift")]
+      Hn_a_z_shift <- do.call(rbind, Hn_a_z_shift)
 
       # Get scaled Qn for each shift for each fold ----
 
-      Qn <- test[stringr::str_detect(names(test), "Qn_scaled")]
-      Qn_unlist <- unlist(Qn, recursive = FALSE)
+      Qn_a_shift <- test[stringr::str_detect(names(test), "Qn_a_shift_scaled")]
+      Qn_a_shift <- do.call(rbind, Qn_a_shift)
 
-      Qn_scaled_1 <- do.call(rbind, Qn_unlist[stringr::str_detect(
-        names(Qn_unlist), "Qn_scaled1"
-      )])
-      Qn_scaled_2 <- do.call(rbind, Qn_unlist[stringr::str_detect(
-        names(Qn_unlist), "Qn_scaled2"
-      )])
-      Qn_scaled_3 <- do.call(rbind, Qn_unlist[stringr::str_detect(
-        names(Qn_unlist), "Qn_scaled3"
-      )])
+      Qn_az_shift <- test[stringr::str_detect(names(test), "Qn_a_z_shift_scaled")]
+      Qn_az_shift <- do.call(rbind, Qn_az_shift)
+
 
       data <- do.call(rbind, test[stringr::str_detect(
         names(test), "data"
@@ -100,39 +86,54 @@ calc_pooled_intxn_shifts <- function(basis_prop_in_fold,
         names(test), "k_fold"
       )])
 
-      Qn_scaled <- list(Qn_scaled_1, Qn_scaled_2, Qn_scaled_3)
-      Hn <- list(Hn_1, Hn_2, Hn_3)
+      deltas <- do.call(rbind, test[stringr::str_detect(
+        names(test), "delta"
+      )])
 
-      intxn_results_list <- list()
+      tmle_fit_a_shift <- tmle_exposhift(
+        data_internal = data,
+        delta = mean(deltas),
+        Qn_scaled = Qn_a_shift,
+        Hn = Hn_a_shift,
+        fluctuation = fluctuation,
+        y = data$y
+      )
 
-      for (i in 1:length(Hn)) {
-        hn_estim <- Hn[[i]]
-        qn_estim_scaled <- Qn_scaled[[i]]
-
-        tmle_fit <- tmle_exposhift(
-          data_internal = data,
-          delta = delta,
-          Qn_scaled = qn_estim_scaled,
-          Hn = hn_estim,
-          fluctuation = fluctuation,
-          y = data$y
-        )
-
-        intxn_results_list[[i]] <- tmle_fit
-      }
+      tmle_fit_az_shift <- tmle_exposhift(
+        data_internal = data,
+        delta = mean(deltas),
+        Qn_scaled = Qn_az_shift,
+        Hn = Hn_a_z_shift,
+        fluctuation = fluctuation,
+        y = data$y
+      )
 
       var_names <- extract_vars_from_basis(
         var_set, 1,
         a_names, w_names, z_names
       )
 
-      intxn_pooled <- calc_final_joint_shift_param(
-        joint_shift_fold_results = intxn_results_list,
-        exposures = var_names$matches,
-        fold_k = "Pooled TMLE"
+      exposure <- stringr::str_extract(
+        var_set,
+        paste(c(a_names), collapse = "|")
+      )
+      mediator <- stringr::str_extract(var_set, paste(c(z_names),
+        collapse = "|"
+      ))
+      exposure <- exposure[!is.na(exposure)]
+      mediator <- mediator[!is.na(mediator)]
+
+      mediation_in_fold <- calc_mediation_param(
+        tmle_fit_a_shift = tmle_fit_a_shift,
+        tmle_fit_a_z_shift = tmle_fit_az_shift,
+        exposure,
+        mediator,
+        y = data$y,
+        fold_k = "Pooled TMLE",
+        delta = mean(deltas)
       )
 
-      results_df <- rbind(k_fold_results, intxn_pooled)
+      results_df <- rbind(k_fold_results, mediation_in_fold)
       rownames(results_df) <- NULL
 
       results_list[[var_set]] <- results_df

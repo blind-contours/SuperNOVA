@@ -16,7 +16,7 @@
 #' @param a \code{matrix}, \code{data.frame}, or similar containing an
 #' individual or set of mediators
 #' @param y \code{numeric} vector of the observed outcomes.
-#' @param delta A \code{numeric} value indicating the shift in the exposures to
+#' @param deltas A \code{numeric} value indicating the shift in the exposures to
 #'  be used in defining the target parameter. This is defined with respect to
 #'  the scale of the exposures (A).
 #' @param estimator The type of estimator to be fit, either \code{"tmle"} for
@@ -44,6 +44,7 @@
 #' @param verbose Whether to run verbosely
 #' @param parallel TRUE/FALSE parallelize across cores
 #' @param seed \code{numeric} seed value to be passed to all functions
+#' @param hn_trunc_thresh Truncation level for the clever covariate
 #'
 #' @export
 #' @importFrom MASS mvrnorm
@@ -81,9 +82,10 @@ SuperNOVA <- function(w,
                       a,
                       z = NULL,
                       y,
-                      delta,
+                      deltas,
                       estimator = "tmle",
                       fluctuation = "standard",
+                      var_sets = NULL,
                       pi_learner = NULL,
                       mu_learner = NULL,
                       g_learner = NULL,
@@ -97,7 +99,10 @@ SuperNOVA <- function(w,
                       parallel = TRUE,
                       parallel_type = "multi_session",
                       num_cores = 2,
-                      seed = seed) {
+                      seed = seed,
+                      hn_trunc_thresh = 50,
+                      alpha = 0.0001,
+                      adaptive_delta = FALSE) {
   # check arguments and set up some objects for programmatic convenience
   call <- match.call(expand.dots = TRUE)
   estimator <- match.arg(estimator)
@@ -196,43 +201,49 @@ SuperNOVA <- function(w,
     outcome_type <- "continous"
   }
 
-  fold_basis_results <- furrr::future_map(unique(data_internal$folds),
-    function(fold_k) {
-      at <- data_internal[data_internal$folds != fold_k, ]
-      av <- data_internal[data_internal$folds == fold_k, ]
+  if (is.null(var_sets)) {
+    fold_basis_results <- furrr::future_map(unique(data_internal$folds),
+      function(fold_k) {
+        at <- data_internal[data_internal$folds != fold_k, ]
+        av <- data_internal[data_internal$folds == fold_k, ]
 
-      covars <- c(a_names, w_names, z_names)
+        covars <- c(a_names, w_names, z_names)
 
-      basis_results <- fit_basis_estimators(
-        at = at,
-        covars = covars,
-        outcome = "y",
-        family = family,
-        quantile_thresh = quantile_thresh,
-        zeta_learner = zeta_learner,
-        fold = fold_k,
-        seed = seed
-      )
+        basis_results <- fit_basis_estimators(
+          at = at,
+          covars = covars,
+          outcome = "y",
+          family = family,
+          quantile_thresh = quantile_thresh,
+          zeta_learner = zeta_learner,
+          fold = fold_k,
+          seed = seed
+        )
 
-      basis_used <- basis_results$basis
-    },
-    .options = furrr::furrr_options(seed = seed, packages = "SuperNOVA")
-  )
+        basis_used <- basis_results$basis
+      },
+      .options = furrr::furrr_options(seed = seed, packages = "SuperNOVA")
+    )
 
-  basis_prop_in_fold <- calc_basis_freq(fold_basis_results, n_folds)
+    basis_prop_in_fold <- calc_basis_freq(fold_basis_results, n_folds)
 
-  if (length(basis_prop_in_fold) == 0) {
-    print("No Exposures were Predictive")
-    return(NULL)
+    if (length(basis_prop_in_fold) == 0) {
+      print("No Exposures were Predictive")
+      return(NULL)
+    }
+  } else {
+    fold_basis_results <- rep(list(var_sets), n_folds)
+    basis_prop_in_fold <- calc_basis_freq(fold_basis_results, n_folds)
   }
+
 
   fold_results_indiv <- list()
   fold_results_em <- list()
   fold_results_intxn <- list()
+  fold_results_mediation <- list()
 
   fold_SuperNOVA_results <- furrr::future_map(
     unique(data_internal$folds), function(fold_k) {
-
       at <- data_internal[data_internal$folds != fold_k, ]
       av <- data_internal[data_internal$folds == fold_k, ]
 
@@ -258,14 +269,20 @@ SuperNOVA <- function(w,
         ), matches))) {
           exposure <- target
 
+          delta <- deltas[[exposure]]
+
           ind_gn_exp_estim <- indiv_stoch_shift_est_g_exp(
             exposure = target,
             delta = delta,
             pi_learner = pi_learner,
             covars = w_names,
             av,
-            at
+            at,
+            alpha = alpha,
+            adaptive_delta = adaptive_delta
           )
+
+          delta <- ind_gn_exp_estim$delta
 
           covars <- c(a_names, w_names)
 
@@ -278,13 +295,16 @@ SuperNOVA <- function(w,
             at = at
           )
 
-          Hn <- est_hn(gn_exp = ind_gn_exp_estim$av)
+          Hn <- ind_gn_exp_estim$Hn_av
+          Hn_trunc <- as.data.frame(apply(Hn, 2, function(x) {
+            ifelse(x >= hn_trunc_thresh, hn_trunc_thresh, x)
+          }))
 
           tmle_fit <- tmle_exposhift(
             data_internal = av,
             delta = delta,
             Qn_scaled = ind_qn_estim$q_av,
-            Hn = Hn,
+            Hn = Hn_trunc,
             fluctuation = fluctuation,
             y = av$y
           )
@@ -297,16 +317,19 @@ SuperNOVA <- function(w,
             fold_k
           )
 
+          indiv_shift_in_fold$Delta <- delta
+
           fold_results_indiv[[
-            paste(exposure)
+            paste("Fold", fold_k, ":", target)
           ]] <- list(
             "data" = av,
             "Qn_scaled" = ind_qn_estim$q_av,
-            "Hn" = Hn,
-            "k_fold_result" = indiv_shift_in_fold
+            "Hn" = Hn_trunc,
+            "k_fold_result" = indiv_shift_in_fold,
+            "Delta" = delta
           )
 
-          # Check if basis is one exposure and one baseline covariate ---------
+          # Check if basis is one exposure and baseline covariates ---------
         } else if (sum(stringr::str_count(matches, paste(c(a_names), collapse = "|"))) == 1 &
           sum(stringr::str_count(matches, paste(c(w_names), collapse = "|"))) >= 1) {
           exposure <- stringr::str_extract(
@@ -319,6 +342,7 @@ SuperNOVA <- function(w,
           exposure <- exposure[!is.na(exposure)]
           effect_m_name <- effect_m_name[!is.na(effect_m_name)]
 
+          delta <- deltas[[exposure]]
           covars <- c(w_names)
 
           gn_exp_estim <- indiv_stoch_shift_est_g_exp(
@@ -327,11 +351,12 @@ SuperNOVA <- function(w,
             pi_learner = pi_learner,
             covars = covars,
             av = av,
-            at = at
+            at = at,
+            alpha = alpha,
+            adaptive_delta = adaptive_delta
           )
 
-          hn_estim_av <- est_hn(gn_exp = gn_exp_estim$av)
-          hn_estim_at <- est_hn(gn_exp = gn_exp_estim$at)
+          delta <- gn_exp_estim$delta
 
           covars <- c(a_names, w_names, z_names)
 
@@ -344,11 +369,21 @@ SuperNOVA <- function(w,
             at = at
           )
 
+          Hn_av <- gn_exp_estim$Hn_av
+          Hn_av_trunc <- as.data.frame(apply(Hn_av, 2, function(x) {
+            ifelse(x >= hn_trunc_thresh, hn_trunc_thresh, x)
+          }))
+
+          Hn_at <- gn_exp_estim$Hn_at
+          Hn_at_trunc <- as.data.frame(apply(Hn_at, 2, function(x) {
+            ifelse(x >= hn_trunc_thresh, hn_trunc_thresh, x)
+          }))
+
           tmle_fit_av <- tmle_exposhift(
             data_internal = av,
             delta = delta,
             Qn_scaled = qn_estim$q_av,
-            Hn = hn_estim_av,
+            Hn = Hn_av_trunc,
             fluctuation = fluctuation,
             y = av$y
           )
@@ -357,7 +392,7 @@ SuperNOVA <- function(w,
             data_internal = at,
             delta = delta,
             Qn_scaled = qn_estim$q_at,
-            Hn = hn_estim_at,
+            Hn = Hn_at_trunc,
             fluctuation = fluctuation,
             y = at$y
           )
@@ -373,16 +408,19 @@ SuperNOVA <- function(w,
             em_learner = em_learner
           )
 
+          effect_mod_in_fold$Delta <- delta
+
           fold_results_em[[
-            paste(target)
+            paste("Fold", fold_k, ":", target)
           ]] <- list(
             "av_data" = av,
             "at_data" = at,
             "Qn_scaled_av" = qn_estim$q_av,
             "Qn_scaled_at" = qn_estim$q_at,
-            "Hn_av" = hn_estim_av,
-            "Hn_at" = hn_estim_at,
-            "k_fold_result" = effect_mod_in_fold
+            "Hn_av" = Hn_av_trunc,
+            "Hn_at" = Hn_at_trunc,
+            "k_fold_result" = effect_mod_in_fold,
+            "delta" = delta
           )
 
 
@@ -394,67 +432,199 @@ SuperNOVA <- function(w,
           matches
         ))) {
           exposures <- as.list(matches)
+          delta <- deltas[unlist(exposures)]
           exposures[[3]] <- matches
 
           covars <- c(w_names)
 
           joint_gn_exp_estims <- joint_stoch_shift_est_g_exp(
             exposures,
-            delta,
+            deltas,
             pi_learner,
             covars,
             av,
-            at
+            at,
+            delta_adapt = TRUE,
+            alpha = alpha,
+            adaptive_delta = adaptive_delta
           )
 
-          joint_gn_exp_estims[[3]] <- joint_gn_exp_estims[[1]] *
-            joint_gn_exp_estims[[3]]
+          joint_gn_exp_estims$gn_results[[3]] <- mapply(
+            `*`,
+            joint_gn_exp_estims$gn_results[[1]],
+            joint_gn_exp_estims$gn_results[[3]]
+          )
 
-          joint_hn_estims <- lapply(joint_gn_exp_estims, est_hn)
+
+          deltas_updated <- joint_gn_exp_estims$delta_results
+          deltas_updated[[3]] <- c(deltas_updated[[1]], deltas_updated[[2]])
 
           covars <- c(a_names, w_names)
 
           joint_qn_estims <- joint_stoch_shift_est_Q(
             exposures,
-            delta,
+            deltas = deltas_updated,
             mu_learner = mu_learner,
             covars,
             av,
-            at)
-
+            at
+          )
 
           intxn_results_list <- list()
           qn_estim_scaled_list <- list()
+          joint_hn_estims <- list()
 
           for (i in 1:length(joint_qn_estims)) {
-            hn_estim <- joint_hn_estims[[i]]
+            hn_estim <- joint_gn_exp_estims$Hn_results[[i]]
+            hn_estim_trunc <- as.data.frame(apply(hn_estim, 2, function(x) {
+              ifelse(x >= hn_trunc_thresh, hn_trunc_thresh, x)
+            }))
+
             qn_estim <- joint_qn_estims[[i]]
+            delta <- deltas_updated[[i]]
 
             tmle_fit <- tmle_exposhift(
               data_internal = av,
               delta = delta,
               Qn_scaled = qn_estim,
-              Hn = hn_estim,
+              Hn = hn_estim_trunc,
               fluctuation = fluctuation,
               y = av$y
             )
 
             intxn_results_list[[i]] <- tmle_fit
+            joint_hn_estims[[i]] <- hn_estim_trunc
           }
 
           intxn_in_fold <- calc_final_joint_shift_param(
             joint_shift_fold_results = intxn_results_list,
             matches,
-            fold_k
+            fold_k,
+            deltas_updated
           )
 
           fold_results_intxn[[
-            paste(target)
+            paste("Fold", fold_k, ":", target)
           ]] <- list(
             "data" = av,
             "Qn_scaled" = joint_qn_estims,
             "Hn" = joint_hn_estims,
-            "k_fold_result" = intxn_in_fold
+            "k_fold_result" = intxn_in_fold,
+            "deltas" = deltas_updated
+          )
+        } else if (sum(stringr::str_count(matches, paste(c(a_names), collapse = "|"))) == 1 &
+          sum(stringr::str_count(matches, paste(c(z_names), collapse = "|"))) <= 2) {
+          exposure <- stringr::str_extract(
+            matches,
+            paste(c(a_names), collapse = "|")
+          )
+          mediator <- stringr::str_extract(matches, paste(c(z_names),
+            collapse = "|"
+          ))
+          exposure <- exposure[!is.na(exposure)]
+          mediator <- mediator[!is.na(mediator)]
+
+          delta <- deltas[[exposure]]
+          covars <- c(w_names)
+
+          gn_exp_estim <- indiv_stoch_shift_est_g_exp(
+            exposure = exposure,
+            delta = delta,
+            pi_learner = pi_learner,
+            covars = covars,
+            av = av,
+            at = at,
+            alpha = alpha,
+            adaptive_delta = adaptive_delta
+          )
+
+          delta_updated <- gn_exp_estim$delta
+
+          covars <- c(w_names, a_names)
+
+          zn_exp_estim <- indiv_stoch_shift_est_z_exp(
+            exposure = exposure,
+            mediator = mediator,
+            delta = delta_updated,
+            pi_learner = pi_learner,
+            covars = covars,
+            av = av,
+            at = at
+          )
+
+          nde_gn_estim_av <- est_hn(gn_exp = gn_exp_estim$av)
+          nie_gn_estim_av <- est_hn(gn_exp = gn_exp_estim$av * zn_exp_estim$av)
+
+          nde_gn_estim_av_trunc <- as.data.frame(apply(nde_gn_estim_av, 2, function(x) {
+            ifelse(x >= hn_trunc_thresh, hn_trunc_thresh, x)
+          }))
+          nie_gn_estim_av_trunc <- as.data.frame(apply(nie_gn_estim_av, 2, function(x) {
+            ifelse(x >= hn_trunc_thresh, hn_trunc_thresh, x)
+          }))
+
+          covars <- c(a_names, w_names)
+
+          zn_estim <- estimate_mediator(
+            mediator = mediator,
+            exposure = exposure,
+            delta = delta_updated,
+            mu_learner = mu_learner,
+            covars = covars,
+            av = av,
+            at = at
+          )
+
+          covars <- c(w_names, a_names, z_names)
+
+          qn_estim <- est_Q_w_shifted_mediation(
+            exposure = exposure,
+            mediator = mediator,
+            delta = delta_updated,
+            mu_learner = mu_learner,
+            covars = covars,
+            av = av,
+            at = at,
+            zn_estim = zn_estim$q_av
+          )
+
+          tmle_fit_a_shift <- tmle_exposhift(
+            data_internal = av,
+            delta = delta_updated,
+            Qn_scaled = qn_estim$a_shifted,
+            Hn = nde_gn_estim_av_trunc,
+            fluctuation = fluctuation,
+            y = av$y
+          )
+
+          tmle_fit_a_z_shift <- tmle_exposhift(
+            data_internal = av,
+            delta = delta_updated,
+            Qn_scaled = qn_estim$a_z_shifted,
+            Hn = nie_gn_estim_av_trunc,
+            fluctuation = fluctuation,
+            y = av$y
+          )
+
+          mediation_in_fold <- calc_mediation_param(
+            tmle_fit_a_shift = tmle_fit_a_shift,
+            tmle_fit_a_z_shift = tmle_fit_a_z_shift,
+            exposure,
+            mediator,
+            y = av$y,
+            fold_k = fold_k,
+            delta = delta_updated
+          )
+
+          fold_results_mediation[[
+            paste("Fold", fold_k, ":", paste(exposure, mediator, sep = ""))
+          ]] <- list(
+            "data" = av,
+            "Qn_a_shift_scaled" = qn_estim$a_shifted,
+            "Qn_a_z_shift_scaled" = qn_estim$a_z_shifted,
+            "Hn_a_shift" = nde_gn_estim_av_trunc,
+            "Hn_az_shift" = nie_gn_estim_av_trunc,
+            "k_fold_result" = mediation_in_fold,
+            "delta" = delta_updated
           )
         }
       }
@@ -462,13 +632,15 @@ SuperNOVA <- function(w,
       results_list <- list(
         fold_results_indiv,
         fold_results_em,
-        fold_results_intxn
+        fold_results_intxn,
+        fold_results_mediation
       )
 
       names(results_list) <- c(
         "indiv_shift",
         "em_shift",
-        "intxn_shift"
+        "intxn_shift",
+        "med_shift"
       )
 
       results_list
@@ -479,10 +651,12 @@ SuperNOVA <- function(w,
   indiv_shift_results <- purrr::map(fold_SuperNOVA_results, c("indiv_shift"))
   em_shift_results <- purrr::map(fold_SuperNOVA_results, c("em_shift"))
   intxn_shift_results <- purrr::map(fold_SuperNOVA_results, c("intxn_shift"))
+  med_shift_results <- purrr::map(fold_SuperNOVA_results, c("med_shift"))
 
   indiv_shift_results <- unlist(indiv_shift_results, recursive = FALSE)
   em_shift_results <- unlist(em_shift_results, recursive = FALSE)
   intxn_shift_results <- unlist(intxn_shift_results, recursive = FALSE)
+  med_shift_results <- unlist(med_shift_results, recursive = FALSE)
 
 
   if (!is.null(indiv_shift_results)) {
@@ -490,50 +664,62 @@ SuperNOVA <- function(w,
       basis_prop_in_fold = basis_prop_in_fold,
       indiv_shift_results = indiv_shift_results,
       estimator = estimator,
-      delta = delta,
       fluctuation = fluctuation
     )
-  } else{
+  } else {
     indiv_shift_results <- NULL
   }
 
   if (!is.null(em_shift_results)) {
     pooled_em_shift_results <- calc_pooled_em_shifts(
       y,
-      basis_prop_in_fold,
-      em_shift_results,
+      basis_prop_in_fold = basis_prop_in_fold,
+      em_shift_results = em_shift_results,
       estimator = estimator,
-      delta = delta,
       w_names = w_names,
       a_names = a_names,
       y_name = y_name,
       fluctuation = fluctuation,
       em_learner = em_learner
     )
-  } else{
+  } else {
     pooled_em_shift_results <- NULL
   }
 
-  if (!is.null(em_shift_results)) {
+  if (!is.null(intxn_shift_results)) {
     pooled_intxn_shift_results <- calc_pooled_intxn_shifts(
       basis_prop_in_fold = basis_prop_in_fold,
       intxn_shift_results = intxn_shift_results,
       estimator = estimator,
-      delta = delta,
       a_names = a_names,
       w_names = w_names,
       z_names = z_names,
       fluctuation = fluctuation
     )
-  } else{
+  } else {
     pooled_intxn_shift_results <- NULL
+  }
+
+  if (!is.null(med_shift_results)) {
+    pooled_med_shift_results <- calc_pooled_med_shifts(
+      basis_prop_in_fold = basis_prop_in_fold,
+      med_shift_results = med_shift_results,
+      estimator = estimator,
+      fluctuation = fluctuation,
+      a_names = a_names,
+      w_names = w_names,
+      z_names = z_names
+    )
+  } else {
+    pooled_med_shift_results <- NULL
   }
 
   results_list <- list(
     "Basis Fold Proportions" = basis_prop_in_fold,
     "Effect Mod Results" = pooled_em_shift_results,
     "Indiv Shift Results" = pooled_indiv_shift_results,
-    "Joint Shift Results" = pooled_intxn_shift_results
+    "Joint Shift Results" = pooled_intxn_shift_results,
+    "Mediation Shift Results" = pooled_med_shift_results
   )
 
   return(results_list)

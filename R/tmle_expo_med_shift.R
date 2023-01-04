@@ -1,5 +1,5 @@
 #' Targeted Minimum Loss Estimate of Counterfactual Mean of Stochastic Shift
-#' Intervention
+#' Intervention with Mediation
 #'
 #' @details Invokes the procedure to construct a targeted minimum loss estimate
 #'  (TMLE) of the counterfactual mean under a modified treatment policy.
@@ -63,18 +63,18 @@
 #'
 #' @return S3 object of class \code{txshift} containing the results of the
 #'  procedure to compute a TML estimate of the treatment shift parameter.
-tmle_exposhift <- function(data_internal,
-                           delta,
-                           Qn_scaled,
-                           Hn,
-                           fluctuation = c("standard", "weighted"),
-                           eif_reg_type = c("hal", "glm"),
-                           y) {
+tmle_expo_med_shift <- function(data_internal,
+                                delta,
+                                Qn_scaled,
+                                Hn,
+                                fluctuation = c("standard", "weighted"),
+                                eif_reg_type = c("hal", "glm"),
+                                y) {
   # initialize counter
   n_steps <- 0
 
   # fit logistic regression to fluctuate along the sub-model
-  fitted_fluc_mod <- fit_fluctuation(
+  fitted_fluc_mod <- fit_med_fluctuation(
     y = y,
     Qn_scaled = Qn_scaled,
     Hn = Hn,
@@ -82,7 +82,7 @@ tmle_exposhift <- function(data_internal,
   )
 
   # compute TML estimate and EIF for the treatment shift parameter
-  tmle_eif_out <- eif(
+  tmle_eif_out <- eif_mediation(
     y = y,
     qn = Qn_scaled,
     hn = Hn,
@@ -90,29 +90,26 @@ tmle_exposhift <- function(data_internal,
     fluc_mod_out = fitted_fluc_mod
   )
 
-
   # create output object
   exposure_shift_out <- unlist(
     list(
-      psi = tmle_eif_out[["psi"]],
-      var = tmle_eif_out[["var"]],
-      se = tmle_eif_out[["se"]],
-      ci = tmle_eif_out[["CI"]],
-      p_value = tmle_eif_out[["p_value"]],
-      eif = list(tmle_eif_out[["eif"]]),
+      nde = tmle_eif_out[["nde"]],
+      nie = tmle_eif_out[["nie"]],
+      se_nde = tmle_eif_out[["se_nde"]],
+      se_nie = tmle_eif_out[["se_nie"]],
+      CI_nde = tmle_eif_out[["CI_nde"]],
+      CI_nie = tmle_eif_out[["CI_nie"]],
+      p_value_nde = tmle_eif_out[["p_value_nde"]],
+      p_value_nie = tmle_eif_out[["p_value_nie"]],
+      nde_eif = list(tmle_eif_out[["nde_eif"]]),
+      nie_eif = list(tmle_eif_out[["nie_eif"]]),
       .iter_res = NULL,
       n_iter = n_steps,
       estimator = "tmle",
       .outcome = list(data_internal$y),
-      .delta = list(delta),
+      .delta = delta,
       qn_shift_star = list(fitted_fluc_mod$qn_shift_star),
-      qn_noshift_star = list(fitted_fluc_mod$qn_noshift_star),
-      noshift_psi = tmle_eif_out[["no shift psi"]],
-      noshift_var = tmle_eif_out[["no shift var"]],
-      noshift_se = tmle_eif_out[["no shift se"]],
-      noshift_CI = tmle_eif_out[["no shift CI"]],
-      p_value = tmle_eif_out[["p_value"]],
-      noshift_eif = list(tmle_eif_out[["no shift eif"]])
+      qn_noshift_star = list(fitted_fluc_mod$qn_noshift_star)
     ),
     recursive = FALSE
   )
@@ -158,12 +155,12 @@ tmle_exposhift <- function(data_internal,
 #'  or included directly in the model formula), the updated estimates of the
 #'  outcome regression under the shifted value of the exposure, and the updated
 #'  estimates of the outcome regression under the natural value of exposure.
-fit_fluctuation <- function(y,
-                            Qn_scaled,
-                            Hn,
-                            ipc_weights = rep(1, length(y)),
-                            method = c("standard", "weighted"),
-                            flucmod_tol = 50) {
+fit_med_fluctuation <- function(y,
+                                Qn_scaled,
+                                Hn,
+                                ipc_weights = rep(1, length(y)),
+                                method = c("standard", "weighted"),
+                                flucmod_tol = 50) {
   y_star <- scale_to_unit(
     vals = y
   )
@@ -188,7 +185,7 @@ fit_fluctuation <- function(y,
         data = data.table::as.data.table(list(
           y_star = y_star,
           logit_Qn = Qn_noshift_logit,
-          Hn = Hn$noshift
+          Hn = Hn$hn_no_shift
         )),
         weights = ipc_weights,
         family = "quasibinomial",
@@ -263,19 +260,32 @@ fit_fluctuation <- function(y,
   )
 
   # need to logit transform Qn(d(A,W),W)
-  Qn_shift_logit <- stats::qlogis(Qn_scaled_bounded$upshift)
+  Qn_a_shift_logit <- stats::qlogis(Qn_scaled_bounded$a_shift)
+  Qn_a_z_shift_logit <- stats::qlogis(Qn_scaled_bounded$a_z_shift)
 
   # get Qn_star for the SHIFTED data
   if (method == "standard") {
-    Qn_shift_star_data <- data.table::as.data.table(list(
-      logit_Qn = Qn_shift_logit,
-      Hn = Hn$shift
+    Qn_a_shift_star_data <- data.table::as.data.table(list(
+      logit_Qn = Qn_a_shift_logit,
+      Hn = Hn$hn_shift_a
     ))
 
     # predict from fluctuation model on Q(d(A,W),W) and Hn(d(A,W))
-    Qn_shift_star_unit <- unname(stats::predict(
+    Qn_a_shift_star_unit <- unname(stats::predict(
       object = fluctuation_model,
-      newdata = Qn_shift_star_data,
+      newdata = Qn_a_shift_star_data,
+      type = "response"
+    ))
+
+    Qn_a_z_shift_star_data <- data.table::as.data.table(list(
+      logit_Qn = Qn_a_z_shift_logit,
+      Hn = Hn$hn_shift_a_z
+    ))
+
+    # predict from fluctuation model on Q(d(A,W),W) and Hn(d(A,W))
+    Qn_a_z_shift_star_unit <- unname(stats::predict(
+      object = fluctuation_model,
+      newdata = Qn_a_z_shift_star_data,
       type = "response"
     ))
   } else if (method == "weighted") {
@@ -290,8 +300,14 @@ fit_fluctuation <- function(y,
     ))
   }
 
-  Qn_shift_star <- scale_to_original(
-    scaled_vals = Qn_shift_star_unit,
+  Qn_a_shift_star <- scale_to_original(
+    scaled_vals = Qn_a_shift_star_unit,
+    max_orig = max(y),
+    min_orig = min(y)
+  )
+
+  Qn_a_z_shift_star <- scale_to_original(
+    scaled_vals = Qn_a_z_shift_star_unit,
     max_orig = max(y),
     min_orig = min(y)
   )
@@ -300,8 +316,9 @@ fit_fluctuation <- function(y,
   out <- list(
     fluc_fit = fluctuation_model,
     covar_method = method,
-    qn_shift_star = as.numeric(Qn_shift_star),
-    qn_noshift_star = as.numeric(Qn_noshift_star)
+    qn_noshift_star = as.numeric(Qn_noshift_star),
+    qn_a_shift_star = as.numeric(Qn_a_shift_star),
+    qn_a_z_shift_star = as.numeric(Qn_a_z_shift_star)
   )
   return(out)
 }

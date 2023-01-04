@@ -42,14 +42,13 @@ estimator of a stochastic shift causal parameter originally proposed by
 Dı́az and van der Laan (2018). `SuperNOVA` extends the original
 stochastic intervention methodology from one treatment/exposure variable
 to include joint stochastic interventions on two variables which allows
-for the construction of a non-parametric interaction parameter.
-Likewise, `SuperNOVA` also estimates both individual stochastic
-intervention outcomes under some delta shift compared to outcome under
-no intervention and a target parameter for effect modification which is
-the difference in mean outcomes under intervention compared to no
-intervention across strata of an effect modifier which is
-data-adaptively determined. Future work will also include stochastic
-shift mediation analysis which is under development.
+for the construction of a non-parametric interaction parameter and
+mediation. Likewise, `SuperNOVA` also estimates both individual
+stochastic intervention outcomes under some delta shift compared to
+outcome under no intervention and a target parameter for effect
+modification which is the difference in mean outcomes under intervention
+compared to no intervention across strata of an effect modifier which is
+data-adaptively determined.
 
 Of course, it is not known a priori in most cases what variables are
 interacting or modifying effects (especially in the case of a mixed
@@ -139,7 +138,7 @@ The `simulate_data` function creates simulated data with a multivariate
 exposure, covariates (confounders), and a continuous outcome.
 
 ``` r
-data <- simulate_data(n_obs = n_obs, shift_var_index = c(1))
+data <- simulate_data(n_obs = n_obs, shift_var_index = c(3))
 effect <- data$effect
 data <- data$data
 head(data) %>%
@@ -179,13 +178,13 @@ Y_shifted
 <tbody>
 <tr>
 <td style="text-align:right;">
-6.122589
+5.122589
 </td>
 <td style="text-align:right;">
 0.6810488
 </td>
 <td style="text-align:right;">
-2.0983722
+3.098372
 </td>
 <td style="text-align:right;">
 7.873068
@@ -197,18 +196,18 @@ Y_shifted
 8.727373
 </td>
 <td style="text-align:right;">
-9.881214
+8.796372
 </td>
 </tr>
 <tr>
 <td style="text-align:right;">
-6.752568
+5.752568
 </td>
 <td style="text-align:right;">
 3.9186685
 </td>
 <td style="text-align:right;">
-3.7237856
+4.723786
 </td>
 <td style="text-align:right;">
 6.677126
@@ -220,18 +219,18 @@ Y_shifted
 8.549657
 </td>
 <td style="text-align:right;">
-10.729448
+8.552309
 </td>
 </tr>
 <tr>
 <td style="text-align:right;">
-5.515052
+4.515052
 </td>
 <td style="text-align:right;">
 0.9926542
 </td>
 <td style="text-align:right;">
-1.9790401
+2.979040
 </td>
 <td style="text-align:right;">
 7.598614
@@ -243,18 +242,18 @@ Y_shifted
 8.290229
 </td>
 <td style="text-align:right;">
-8.926546
+8.369829
 </td>
 </tr>
 <tr>
 <td style="text-align:right;">
-4.816552
+3.816552
 </td>
 <td style="text-align:right;">
 -0.1666900
 </td>
 <td style="text-align:right;">
-0.5023735
+1.502374
 </td>
 <td style="text-align:right;">
 7.321127
@@ -266,18 +265,18 @@ Y_shifted
 6.539904
 </td>
 <td style="text-align:right;">
-6.791823
+7.549933
 </td>
 </tr>
 <tr>
 <td style="text-align:right;">
-5.797729
+4.797729
 </td>
 <td style="text-align:right;">
 1.8740593
 </td>
 <td style="text-align:right;">
-3.0243031
+4.024303
 </td>
 <td style="text-align:right;">
 6.203951
@@ -289,18 +288,18 @@ Y_shifted
 7.192016
 </td>
 <td style="text-align:right;">
-8.042248
+7.200583
 </td>
 </tr>
 <tr>
 <td style="text-align:right;">
-5.380270
+4.380270
 </td>
 <td style="text-align:right;">
 0.2098730
 </td>
 <td style="text-align:right;">
-1.9611529
+2.961153
 </td>
 <td style="text-align:right;">
 7.677073
@@ -312,7 +311,7 @@ Y_shifted
 8.473848
 </td>
 <td style="text-align:right;">
-9.032642
+8.556300
 </td>
 </tr>
 </tbody>
@@ -324,7 +323,7 @@ variable and true effect for this DGP is:
 
 ``` r
 effect
-#> [1] 1.149002
+#> [1] 0.2057182
 ```
 
 And therefore, in `SuperNOVA` we would expect most of the fold CIs to
@@ -344,123 +343,56 @@ w <- data_sample[, c("W1", "W2")]
 a <- data_sample[, c("M1", "M2", "M3")]
 y <- data_sample$Y
 
+deltas <- list("M1" = 1, "M2" = 1, "M3" = 1)
+
 ptm <- proc.time()
 sim_results <- SuperNOVA(
   w = w,
   a = a,
   y = y,
-  delta = 1,
-  n_folds = 5,
+  delta = deltas,
+  n_folds = 2,
   num_cores = 6,
   family = "continuous",
   quantile_thresh = 0,
   seed = 294580
 )
 #> 
-#> Iter: 1 fn: 1166.4198     Pars:  0.76564 0.23436
-#> Iter: 2 fn: 1166.4198     Pars:  0.76569 0.23431
+#> Iter: 1 fn: 736.1309  Pars:  0.999992466 0.000007534
+#> Iter: 2 fn: 736.1309  Pars:  0.99999789 0.00000211
 #> solnp--> Completed in 2 iterations
 #> 
-#> Iter: 1 fn: 1177.9483     Pars:  0.99997794 0.00002207
-#> Iter: 2 fn: 1177.9483     Pars:  0.99998569 0.00001431
+#> Iter: 1 fn: 731.4051  Pars:  0.9997671 0.0002329
+#> Iter: 2 fn: 731.4051  Pars:  0.99996729 0.00003271
 #> solnp--> Completed in 2 iterations
 #> 
-#> Iter: 1 fn: 1187.4375     Pars:  0.99998354 0.00001646
-#> Iter: 2 fn: 1187.4375     Pars:  0.999995465 0.000004535
-#> Iter: 3 fn: 1187.4375     Pars:  0.999998193 0.000001807
+#> Iter: 1 fn: 736.7229  Pars:  0.99996647 0.00003353
+#> Iter: 2 fn: 736.7229  Pars:  0.999992346 0.000007654
+#> solnp--> Completed in 2 iterations
+#> 
+#> Iter: 1 fn: 731.7438  Pars:  0.97476 0.02524
+#> Iter: 2 fn: 731.5662  Pars:  0.74017 0.25983
+#> Iter: 3 fn: 731.5662  Pars:  0.74017 0.25983
 #> solnp--> Completed in 3 iterations
 #> 
-#> Iter: 1 fn: 1170.4194     Pars:  0.68990 0.31010
-#> Iter: 2 fn: 1170.4194     Pars:  0.68991 0.31009
+#> Iter: 1 fn: 733.0992  Pars:  0.99996393 0.00003607
+#> Iter: 2 fn: 733.0992  Pars:  0.99998573 0.00001427
 #> solnp--> Completed in 2 iterations
 #> 
-#> Iter: 1 fn: 1166.6846     Pars:  0.992424 0.007576
-#> Iter: 2 fn: 1166.6846     Pars:  0.992995 0.007005
+#> Iter: 1 fn: 738.3274  Pars:  0.99996537 0.00003463
+#> Iter: 2 fn: 738.3274  Pars:  0.99998015 0.00001985
 #> solnp--> Completed in 2 iterations
 #> 
-#> Iter: 1 fn: 1180.3693     Pars:  0.00002575 0.99997425
-#> Iter: 2 fn: 1180.3693     Pars:  0.00001267 0.99998733
+#> Iter: 1 fn: 734.4877  Pars:  0.999991798 0.000008202
+#> Iter: 2 fn: 734.4877  Pars:  0.999994932 0.000005068
 #> solnp--> Completed in 2 iterations
 #> 
-#> Iter: 1 fn: 1163.1972     Pars:  0.999998791 0.000001209
-#> Iter: 2 fn: 1163.1972     Pars:  0.9999992831 0.0000007169
-#> solnp--> Completed in 2 iterations
-#> 
-#> Iter: 1 fn: 1175.6696     Pars:  0.85537 0.14463
-#> Iter: 2 fn: 1175.6696     Pars:  0.85549 0.14451
-#> solnp--> Completed in 2 iterations
-#> 
-#> Iter: 1 fn: 1176.4228     Pars:  0.83788 0.16212
-#> Iter: 2 fn: 1176.3986     Pars:  0.59815 0.40185
-#> Iter: 3 fn: 1176.3986     Pars:  0.59814 0.40186
-#> solnp--> Completed in 3 iterations
-#> 
-#> Iter: 1 fn: 1157.5911     Pars:  0.999998904 0.000001096
-#> Iter: 2 fn: 1157.5911     Pars:  0.9999998731 0.0000001269
-#> solnp--> Completed in 2 iterations
-#> 
-#> Iter: 1 fn: 1164.1017     Pars:  0.9999990908 0.0000009093
-#> Iter: 2 fn: 1164.1017     Pars:  0.9999994669 0.0000005331
-#> solnp--> Completed in 2 iterations
-#> 
-#> Iter: 1 fn: 1172.1758     Pars:  0.22288 0.77712
-#> Iter: 2 fn: 1172.1690     Pars:  0.13125 0.86875
-#> Iter: 3 fn: 1172.1690     Pars:  0.13125 0.86875
-#> solnp--> Completed in 3 iterations
-#> 
-#> Iter: 1 fn: 1172.7308     Pars:  0.72105 0.27895
-#> Iter: 2 fn: 1172.6851     Pars:  0.99992727 0.00007273
-#> Iter: 3 fn: 1172.6851     Pars:  0.99995324 0.00004676
-#> solnp--> Completed in 3 iterations
-#> 
-#> Iter: 1 fn: 1170.7932     Pars:  0.16966 0.83034
-#> Iter: 2 fn: 1170.6595     Pars:  0.77188 0.22812
-#> Iter: 3 fn: 1170.6595     Pars:  0.77188 0.22812
-#> solnp--> Completed in 3 iterations
-#> 
-#> Iter: 1 fn: 1157.6767     Pars:  0.99993859 0.00006141
-#> Iter: 2 fn: 1157.6767     Pars:  0.999990081 0.000009919
-#> solnp--> Completed in 2 iterations
-#> 
-#> Iter: 1 fn: 1167.1661     Pars:  0.999997510 0.000002488
-#> Iter: 2 fn: 1167.1661     Pars:  0.9999996965 0.0000003035
-#> solnp--> Completed in 2 iterations
-#> 
-#> Iter: 1 fn: 1040.0668     Pars:  0.57310 0.42690
-#> Iter: 2 fn: 1040.0668     Pars:  0.57310 0.42690
-#> solnp--> Completed in 2 iterations
-#> 
-#> Iter: 1 fn: 1174.4439     Pars:  0.99997832 0.00002168
-#> Iter: 2 fn: 1174.4439     Pars:  0.999992464 0.000007536
-#> solnp--> Completed in 2 iterations
-#> 
-#> Iter: 1 fn: 1162.2626     Pars:  0.999991615 0.000008386
-#> Iter: 2 fn: 1162.2626     Pars:  0.999997643 0.000002357
-#> solnp--> Completed in 2 iterations
-#> 
-#> Iter: 1 fn: 1157.9708     Pars:  0.99998993 0.00001006
-#> Iter: 2 fn: 1157.9708     Pars:  0.999996087 0.000003913
-#> solnp--> Completed in 2 iterations
-#> 
-#> Iter: 1 fn: 1162.9490     Pars:  0.999995269 0.000004731
-#> Iter: 2 fn: 1162.9490     Pars:  0.9999993592 0.0000006408
-#> solnp--> Completed in 2 iterations
-#> 
-#> Iter: 1 fn: 1165.8277     Pars:  0.64072 0.35928
-#> Iter: 2 fn: 1165.8276     Pars:  0.63379 0.36621
-#> Iter: 3 fn: 1165.8276     Pars:  0.63379 0.36621
-#> solnp--> Completed in 3 iterations
-#> 
-#> Iter: 1 fn: 1159.5643     Pars:  0.999998931 0.000001069
-#> Iter: 2 fn: 1159.5643     Pars:  0.99999977 0.00000023
-#> solnp--> Completed in 2 iterations
-#> 
-#> Iter: 1 fn: 1025.5563     Pars:  0.999998917 0.000001082
-#> Iter: 2 fn: 1025.5563     Pars:  0.9999993613 0.0000006387
+#> Iter: 1 fn: 737.4888  Pars:  0.99998951 0.00001049
+#> Iter: 2 fn: 737.4888  Pars:  0.999997809 0.000002191
 #> solnp--> Completed in 2 iterations
 proc.time() - ptm
 #>     user   system  elapsed 
-#>  186.260   13.332 2592.653
+#>   62.457    6.183 1035.798
 
 indiv_shift_results <- sim_results$`Indiv Shift Results`
 em_results <- sim_results$`Effect Mod Results`
@@ -471,7 +403,7 @@ Let’s first look at the results for individual stochastic shifts by
 delta compared to no shift:
 
 ``` r
-indiv_shift_results$M1 %>%
+indiv_shift_results$M3 %>%
   kbl(caption = "Individual Stochastic Intervention Results for M1") %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
@@ -515,30 +447,33 @@ Variables
 <th style="text-align:right;">
 N
 </th>
+<th style="text-align:right;">
+Delta
+</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td style="text-align:left;">
-M1
+M3
 </td>
 <td style="text-align:right;">
-0.8118000
+0.4781274
 </td>
 <td style="text-align:right;">
-0.0421613
+0.0187579
 </td>
 <td style="text-align:right;">
-0.2053321
+0.1369596
 </td>
 <td style="text-align:right;">
-0.4094
+0.2097
 </td>
 <td style="text-align:right;">
-1.2142
+0.7466
 </td>
 <td style="text-align:right;">
-7.7e-05
+0.0004812
 </td>
 <td style="text-align:left;">
 1
@@ -547,33 +482,36 @@ M1
 Indiv Shift
 </td>
 <td style="text-align:left;">
-M1
+M3
 </td>
 <td style="text-align:right;">
-200
+500
+</td>
+<td style="text-align:right;">
+1
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-M1
+M3
 </td>
 <td style="text-align:right;">
-1.1249803
+0.2560727
 </td>
 <td style="text-align:right;">
-0.0175037
+0.1685680
 </td>
 <td style="text-align:right;">
-0.1323017
+0.4105704
 </td>
 <td style="text-align:right;">
-0.8657
+-0.5486
 </td>
 <td style="text-align:right;">
-1.3843
+1.0608
 </td>
 <td style="text-align:right;">
-0.0e+00
+0.5328247
 </td>
 <td style="text-align:left;">
 2
@@ -582,138 +520,36 @@ M1
 Indiv Shift
 </td>
 <td style="text-align:left;">
-M1
+M3
 </td>
 <td style="text-align:right;">
-200
+500
+</td>
+<td style="text-align:right;">
+1
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-M1
+M3
 </td>
 <td style="text-align:right;">
-0.9113407
+0.3098651
 </td>
 <td style="text-align:right;">
-0.0418939
+0.0347369
 </td>
 <td style="text-align:right;">
-0.2046801
+0.1863783
 </td>
 <td style="text-align:right;">
-0.5102
+-0.0554
 </td>
 <td style="text-align:right;">
-1.3125
+0.6752
 </td>
 <td style="text-align:right;">
-8.5e-06
-</td>
-<td style="text-align:left;">
-3
-</td>
-<td style="text-align:left;">
-Indiv Shift
-</td>
-<td style="text-align:left;">
-M1
-</td>
-<td style="text-align:right;">
-200
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-M1
-</td>
-<td style="text-align:right;">
-0.9725846
-</td>
-<td style="text-align:right;">
-0.0182654
-</td>
-<td style="text-align:right;">
-0.1351497
-</td>
-<td style="text-align:right;">
-0.7077
-</td>
-<td style="text-align:right;">
-1.2375
-</td>
-<td style="text-align:right;">
-0.0e+00
-</td>
-<td style="text-align:left;">
-4
-</td>
-<td style="text-align:left;">
-Indiv Shift
-</td>
-<td style="text-align:left;">
-M1
-</td>
-<td style="text-align:right;">
-200
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-M1
-</td>
-<td style="text-align:right;">
-1.2015947
-</td>
-<td style="text-align:right;">
-0.0421926
-</td>
-<td style="text-align:right;">
-0.2054084
-</td>
-<td style="text-align:right;">
-0.7990
-</td>
-<td style="text-align:right;">
-1.6042
-</td>
-<td style="text-align:right;">
-0.0e+00
-</td>
-<td style="text-align:left;">
-5
-</td>
-<td style="text-align:left;">
-Indiv Shift
-</td>
-<td style="text-align:left;">
-M1
-</td>
-<td style="text-align:right;">
-200
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-M1
-</td>
-<td style="text-align:right;">
-1.0515509
-</td>
-<td style="text-align:right;">
-0.0058070
-</td>
-<td style="text-align:right;">
-0.0762038
-</td>
-<td style="text-align:right;">
-0.9022
-</td>
-<td style="text-align:right;">
-1.2009
-</td>
-<td style="text-align:right;">
-0.0e+00
+0.0964005
 </td>
 <td style="text-align:left;">
 Pooled TMLE
@@ -722,10 +558,13 @@ Pooled TMLE
 Indiv Shift
 </td>
 <td style="text-align:left;">
-M1
+M3
 </td>
 <td style="text-align:right;">
 1000
+</td>
+<td style="text-align:right;">
+1
 </td>
 </tr>
 </tbody>
@@ -778,27 +617,106 @@ Variables
 <th style="text-align:right;">
 N
 </th>
+<th style="text-align:right;">
+Delta
+</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td style="text-align:left;">
-Level 1 Shift Diff in W1 \<= 6.5051649726032
+Level 1 Shift Diff in W1 \<= 6.49113162474391
 </td>
 <td style="text-align:right;">
-7.396953
+7.127136
 </td>
 <td style="text-align:right;">
-0.0216254
+0.0328169
 </td>
 <td style="text-align:right;">
-0.1470559
+0.1811544
 </td>
 <td style="text-align:right;">
-7.1087
+6.7721
 </td>
 <td style="text-align:right;">
-7.6852
+7.4822
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:left;">
+Effect Mod
+</td>
+<td style="text-align:left;">
+M3W1
+</td>
+<td style="text-align:right;">
+500
+</td>
+<td style="text-align:right;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Level 0 Shift Diff in W1 \<= 6.49113162474391
+</td>
+<td style="text-align:right;">
+7.997249
+</td>
+<td style="text-align:right;">
+0.0874509
+</td>
+<td style="text-align:right;">
+0.2957210
+</td>
+<td style="text-align:right;">
+7.4176
+</td>
+<td style="text-align:right;">
+8.5769
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:left;">
+Effect Mod
+</td>
+<td style="text-align:left;">
+M3W1
+</td>
+<td style="text-align:right;">
+500
+</td>
+<td style="text-align:right;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Level 1 Shift Diff in W1 \<= 7.05053831347608
+</td>
+<td style="text-align:right;">
+7.025923
+</td>
+<td style="text-align:right;">
+0.3024329
+</td>
+<td style="text-align:right;">
+0.5499390
+</td>
+<td style="text-align:right;">
+5.9481
+</td>
+<td style="text-align:right;">
+8.1038
 </td>
 <td style="text-align:right;">
 0
@@ -813,27 +731,30 @@ Effect Mod
 M3W1
 </td>
 <td style="text-align:right;">
-200
+500
+</td>
+<td style="text-align:right;">
+1
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-Level 0 Shift Diff in W1 \<= 6.5051649726032
+Level 0 Shift Diff in W1 \<= 7.05053831347608
 </td>
 <td style="text-align:right;">
-8.286543
+9.351465
 </td>
 <td style="text-align:right;">
-0.0409230
+0.0739362
 </td>
 <td style="text-align:right;">
-0.2022943
+0.2719121
 </td>
 <td style="text-align:right;">
-7.8901
+8.8185
 </td>
 <td style="text-align:right;">
-8.6830
+9.8844
 </td>
 <td style="text-align:right;">
 0
@@ -848,237 +769,30 @@ Effect Mod
 M3W1
 </td>
 <td style="text-align:right;">
-200
+500
+</td>
+<td style="text-align:right;">
+1
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-Level 1 Shift Diff in W1 \<= 6.49354965732094
+Level 1 Shift Diff in W1 \<= 6.02939925010252
 </td>
 <td style="text-align:right;">
-7.025393
+6.686384
 </td>
 <td style="text-align:right;">
-0.0042238
+0.0872849
 </td>
 <td style="text-align:right;">
-0.0649907
+0.2954401
 </td>
 <td style="text-align:right;">
-6.8980
+6.1073
 </td>
 <td style="text-align:right;">
-7.1528
-</td>
-<td style="text-align:right;">
-0
-</td>
-<td style="text-align:left;">
-3
-</td>
-<td style="text-align:left;">
-Effect Mod
-</td>
-<td style="text-align:left;">
-M3W1
-</td>
-<td style="text-align:right;">
-200
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Level 0 Shift Diff in W1 \<= 6.49354965732094
-</td>
-<td style="text-align:right;">
-8.274424
-</td>
-<td style="text-align:right;">
-0.2327762
-</td>
-<td style="text-align:right;">
-0.4824689
-</td>
-<td style="text-align:right;">
-7.3288
-</td>
-<td style="text-align:right;">
-9.2200
-</td>
-<td style="text-align:right;">
-0
-</td>
-<td style="text-align:left;">
-3
-</td>
-<td style="text-align:left;">
-Effect Mod
-</td>
-<td style="text-align:left;">
-M3W1
-</td>
-<td style="text-align:right;">
-200
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Level 1 Shift Diff in W1 \<= 6.78732393155181
-</td>
-<td style="text-align:right;">
-7.370033
-</td>
-<td style="text-align:right;">
-0.0560709
-</td>
-<td style="text-align:right;">
-0.2367929
-</td>
-<td style="text-align:right;">
-6.9059
-</td>
-<td style="text-align:right;">
-7.8341
-</td>
-<td style="text-align:right;">
-0
-</td>
-<td style="text-align:left;">
-4
-</td>
-<td style="text-align:left;">
-Effect Mod
-</td>
-<td style="text-align:left;">
-M3W1
-</td>
-<td style="text-align:right;">
-200
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Level 0 Shift Diff in W1 \<= 6.78732393155181
-</td>
-<td style="text-align:right;">
-8.457109
-</td>
-<td style="text-align:right;">
-0.0097595
-</td>
-<td style="text-align:right;">
-0.0987901
-</td>
-<td style="text-align:right;">
-8.2635
-</td>
-<td style="text-align:right;">
-8.6507
-</td>
-<td style="text-align:right;">
-0
-</td>
-<td style="text-align:left;">
-4
-</td>
-<td style="text-align:left;">
-Effect Mod
-</td>
-<td style="text-align:left;">
-M3W1
-</td>
-<td style="text-align:right;">
-200
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Level 1 Shift Diff in W1 \<= 6.5051649726032
-</td>
-<td style="text-align:right;">
-7.102586
-</td>
-<td style="text-align:right;">
-0.1482954
-</td>
-<td style="text-align:right;">
-0.3850914
-</td>
-<td style="text-align:right;">
-6.3478
-</td>
-<td style="text-align:right;">
-7.8574
-</td>
-<td style="text-align:right;">
-0
-</td>
-<td style="text-align:left;">
-5
-</td>
-<td style="text-align:left;">
-Effect Mod
-</td>
-<td style="text-align:left;">
-M3W1
-</td>
-<td style="text-align:right;">
-200
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Level 0 Shift Diff in W1 \<= 6.5051649726032
-</td>
-<td style="text-align:right;">
-7.628454
-</td>
-<td style="text-align:right;">
-0.0289861
-</td>
-<td style="text-align:right;">
-0.1702529
-</td>
-<td style="text-align:right;">
-7.2948
-</td>
-<td style="text-align:right;">
-7.9621
-</td>
-<td style="text-align:right;">
-0
-</td>
-<td style="text-align:left;">
-5
-</td>
-<td style="text-align:left;">
-Effect Mod
-</td>
-<td style="text-align:left;">
-M3W1
-</td>
-<td style="text-align:right;">
-200
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Level 1 Shift Diff in W1 \<= 6.5051649726032
-</td>
-<td style="text-align:right;">
-6.982645
-</td>
-<td style="text-align:right;">
-0.0050493
-</td>
-<td style="text-align:right;">
-0.0710581
-</td>
-<td style="text-align:right;">
-6.8434
-</td>
-<td style="text-align:right;">
-7.1219
+7.2654
 </td>
 <td style="text-align:right;">
 0
@@ -1093,27 +807,30 @@ Effect Mod
 M3W1
 </td>
 <td style="text-align:right;">
-800
+1000
+</td>
+<td style="text-align:right;">
+1
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-Level 0 Shift Diff in W1 \<= 6.5051649726032
+Level 0 Shift Diff in W1 \<= 6.02939925010252
 </td>
 <td style="text-align:right;">
-8.316520
+8.391628
 </td>
 <td style="text-align:right;">
-0.0229209
+0.1062345
 </td>
 <td style="text-align:right;">
-0.1513967
+0.3259364
 </td>
 <td style="text-align:right;">
-8.0198
+7.7528
 </td>
 <td style="text-align:right;">
-8.6133
+9.0305
 </td>
 <td style="text-align:right;">
 0
@@ -1128,7 +845,10 @@ Effect Mod
 M3W1
 </td>
 <td style="text-align:right;">
-800
+1000
+</td>
+<td style="text-align:right;">
+1
 </td>
 </tr>
 </tbody>

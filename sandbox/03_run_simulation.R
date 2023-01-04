@@ -19,37 +19,72 @@ library(hal9001)
 library(origami)
 library(sl3)
 library(tmle3)
+library(SuperNOVA)
 devtools::load_all(here())
+source(here("sandbox", "02_fit_estimators.R"))
 
-# load scripts, parallelization, PRNG
-source(here("sandbox/01_setup_data.R"))
-source(here("sandbox/02_fit_estimators.R"))
-registerDoFuture()
-plan(multiprocess)
 
 # simulation parameters
 set.seed(7259)
-n_sim <- 1 # number of simulations
-n_obs <- (cumsum(rep(sqrt(100), 8))^2)[-1] # sample sizes at root-n scale
+n_sim <- 5 # number of simulations
+n_obs <- c(500, 1000, 1500)# sample sizes at root-n scale
+
+# Generate simulated data -----------------
+
+data <- simulate_mediation_data(n_obs = 100000)
+nde_truth <- data$nde
+nie_truth <- data$nie
+ate_a_1 <- data$ate_a_1
+ate_a_2 <- data$ate_a_2
+a2_effect_in_w2_1 <- data$effect_mod_a2w2_lvl_1
+a2_effect_in_w2_0 <- data$effect_mod_a2w2_lvl_0
+
+p0_data <- data$data
 
 # perform simulation across sample sizes
-sim_results <- lapply(n_obs[1], function(sample_size) {
+sim_results_df <- data.frame()
+
+for (sample_size in n_obs) {
   # get results in parallel
-  results <- foreach(this_iter = seq_len(n_sim),
-                     .options.multicore = list(preschedule = FALSE),
-                     .errorhandling = "remove") %dorng% {
-    gc()
-    data_sim <- make_simulated_data(n_obs = sample_size)
-    est_out <- fit_estimators(data = data_sim)
-    return(est_out)
+  results <- list()
+  print(sample_size)
+
+  for(this_iter in seq_len(n_sim)) {
+    print(this_iter)
+
+    seed <- sample(1:10000,1)
+    set.seed(seed)
+
+    data_sim <-  p0_data %>%
+      dplyr::slice_sample(n = sample_size)
+
+    est_out <- fit_estimators(data = as.data.frame(data_sim),
+                              covars = c("w_1", "w_2", "w_3"),
+                              exposures = c("a_1", "a_2"),
+                              mediators = c("z_1"),
+                              outcome = "y",
+                              seed = seed,
+                              nde_truth = nde_truth,
+                              nie_truth = nie_truth,
+                              ate_a_1 = ate_a_1,
+                              ate_a_2 = ate_a_2,
+                              a2_effect_in_w2_1 = a2_effect_in_w2_1,
+                              a2_effect_in_w2_0 = a2_effect_in_w2_0,
+                              deltas = list("a_1" = 1, "a_2"= 1),
+                              cv_folds = 2)
+
+    est_out$n_obs <- sample_size
+
+    results[[this_iter]] <- est_out
+
   }
   # concatenate iterations
   results_out <- bind_rows(results, .id = "sim_iter")
-  return(results_out)
-})
+  sim_results_df <- rbind(sim_results_df, results_out)
+}
+
 
 # save results to file
-names(sim_results) <- paste("n", n_obs, sep = "_")
 timestamp <- str_replace_all(Sys.time(), " ", "_")
-saveRDS(object = sim_results,
-        file = here("sandbox/data", paste0("tmle3mediate_", timestamp, ".rds")))
+saveRDS(object = sim_results_df,
+        file = here("sandbox/data", paste0("CVtreeMLE_", "sim", ".rds")))

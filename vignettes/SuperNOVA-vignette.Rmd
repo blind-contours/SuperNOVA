@@ -297,6 +297,7 @@ The variance of the combined effect across the folds is defined as the reciproca
 Firts, let's load the packages we'll use and set a seed for simulation:
 
 ```{r setup, message=FALSE, warning=FALSE}
+library(devtools)
 library(data.table)
 load_all("~/sl3")
 # library(SuperLearner)
@@ -316,15 +317,17 @@ The `SupernOVA` package comes with 2 datasets from the 2015-NIEHS-Mixtures-Works
 data("NIEHS_data_1", package = "SuperNOVA")
 ```
 
-```{r NIEH Nodes  }
+```{r NIEH Nodes}
 NIEHS_data_1$W <- rnorm(nrow(NIEHS_data_1), mean = 0, sd = 0.1)
 w <- NIEHS_data_1[, c("W", "Z")]
 a <- NIEHS_data_1[, c("X1", "X2", "X3", "X4", "X5", "X6", "X7")]
-y <- NIEHS_data_1[, "Y"]
+y <- NIEHS_data_1$Y
 ```
 
 
 ```{r run SuperNOVA NIEHS data, eval = TRUE}
+ptm <- proc.time()
+
 NIEH_results <- SuperNOVA(
   w = w,
   a = a,
@@ -334,50 +337,50 @@ NIEH_results <- SuperNOVA(
   fluctuation = "standard",
   n_folds = 5,
   family = "continuous",
-  quantile_thresh = 0.25,
+  quantile_thresh = 0,
   verbose = TRUE,
   parallel = TRUE,
-  num_cores = 5
+  num_cores = 5,
+  seed = seed
 )
+
+proc.time() - ptm
 
 indiv_shift_results <- NIEH_results$`Indiv Shift Results`
 em_results <- NIEH_results$`Effect Mod Results`
 joint_shift_results <- NIEH_results$`Joint Shift Results`
 ```
 
-```{r basis function proportions}
-indiv_shift_results %>%
+
+Let's look at the results for the variable $X1$ which should have a positive 
+effect given the data dictionary provided: 
+
+```{r individual results}
+indiv_shift_results$X1 %>%
   kbl(caption = "Effect Modification Results") %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
 
-```{r basis function proportions}
-joint_shift_results %>%
+Now let's look for effect modification: 
+```{r joint results}
+em_results$X7Z %>%
+  kbl(caption = "Effect Modification Results") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+```
+
+This shows there are differential effects on the impact of shifting $X7$ between
+strata of the baseline covariate Z. 
+
+```{r interaction results}
+joint_shift_results$X1X5 %>%
   kbl(caption = "Interaction Results") %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
 
-```{r NIEH indiv results, fig.show="hold", eval = TRUE}
-indiv_plots <- compute_meta_results(SuperNOVA_results = NIEH_results, parameter = "Indiv Shift")
-names(indiv_plots$Plots)
-indiv_plots$Plots$X7
+Here we see in three of the folds an interaction effect was found for $X1$ and
+$X5$. 
 
-indiv_plots$`Pooled Results`$X7 %>%
-  kbl(caption = "Individual Stochastic Shift Results") %>%
-  kable_classic(full_width = F, html_font = "Cambria")
-```
 
-```{r NIEH effect mod results, fig.show="hold", eval = TRUE}
-effect_mod_plots <- compute_meta_results(SuperNOVA_results = sim_results, parameter = "Effect Mod")
-names(effect_mod_plots$Plots)
-effect_mod_plots$Plots$`Effect Mod`
-```
-
-```{r NIEH join results, fig.show="hold", eval = TRUE}
-joint_plots <- compute_meta_results(SuperNOVA_results = sim_results, parameter = "Joint Shift")
-names(joint_plots$Plots)
-joint_plots$Plots$`Psi-X5&X7`
-```
 
 
 

@@ -34,19 +34,22 @@
 #'  based on the efficient influence function (EIF), the estimate of the EIF
 #'  incorporating inverse probability of censoring weights, and the estimate of
 #'  the EIF without the application of such weights.
-calc_pooled_indiv_shifts <- function(
-                                     basis_prop_in_fold,
+calc_pooled_indiv_shifts <- function(basis_prop_in_fold,
                                      indiv_shift_results,
                                      estimator = c("tmle", "onestep"),
                                      fluc_mod_out = NULL,
-                                     delta,
                                      fluctuation) {
   # set TMLE as default estimator type
   estimator <- match.arg(estimator)
 
   results_list <- list()
 
-  for (var_set in unique(names(indiv_shift_results))) {
+  names <- names(indiv_shift_results)
+  names <- gsub("^.+?:", "", names)
+  names <- stringr::str_trim(names)
+
+
+  for (var_set in unique(names)) {
     var_set_results <- indiv_shift_results[stringr::str_detect(
       names(indiv_shift_results), var_set
     )]
@@ -70,13 +73,17 @@ calc_pooled_indiv_shifts <- function(
         names(test), "k_fold"
       )])
 
+      deltas <- do.call(rbind, test[stringr::str_detect(
+        names(test), "Delta"
+      )])
+
       tmle_fit <- tmle_exposhift(
         data_internal = data,
-        delta = delta,
         Qn_scaled = Qn_scaled,
         Hn = Hn,
         fluctuation = fluctuation,
-        y = data$y
+        y = data$y,
+        delta = mean(deltas)
       )
 
       indiv_shift_in_fold <- calc_final_ind_shift_param(
@@ -84,6 +91,8 @@ calc_pooled_indiv_shifts <- function(
         exposure = var_set,
         fold_k = "Pooled TMLE"
       )
+
+      indiv_shift_in_fold$Delta <- mean(deltas)
 
       results_df <- rbind(k_fold_results, indiv_shift_in_fold)
 

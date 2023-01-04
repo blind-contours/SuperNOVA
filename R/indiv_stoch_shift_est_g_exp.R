@@ -33,7 +33,9 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
                                         covars,
                                         av,
                                         at,
-                                        meta_learner = FALSE) {
+                                        meta_learner = FALSE,
+                                        alpha,
+                                        adaptive_delta) {
   future::plan(future::sequential, gc = TRUE)
 
   # need a data set with the exposure stochastically shifted DOWNWARDS A-delta
@@ -190,5 +192,186 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
   data.table::setnames(av_out, c("downshift", "noshift", "upshift", "upupshift"))
   data.table::setnames(at_out, c("downshift", "noshift", "upshift", "upupshift"))
 
-  return(list("av" = av_out, "at" = at_out))
+  Hn_av <- est_hn(gn_exp = av_out)
+  Hn_at <- est_hn(gn_exp = at_out)
+
+  delta_reduced <- delta
+
+  if (adaptive_delta == TRUE) {
+    ks_test <- ks.test(Hn_at$noshift, Hn_at$shift)
+    p_val <- ks_test$p.value
+    pos_violation <- TRUE
+
+    while (pos_violation == TRUE) {
+      if (p_val <= alpha) {
+        delta_reduced <- delta_reduced - (0.1 * delta_reduced)
+        # need a data set with the exposure stochastically shifted DOWNWARDS A-delta
+        av_downshifted <- data.table::copy(av)
+
+        data.table::set(av_downshifted,
+          j = exposure,
+          value = shift_additive(
+            a = subset(av, select = exposure), delta = -delta_reduced
+          )
+        )
+
+        # need a data set with the exposure stochastically shifted DOWNWARDS A-delta
+        av_downshifted <- data.table::copy(av)
+
+        data.table::set(av_downshifted,
+          j = exposure,
+          value = shift_additive(
+            a = subset(av, select = exposure), delta = -delta_reduced
+          )
+        )
+
+        at_downshifted <- data.table::copy(at)
+
+        data.table::set(at_downshifted,
+          j = exposure,
+          value = shift_additive(
+            a = subset(at, select = exposure), delta = -delta_reduced
+          )
+        )
+
+        # need a data set with the exposure stochastically shifted UPWARDS A+delta
+        av_upshifted <- data.table::copy(av)
+        data.table::set(av_upshifted,
+          j = exposure,
+          value = shift_additive(
+            a = subset(av, select = exposure), delta = delta_reduced
+          )
+        )
+
+        at_upshifted <- data.table::copy(at)
+        data.table::set(at_upshifted,
+          j = exposure,
+          value = shift_additive(
+            a = subset(at, select = exposure), delta = delta_reduced
+          )
+        )
+
+        # need a data set with the exposure stochastically shifted UPWARDS A+2delta
+        av_upupshifted <- data.table::copy(av)
+        data.table::set(av_upupshifted,
+          j = exposure,
+          value = shift_additive(
+            a = subset(av, select = exposure), delta = 2 * delta_reduced
+          )
+        )
+
+        at_upupshifted <- data.table::copy(at)
+        data.table::set(at_upupshifted,
+          j = exposure,
+          value = shift_additive(
+            a = subset(at, select = exposure), delta = 2 * delta_reduced
+          )
+        )
+
+        sl_task <- sl3::sl3_Task$new(
+          data = at,
+          outcome = exposure,
+          covariates = covars
+        )
+
+        sl_task_noshift_at <- sl3::sl3_Task$new(
+          data = at,
+          outcome = exposure,
+          covariates = covars
+        )
+
+        sl_task_noshift_av <- sl3::sl3_Task$new(
+          data = av,
+          outcome = exposure,
+          covariates = covars
+        )
+
+        # sl3 task for data with exposure shifted DOWNWARDS A-delta
+        sl_task_downshifted_at <- sl3::sl3_Task$new(
+          data = at_downshifted,
+          outcome = exposure,
+          covariates = covars
+        )
+
+        sl_task_downshifted_av <- sl3::sl3_Task$new(
+          data = av_downshifted,
+          outcome = exposure,
+          covariates = covars
+        )
+
+        # sl3 task for data with exposure shifted UPWARDS A+delta
+        sl_task_upshifted_at <- sl3::sl3_Task$new(
+          data = at_upshifted,
+          outcome = exposure,
+          covariates = covars
+        )
+
+        sl_task_upshifted_av <- sl3::sl3_Task$new(
+          data = av_upshifted,
+          outcome = exposure,
+          covariates = covars
+        )
+
+        # sl3 task for data with exposure shifted UPWARDS A+2delta
+        sl_task_upupshifted_at <- sl3::sl3_Task$new(
+          data = at_upupshifted,
+          outcome = exposure,
+          covariates = covars
+        )
+
+        sl_task_upupshifted_av <- sl3::sl3_Task$new(
+          data = av_upupshifted,
+          outcome = exposure,
+          covariates = covars
+        )
+
+        # at predictions -----------
+        pred_g_exp_noshift_at <- sl_fit$predict(sl_task_noshift_at)
+        pred_g_exp_downshifted_at <- sl_fit$predict(sl_task_downshifted_at)
+        pred_g_exp_upshifted_at <- sl_fit$predict(sl_task_upshifted_at)
+        pred_g_exp_upupshifted_at <- sl_fit$predict(sl_task_upupshifted_at)
+
+        # av predictions -----------
+
+        pred_g_exp_noshift_av <- sl_fit$predict(sl_task_noshift_av)
+        pred_g_exp_downshifted_av <- sl_fit$predict(sl_task_downshifted_av)
+        pred_g_exp_upshifted_av <- sl_fit$predict(sl_task_upshifted_av)
+        pred_g_exp_upupshifted_av <- sl_fit$predict(sl_task_upupshifted_av)
+
+        # create output data.tables
+        av_out <- cbind.data.frame(
+          pred_g_exp_downshifted_av,
+          pred_g_exp_noshift_av,
+          pred_g_exp_upshifted_av,
+          pred_g_exp_upupshifted_av
+        )
+
+        # create output data.tables
+        at_out <- cbind.data.frame(
+          pred_g_exp_downshifted_at,
+          pred_g_exp_noshift_at,
+          pred_g_exp_upshifted_at,
+          pred_g_exp_upupshifted_at
+        )
+
+        data.table::setnames(av_out, c("downshift", "noshift", "upshift", "upupshift"))
+        data.table::setnames(at_out, c("downshift", "noshift", "upshift", "upupshift"))
+
+        Hn_at <- est_hn(gn_exp = at_out)
+        ks_test <- ks.test(Hn_at$noshift, Hn_at$shift)
+        p_val <- ks_test$p.value
+        Hn_av <- est_hn(gn_exp = av_out)
+      } else {
+        pos_violation <- FALSE
+      }
+    }
+  }
+
+  return(list(
+    "av" = av_out,
+    "at" = at_out,
+    "delta" = delta_reduced,
+    "Hn_at" = Hn_at,
+    "Hn_av" = Hn_av
+  ))
 }

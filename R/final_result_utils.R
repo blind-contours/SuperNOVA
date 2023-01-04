@@ -88,14 +88,28 @@ calc_final_effect_mod_param <- function(tmle_fit_av,
 
   if (all(rules == "") == TRUE) {
     # create a rule for the median -----
-    medians <- apply(at[, ..effect_m_name], 2, median)
-    median_rule_list <- list()
-    for (i in seq(length(medians))) {
-      median_rule <- paste(names(medians)[i], "<=", medians[i])
-      median_rule_list[[i]] <- median_rule
-    }
 
-    rules <- median_rule_list
+    if (all(apply(at[, ..effect_m_name], 2, function(x) {
+      all(x %in% 0:1)
+    })) == TRUE) {
+      medians <- apply(at[, ..effect_m_name], 2, median)
+
+      median_rule_list <- list()
+      for (i in seq(length(medians))) {
+        median_rule <- paste(names(medians)[i], "==", medians[i])
+        median_rule_list[[i]] <- median_rule
+      }
+      rules <- median_rule_list
+    } else {
+      medians <- apply(at[, ..effect_m_name], 2, median)
+      median_rule_list <- list()
+      for (i in seq(length(medians))) {
+        median_rule <- paste(names(medians)[i], "<=", medians[i])
+        median_rule_list[[i]] <- median_rule
+      }
+
+      rules <- median_rule_list
+    }
   }
 
   results_list <- list()
@@ -105,6 +119,12 @@ calc_final_effect_mod_param <- function(tmle_fit_av,
 
     em_split_data <- em_model_data_av %>%
       dplyr::mutate(ind = ifelse(eval(parse(text = rule)), 1, 0))
+
+    # TODO: if the rule does not partition the validation sample and leads to
+    # all one value then pass to next rule - think about better implementation.
+    if (dim(table(em_split_data$ind)) == 1) {
+      next
+    }
 
     inverse_prop_positive <- ifelse(em_split_data$ind == 1,
       1 / (table(em_split_data$ind)[[2]] /
@@ -123,10 +143,10 @@ calc_final_effect_mod_param <- function(tmle_fit_av,
     psi_em_zero <- mean(tmle_fit_av$qn_shift_star[em_split_data$ind == 0])
 
     psi_one_var <- var(tmle_fit_av$eif[em_split_data$ind == 1]) /
-      length(tmle_fit_av$eif)
+      table(em_split_data$ind)[[2]]
 
     psi_zero_var <- var(tmle_fit_av$eif[em_split_data$ind == 0]) /
-      length(tmle_fit_av$eif)
+      table(em_split_data$ind)[[1]]
 
     em_one_ci <- calc_CIs(psi_em_one, sqrt(psi_one_var))
     em_zero_ci <- calc_CIs(psi_em_zero, sqrt(psi_zero_var))
@@ -178,7 +198,8 @@ calc_final_effect_mod_param <- function(tmle_fit_av,
 
 calc_final_joint_shift_param <- function(joint_shift_fold_results,
                                          exposures,
-                                         fold_k) {
+                                         fold_k,
+                                         deltas_updated) {
   conditions <- exposures
   conditions[[3]] <- paste(conditions[[1]], conditions[[2]], sep = "&")
   conditions[[4]] <- "Psi"
@@ -199,15 +220,89 @@ calc_final_joint_shift_param <- function(joint_shift_fold_results,
     rep(fold_k, 4),
     "Interaction",
     conditions[[3]],
-    length(joint_shift_fold_results[[3]]$eif)
+    length(joint_shift_fold_results[[3]]$eif),
+    deltas_updated[[1]],
+    deltas_updated[[2]]
   ))
 
   names(joint_intxn_results) <- c(
     "Condition", "Psi", "Variance",
     "SE", "Lower CI", "Upper CI",
     "P-value", "Fold", "Type",
-    "Variables", "N"
+    "Variables", "N", paste("Delta", conditions[[1]]),
+    paste("Delta", conditions[[2]])
   )
   rownames(joint_intxn_results) <- NULL
   return(joint_intxn_results)
+}
+
+#' @title Calculates the Mediation Shift Parameters
+#' @description Estimates the shift parameter for a natural direct and indirect
+#' effect
+#' @export
+
+calc_mediation_param <- function(tmle_fit_a_shift,
+                                 tmle_fit_a_z_shift,
+                                 exposure,
+                                 mediator,
+                                 fold_k,
+                                 y,
+                                 delta) {
+  condition <- paste(exposure, mediator, sep = "&")
+
+  nde_est <- tmle_fit_a_shift$psi - mean(y)
+  nie_est <- tmle_fit_a_z_shift$psi - tmle_fit_a_shift$psi
+
+  no_shift_eif <- tmle_fit_a_z_shift$noshift_eif
+
+  nde_eif <- tmle_fit_a_shift$eif - no_shift_eif
+  nie_eif <- tmle_fit_a_z_shift$eif - tmle_fit_a_shift$eif
+
+  var_nde <- var(nde_eif) /
+    length(nde_eif)
+  se_nde <- sqrt(var_nde)
+  ci_nde <- calc_CIs(nde_est, se_nde)
+  lower_ci_nde <- ci_nde[1]
+  upper_ci_nde <- ci_nde[2]
+  p_value_nde <- 2 * stats::pnorm(abs(nde_est / se_nde), lower.tail = F)
+
+  var_nie <- var(nie_eif) /
+    length(nie_eif)
+  se_nie <- sqrt(var_nie)
+  ci_nie <- calc_CIs(nie_est, se_nie)
+  lower_ci_nie <- ci_nie[1]
+  upper_ci_nie <- ci_nie[2]
+  p_value_nie <- 2 * stats::pnorm(abs(nie_est / se_nie), lower.tail = F)
+
+  n <- length(nie_eif)
+
+  nde_results <- data.table::data.table(
+    "NDE", nde_est, var_nde, se_nde,
+    lower_ci_nde, upper_ci_nde, p_value_nde, fold_k,
+    "Mediation", n
+  )
+
+  nie_results <- data.table::data.table(
+    "NIE", nie_est, var_nie, se_nie,
+    lower_ci_nie, upper_ci_nie, p_value_nie, fold_k,
+    "Mediation", n
+  )
+
+  names(nde_results) <- c(
+    "Parameter", "Estimate", "Variance", "SE", "Lower CI",
+    "Upper CI", "P-value", "Fold", "Type", "N"
+  )
+
+
+  names(nie_results) <- c(
+    "Parameter", "Estimate", "Variance", "SE", "Lower CI",
+    "Upper CI", "P-value", "Fold", "Type", "N"
+  )
+
+  nde_results$Delta <- delta
+  nie_results$Delta <- delta
+
+  mediation_results_table <- rbind(nde_results, nie_results)
+
+  return(mediation_results_table)
 }

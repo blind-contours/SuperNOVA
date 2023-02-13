@@ -8,7 +8,7 @@ est_hn(gn_exp)
 }
 \arguments{
 \item{gn_exp}{An estimate of the exposure density (a generalized propensity
-score) using the output provided by \code{\link{est_g_exp}}.}
+score) using the output provided by g estimators.}
 }
 \value{
 A \code{data.table} with two columns, containing estimates of the

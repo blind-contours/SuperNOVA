@@ -6,6 +6,17 @@
 \usage{
 extract_vars_from_basis(common_variables, i, a_names, w_names, z_names)
 }
+\arguments{
+\item{common_variables}{Variable sets found in the data adaptive procedure}
+
+\item{i}{iteration of search}
+
+\item{a_names}{Names of the exposures}
+
+\item{w_names}{Names of the covariates}
+
+\item{z_names}{Mediator names}
+}
 \description{
 This simple function creates a list of target variables
 that were used in the data adpative procedure.

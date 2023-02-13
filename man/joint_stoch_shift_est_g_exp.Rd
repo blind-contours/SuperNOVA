@@ -5,9 +5,24 @@
 \title{Estimate the Exposure Mechanism via Generalized Propensity Score for Two
 Exposure Variable}
 \usage{
-joint_stoch_shift_est_g_exp(exposures, deltas, pi_learner, covars, av, at)
+joint_stoch_shift_est_g_exp(
+  exposures,
+  deltas,
+  pi_learner,
+  covars,
+  av,
+  at,
+  adaptive_delta,
+  hn_trunc_thresh
+)
 }
 \arguments{
+\item{exposures}{A \code{vector} of characters labeling the exposure
+variables.}
+
+\item{deltas}{A \code{numeric} value identifying a shift in the observed
+value of the exposure under which observations are to be evaluated.}
+
 \item{pi_learner}{Object containing a set of instantiated learners
 from \pkg{sl3}, to be used in fitting an ensemble model.}
 
@@ -17,11 +32,11 @@ from \pkg{sl3}, to be used in fitting an ensemble model.}
 
 \item{at}{A \code{dataframe} of training data specific to the fold}
 
-\item{exposure}{A \code{vector} of characters labeling the exposure
-variables.}
+\item{adaptive_delta}{Whether to adaptively change the delta based on positivity
+determined from the clever covariate being below the hn_trunc_thresh level}
 
-\item{delta}{A \code{numeric} value identifying a shift in the observed
-value of the exposure under which observations are to be evaluated.}
+\item{hn_trunc_thresh}{Truncation level of the clever covariate used in the
+adaptive delta method}
 }
 \value{
 A \code{data.table} with four columns, containing estimates of the

@@ -12,7 +12,8 @@ indiv_stoch_shift_est_g_exp(
   covars,
   av,
   at,
-  meta_learner = FALSE
+  adaptive_delta,
+  hn_trunc_thresh
 )
 }
 \arguments{
@@ -29,6 +30,13 @@ from \pkg{sl3}, to be used in fitting an ensemble model.}
 \item{av}{A \code{dataframe} of validation data specific to the fold}
 
 \item{at}{A \code{dataframe} of training data specific to the fold}
+
+\item{adaptive_delta}{Whether or not to adaptively adjust delta based on
+positivity (estimated from the clever covariate) meeting the hn_trunc_thresh
+level}
+
+\item{hn_trunc_thresh}{Level of the clever covariate in the adaptive delta
+procedure}
 }
 \value{
 A \code{data.table} with four columns, containing estimates of the

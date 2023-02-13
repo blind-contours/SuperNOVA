@@ -6,14 +6,17 @@
 #'  shift (at A + delta).
 #'
 #' @param exposure A \code{character} vector of exposures to be shifted.
+#' @param mediator The mediator variable
 #' @param covars A \code{character} vector covariates to adjust for.
+#' @param at The training data
 #' @param delta A \code{numeric} indicating the magnitude of the shift to be
 #'  computed for the exposure \code{A}. This is passed to the internal
 #'  \code{\link{shift_additive}} and is currently limited to additive shifts.
 #' @param mu_learner Object containing a set of instantiated learners from the
 #'  \pkg{sl3}, to be used in fitting an ensemble model.
-##' @param av A \code{dataframe} of validation data specific to the fold
-#'  @param at A \code{dataframe} of training data specific to the fold
+#' @param av A \code{dataframe} of validation data specific to the fold
+#' @param at A \code{dataframe} of training data specific to the fold
+#' @param zn_estim Density estimates of the mediator under various shifts
 #'
 #' @importFrom stats glm as.formula predict
 #' @importFrom data.table as.data.table setnames copy set
@@ -104,7 +107,6 @@ est_Q_w_shifted_mediation <- function(exposure,
     j = mediator,
     value = zn_estim$upupshift
   )
-
 
   # Outcome mechanism
   sl <- Lrnr_sl$new(

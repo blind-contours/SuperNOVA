@@ -1,15 +1,11 @@
-#' Title
+#' Make Default Density Estimators
 #'
-#' @param n_obs
-#' @param mu
-#' @param sigma_mod
 #'
-#' @return
+#' @return The density learner used in the g and z density estimation procedure
 #' @export
 #' @importFrom MASS mvrnorm
 #' @importFrom bindata rmvbin
 
-#' @examples
 make_density_superlearner <- function() {
   make_metalearner <- function() {
     metalearner <- sl3::make_learner(

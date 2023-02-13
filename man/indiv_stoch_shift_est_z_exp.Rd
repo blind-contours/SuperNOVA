@@ -12,8 +12,7 @@ indiv_stoch_shift_est_z_exp(
   pi_learner,
   covars,
   av,
-  at,
-  meta_learner = FALSE
+  at
 )
 }
 \arguments{

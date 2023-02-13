@@ -34,8 +34,7 @@ indiv_stoch_shift_est_z_exp <- function(exposure,
                                         pi_learner,
                                         covars,
                                         av,
-                                        at,
-                                        meta_learner = FALSE) {
+                                        at) {
   future::plan(future::sequential, gc = TRUE)
 
   # need a data set with the exposure stochastically shifted DOWNWARDS A-delta
@@ -148,17 +147,7 @@ indiv_stoch_shift_est_z_exp <- function(exposure,
     covariates = covars
   )
 
-  if (meta_learner == TRUE) {
-    sl <- sl3::Lrnr_sl$new(
-      learners = pi_learner,
-      metalearner = sl3::Lrnr_nnls$new()
-    )
-
-    sl_fit <- suppressWarnings(sl$train(sl_task))
-  } else {
-    sl_fit <- pi_learner$train(sl_task)
-  }
-
+  sl_fit <- pi_learner$train(sl_task)
 
   # at predictions -----------
   pred_z_exp_noshift_at <- sl_fit$predict(sl_task_noshift_at)

@@ -8,8 +8,7 @@ Authors@R:
            email = "first.last@example.com",
            comment = c(ORCID = "YOUR-ORCID-ID"))
 Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
@@ -19,29 +18,26 @@ Imports:
     bindata,
     cvTools,
     data.table,
-    doParallel,
+    dplyr,
     foreach,
     future,
     ggplot2,
-    glmtree,
-    hal9001,
-    kableExtra,
+    haldensify,
     magrittr,
     MASS,
-    parallel,
-    partykit,
-    R6,
     Rdpack,
     rlang,
-    rpart,
-    scales,
     sl3,
     stringr,
-    SuperLearner
+    partykit,
+    furrr,
+    purrr,
+    polspline
 Suggests: 
     rmarkdown,
     knitr,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    kableExtra
 VignetteBuilder: knitr
 Depends: 
     R (>= 2.10)

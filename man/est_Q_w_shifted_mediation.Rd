@@ -18,6 +18,8 @@ est_Q_w_shifted_mediation(
 \arguments{
 \item{exposure}{A \code{character} vector of exposures to be shifted.}
 
+\item{mediator}{The mediator variable}
+
 \item{delta}{A \code{numeric} indicating the magnitude of the shift to be
 computed for the exposure \code{A}. This is passed to the internal
 \code{\link{shift_additive}} and is currently limited to additive shifts.}
@@ -27,8 +29,11 @@ computed for the exposure \code{A}. This is passed to the internal
 
 \item{covars}{A \code{character} vector covariates to adjust for.}
 
-\item{av}{A \code{dataframe} of validation data specific to the fold
-@param at A \code{dataframe} of training data specific to the fold}
+\item{av}{A \code{dataframe} of validation data specific to the fold}
+
+\item{at}{A \code{dataframe} of training data specific to the fold}
+
+\item{zn_estim}{Density estimates of the mediator under various shifts}
 }
 \value{
 A \code{data.table} with two columns, containing estimates of the

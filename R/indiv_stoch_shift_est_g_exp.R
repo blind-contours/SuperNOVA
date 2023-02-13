@@ -14,6 +14,11 @@
 #'  from \pkg{sl3}, to be used in fitting an ensemble model.
 #' @param av A \code{dataframe} of validation data specific to the fold
 #' @param at A \code{dataframe} of training data specific to the fold
+#' @param adaptive_delta Whether or not to adaptively adjust delta based on
+#' positivity (estimated from the clever covariate) meeting the hn_trunc_thresh
+#' level
+#' @param hn_trunc_thresh Level of the clever covariate in the adaptive delta
+#' procedure
 #'
 #' @importFrom data.table as.data.table setnames set copy
 #' @importFrom stats predict
@@ -33,9 +38,8 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
                                         covars,
                                         av,
                                         at,
-                                        meta_learner = FALSE,
-                                        alpha,
-                                        adaptive_delta) {
+                                        adaptive_delta,
+                                        hn_trunc_thresh) {
   future::plan(future::sequential, gc = TRUE)
 
   # need a data set with the exposure stochastically shifted DOWNWARDS A-delta
@@ -148,17 +152,7 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
     covariates = covars
   )
 
-  if (meta_learner == TRUE) {
-    sl <- sl3::Lrnr_sl$new(
-      learners = pi_learner,
-      metalearner = sl3::Lrnr_nnls$new()
-    )
-
-    sl_fit <- suppressWarnings(sl$train(sl_task))
-  } else {
-    sl_fit <- pi_learner$train(sl_task)
-  }
-
+  sl_fit <- pi_learner$train(sl_task)
 
   # at predictions -----------
   pred_g_exp_noshift_at <- sl_fit$predict(sl_task_noshift_at)
@@ -198,12 +192,15 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
   delta_reduced <- delta
 
   if (adaptive_delta == TRUE) {
-    ks_test <- ks.test(Hn_at$noshift, Hn_at$shift)
-    p_val <- ks_test$p.value
-    pos_violation <- TRUE
+    max_hn <- max(Hn_at$shift)
+    if (max_hn > hn_trunc_thresh) {
+      pos_violation <- TRUE
+    } else {
+      pos_violation <- FALSE
+    }
 
     while (pos_violation == TRUE) {
-      if (p_val <= alpha) {
+      if (max_hn > hn_trunc_thresh) {
         delta_reduced <- delta_reduced - (0.1 * delta_reduced)
         # need a data set with the exposure stochastically shifted DOWNWARDS A-delta
         av_downshifted <- data.table::copy(av)
@@ -358,8 +355,7 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
         data.table::setnames(at_out, c("downshift", "noshift", "upshift", "upupshift"))
 
         Hn_at <- est_hn(gn_exp = at_out)
-        ks_test <- ks.test(Hn_at$noshift, Hn_at$shift)
-        p_val <- ks_test$p.value
+        max_hn <- max(Hn_at$shift)
         Hn_av <- est_hn(gn_exp = av_out)
       } else {
         pos_violation <- FALSE

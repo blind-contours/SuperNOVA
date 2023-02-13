@@ -3,7 +3,7 @@
 #' @details Bound values in the unit interval to machine precision in order to
 #'  avoid numerical instability issues in downstream computation.
 #'
-#' @param vals \code{numeric} vector of values in the interval [0, 1] to be
+#' @param vals \code{numeric} vector of values between 0 and 1 to be
 #'  bounded within arbitrary machine precision. The most common use of this
 #'  functionality is to avoid indeterminate or non-finite values after the
 #'  application \code{stats::qlogis}.
@@ -53,10 +53,10 @@ bound_propensity <- function(vals) {
 #'  backtransformation.
 #'
 #' @param vals A \code{numeric} vector corresponding to the observed values of
-#'  the variable of interest, to be re-scaled to the unit interval [0,1].
+#'  the variable of interest, to be re-scaled to between 0 and 1.
 #'
 #' @return A \code{numeric} vector of the same length as \code{vals}, where the
-#'  values are re-scaled to lie in unit interval [0, 1].
+#'  values are re-scaled to lie between 0 and 1.
 #' @export
 scale_to_unit <- function(vals) {
   # compute re-scaled value in interval [0,1]

@@ -8,11 +8,11 @@ scale_to_unit(vals)
 }
 \arguments{
 \item{vals}{A \code{numeric} vector corresponding to the observed values of
-the variable of interest, to be re-scaled to the unit interval \link{0,1}.}
+the variable of interest, to be re-scaled to between 0 and 1.}
 }
 \value{
 A \code{numeric} vector of the same length as \code{vals}, where the
-values are re-scaled to lie in unit interval \link{0, 1}.
+values are re-scaled to lie between 0 and 1.
 }
 \description{
 Transform values by scaling to the unit interval

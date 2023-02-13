@@ -6,6 +6,11 @@
 \usage{
 calc_pvals(psi, variance)
 }
+\arguments{
+\item{psi}{The estimated target parameter}
+
+\item{variance}{The variance of that parameter}
+}
 \description{
 Calculates the p-value using the standard formula
 }

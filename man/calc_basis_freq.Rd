@@ -6,6 +6,12 @@
 \usage{
 calc_basis_freq(fold_basis_results, n_folds)
 }
+\arguments{
+\item{fold_basis_results}{List of lists of variable sets found in the basis
+function data-adaptive parameter section}
+
+\item{n_folds}{Number of folds used}
+}
 \description{
 Gives information on which variable sets are used in the
 basis function in the data-adaptive estimation section

@@ -10,8 +10,9 @@ simulate_mediation_data(n_obs = 1e+05, delta = 1)
 \item{n_obs}{Number of observations}
 
 \item{delta}{Delta for M1 Exposure}
-
-\item{mu}{Vector of means for exposures}
+}
+\value{
+A data frame of simulated mediation data
 }
 \description{
 DGP for testing SuperNOVA with mediation

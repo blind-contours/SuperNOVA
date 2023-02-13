@@ -20,28 +20,21 @@ knitr::opts_chunk$set(
 
 ## Motivation 
 
-In many environmental epidemiology studies the analyst is interested in the joint impact of a mixed exposure. That is, rather than a single exposure $A$, $A$ is a vector of exposures of which the most important individual variables and variable sets are unknown. For example, in the analysis of a mixture of metals or air pollutants it is not known a priori what variable(s) contribute to an outcome $Y$ of interest after controlling for baseline covariates $W$ and/or what interactions/effect modifications these exposures may have. Therefore, it is necessary to identify: 
+The motivation behind the package SuperNOVA is to address the limitations of traditional statistical methods in environmental epidemiology studies. Analysts are often interested in understanding the joint impact of a mixed exposure, i.e. a vector of exposures, but the most important variables and variable sets remain unknown. Traditional methods make overly simplistic assumptions, such as linear and additive relationships, and the resulting statistical quantities may not be directly applicable to public policy decisions.
 
-* Individual variables in a mixture that have explanatory power on an outcome
-* A baseline covariate that modifies the impact of a mixture variable or set of
-mixture variables
-* Sets of mixture variables that have synergistic relationships.
+To overcome these limitations, SuperNOVA uses data-adaptive machine learning methods to identify the variables and variable sets that have the most explanatory power on an outcome of interest. The package builds a discrete Super Learner, which is then analyzed using ANOVA style analysis to determine the variables that contribute most to the model fit through basis functions. The target parameter, which may be a single shift, effect modification, or interaction, is then applied to the data-adaptively determined variable sets.
+
+In this way, SuperNOVA allows analysts to explore modified treatment policies and ask causal questions, such as "If exposure to collections of PFAS chemicals increases, what is the change in cholesterol, immune function, or cancer?" By providing more nuanced and data-driven insights, SuperNOVA aims to inform public policy decisions and improve our understanding of the impact of mixed exposures on health outcomes.
 
 ### Data-Adaptive Machine Learning
 
-To avoid misspecified model assumptions, it is necessary to do this automatic variable/variable set identification procedure using data adaptive machine learning methods. In addition to using a prespecified non-parametric function to identify these individual mixture, effect modifier, and interacting variables, it is necessary to establish a prespecified target parameter that is applied to variable sets when identified. Of course, both procedures cannot be done on the full data without resulting in
-over-fitting the target parameter, therefore it is necessary to use cross-validation procedures where given a training set of the data is used to:
+The package SuperNOVA uses a data-adaptive approach to identify important variables and variable sets in mixed exposure studies. To avoid over-fitting and incorrect model assumptions, the package employs cross-validation procedures. In each fold, the training data is used to:
 
-* Identify variable sets of interest using flexible machine learning
-* Using these variables fit estimators for the relevant nuisance parameters for 
-our final target parameter of interest
-* Get estimates of our nuisance parameters and final target parameter of interest using the held-out validation data
-
-This procedure is done in each fold of the CV procedure. Therefore, an estimate for each fold specific validation data is given. In order to optimize the optimum bias-variance trade-off for our causal parameter of interest we use targeted minimum loss based estimation (TMLE). 
-
-### Method Overview
-
-This vignette provides explanation for the package `SuperNOVA` which first builds a discrete Super Learner with a library of algorithms that are basis function selectors Using the best estimator from this algorithm (algorithm with the lowers cross-validated MSE) do ANOVA style analysis on the appropriate set of basis functions to determine which variable(s) contribute most to model fit through the basis functions. Depending on which sets of variables are data-adaptively determined, apply a target parameter of interest to these variable sets. The target parameters are explained in more details below.
+1. Identify the variable sets of interest using flexible machine learning algorithms.
+2. Fit estimators for the relevant nuisance parameters and the final target parameter of interest using the identified variable sets.
+3. Obtain estimates of the nuisance parameters and the final target parameter of interest using the held-out validation data.
+4. The process is repeated in each fold to provide an estimate specific to each validation data. To optimize the balance between bias and variance, SuperNOVA uses targeted minimum loss based estimation (TMLE).
+5. Estimates across the folds are then averaged and a pooled fluctuation step is performed to estimate the efficient influence funciton and derive pooled variance estimates.
 
 
 ## Data and Notation
@@ -297,10 +290,7 @@ The variance of the combined effect across the folds is defined as the reciproca
 Firts, let's load the packages we'll use and set a seed for simulation:
 
 ```{r setup, message=FALSE, warning=FALSE}
-library(devtools)
 library(data.table)
-load_all("~/sl3")
-# library(SuperLearner)
 library(kableExtra)
 library(SuperNOVA)
 
@@ -326,16 +316,21 @@ y <- NIEHS_data_1$Y
 
 
 ```{r run SuperNOVA NIEHS data, eval = TRUE}
+deltas <- list(
+  "X1" = 1, "X2" = 1, "X3" = 1,
+  "X4" = 1, "X5" = 1, "X6" = 1, "X7" = 1
+)
+
 ptm <- proc.time()
 
 NIEH_results <- SuperNOVA(
   w = w,
   a = a,
   y = y,
-  delta = 1,
+  deltas = deltas,
   estimator = "tmle",
   fluctuation = "standard",
-  n_folds = 5,
+  n_folds = 2,
   family = "continuous",
   quantile_thresh = 0,
   verbose = TRUE,
@@ -357,15 +352,15 @@ effect given the data dictionary provided:
 
 ```{r individual results}
 indiv_shift_results$X1 %>%
-  kbl(caption = "Effect Modification Results") %>%
+  kableExtra::kbl(caption = "Effect Modification Results") %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
 
 Now let's look for effect modification: 
 ```{r joint results}
 em_results$X7Z %>%
-  kbl(caption = "Effect Modification Results") %>%
-  kable_classic(full_width = F, html_font = "Cambria")
+  kableExtra::kbl(caption = "Effect Modification Results") %>%
+  kableExtra::kable_classic(full_width = F, html_font = "Cambria")
 ```
 
 This shows there are differential effects on the impact of shifting $X7$ between
@@ -373,8 +368,8 @@ strata of the baseline covariate Z.
 
 ```{r interaction results}
 joint_shift_results$X1X5 %>%
-  kbl(caption = "Interaction Results") %>%
-  kable_classic(full_width = F, html_font = "Cambria")
+  kableExtra::kbl(caption = "Interaction Results") %>%
+  kableExtra::kable_classic(full_width = F, html_font = "Cambria")
 ```
 
 Here we see in three of the folds an interaction effect was found for $X1$ and

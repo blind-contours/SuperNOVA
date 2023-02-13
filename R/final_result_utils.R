@@ -2,6 +2,9 @@
 #' @description Simply subtract the psi estimates of a shift compared to no
 #' shift. Use the delta method to do the same thing for the eif to derive
 #' variance estimates for this new parameter.
+#' @param tmle_fit TMLE results for the individual shift
+#' @param exposure The exposure identified
+#' @param fold_k Fold exposure is being shifted in
 #' @export
 calc_final_ind_shift_param <- function(tmle_fit, exposure, fold_k) {
   condition <- exposure
@@ -34,7 +37,17 @@ calc_final_ind_shift_param <- function(tmle_fit, exposure, fold_k) {
 #' @title Calculates the Effect Modification Shift Parameter
 #' @description Use a decision tree estimator to regress the eif of an exposure
 #' on to a covariate - both of these have been data adaptively determined.
+#' @param tmle_fit_av TMLE results for the validation fold
+#' @param tmle_fit_at TMLE results for the training fold
+#' @param exposure The exposure identified
+#' @param at Training data
+#' @param av Validation data
+#' @param effect_m_name The effect modifier
+#' @param fold_k The fold the effect modification was found
+#' @param em_learner The Super Learner of decision trees
 #' @importFrom partykit glmtree
+#' @importFrom stats median
+
 #' @export
 
 calc_final_effect_mod_param <- function(tmle_fit_av,
@@ -194,6 +207,11 @@ calc_final_effect_mod_param <- function(tmle_fit_av,
 
 #' @title Calculates the Joint Shift Parameter
 #' @description Estimates the shift parameter for a joint shift
+#' @param joint_shift_fold_results Results of the joint shift
+#' @param exposures Exposures shifted
+#' @param fold_k Fold the joint shift is identified
+#' @param deltas_updated The new delta, could be updated if Hn has positivity
+#' violations
 #' @export
 
 calc_final_joint_shift_param <- function(joint_shift_fold_results,
@@ -239,6 +257,15 @@ calc_final_joint_shift_param <- function(joint_shift_fold_results,
 #' @title Calculates the Mediation Shift Parameters
 #' @description Estimates the shift parameter for a natural direct and indirect
 #' effect
+#' @param tmle_fit_a_shift TMLE results for a shift in A alone
+#' @param tmle_fit_a_z_shift TMLE results for a shift in A and Z
+#' @param exposure The exposure found
+#' @param mediator The mediator found
+#' @param fold_k Fold the exposure and mediator were found
+#' @param y Outcome
+#' @param delta The shift amount
+
+
 #' @export
 
 calc_mediation_param <- function(tmle_fit_a_shift,

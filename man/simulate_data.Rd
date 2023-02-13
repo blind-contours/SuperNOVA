@@ -14,15 +14,15 @@ simulate_data(
 \arguments{
 \item{n_obs}{Number of observations}
 
+\item{shift_var_index}{for the exposure vector that indicates which
+exposure to shift}
+
 \item{sigma_mod}{Sigma matrix of exposures}
 
-\item{mu}{Vector of means for exposures}
-
-\item{effect_mod_binary}{TRUE/FALSE Whether the effect modifier is binary}
-
-\item{delta_1}{Delta for M1 Exposure}
-
-\item{delta_2}{Delta for M3 Exposure}
+\item{delta}{Amount to shift exposure by}
+}
+\value{
+A dataframe of simulated data
 }
 \description{
 DGP for testing SuperNOVA without mediation

@@ -24,19 +24,23 @@ fit_basis_estimators(
 
 \item{outcome}{Variable name for the outcome}
 
+\item{family}{Family of outcome variable}
+
+\item{quantile_thresh}{Quantile level to set the f-statistic in determining
+basis functions for estimation}
+
 \item{zeta_learner}{Stack of algorithms made in SL 3 used in ensemble machine
 learning to fit Y|A,W}
 
 \item{fold}{Current fold in the cross-validation}
 
 \item{seed}{Seed number for consistent results}
-
-\item{max_iter}{Max number of iterations of iterative backfitting algorithm}
-
-\item{verbose}{Run in verbose setting}
 }
 \value{
-Rules object. TODO: add more detail here.
+A list of results from fitting the best b-spline model to the data
+this list includes the selected learner model, the name of the learner,
+the anova fit on the model matrix of the basis functions, the basis used,
+and the residual metrics
 }
 \description{
 Fit the zeta learner, a highly flexible estimator using splines

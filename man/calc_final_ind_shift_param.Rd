@@ -6,6 +6,13 @@
 \usage{
 calc_final_ind_shift_param(tmle_fit, exposure, fold_k)
 }
+\arguments{
+\item{tmle_fit}{TMLE results for the individual shift}
+
+\item{exposure}{The exposure identified}
+
+\item{fold_k}{Fold exposure is being shifted in}
+}
 \description{
 Simply subtract the psi estimates of a shift compared to no
 shift. Use the delta method to do the same thing for the eif to derive

@@ -2,13 +2,13 @@
 % Please edit documentation in R/utils_learners.R
 \name{make_density_superlearner}
 \alias{make_density_superlearner}
-\title{Title}
+\title{Make Default Density Estimators}
 \usage{
 make_density_superlearner()
 }
-\arguments{
-\item{sigma_mod}{}
+\value{
+The density learner used in the g and z density estimation procedure
 }
 \description{
-Title
+Make Default Density Estimators
 }

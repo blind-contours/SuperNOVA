@@ -15,6 +15,23 @@ calc_final_effect_mod_param(
   em_learner
 )
 }
+\arguments{
+\item{tmle_fit_av}{TMLE results for the validation fold}
+
+\item{tmle_fit_at}{TMLE results for the training fold}
+
+\item{exposure}{The exposure identified}
+
+\item{at}{Training data}
+
+\item{av}{Validation data}
+
+\item{effect_m_name}{The effect modifier}
+
+\item{fold_k}{The fold the effect modification was found}
+
+\item{em_learner}{The Super Learner of decision trees}
+}
 \description{
 Use a decision tree estimator to regress the eif of an exposure
 on to a covariate - both of these have been data adaptively determined.

@@ -5,7 +5,7 @@
 #'  tilting models for targeted minimum loss estimation.
 #'
 #' @param gn_exp An estimate of the exposure density (a generalized propensity
-#'  score) using the output provided by \code{\link{est_g_exp}}.
+#'  score) using the output provided by g estimators.
 #'
 #' @importFrom data.table as.data.table setnames
 #'

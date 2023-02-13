@@ -20,8 +20,9 @@ computed for the exposure \code{A}. This is passed to the internal
 
 \item{covars}{A \code{character} vector covariates to adjust for.}
 
-\item{av}{A \code{dataframe} of validation data specific to the fold
-@param at A \code{dataframe} of training data specific to the fold}
+\item{av}{A \code{dataframe} of validation data specific to the fold}
+
+\item{at}{A \code{dataframe} of training data specific to the fold}
 }
 \value{
 A \code{data.table} with two columns, containing estimates of the

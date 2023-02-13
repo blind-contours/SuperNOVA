@@ -10,8 +10,24 @@ calc_mediation_param(
   exposure,
   mediator,
   fold_k,
-  y
+  y,
+  delta
 )
+}
+\arguments{
+\item{tmle_fit_a_shift}{TMLE results for a shift in A alone}
+
+\item{tmle_fit_a_z_shift}{TMLE results for a shift in A and Z}
+
+\item{exposure}{The exposure found}
+
+\item{mediator}{The mediator found}
+
+\item{fold_k}{Fold the exposure and mediator were found}
+
+\item{y}{Outcome}
+
+\item{delta}{The shift amount}
 }
 \description{
 Estimates the shift parameter for a natural direct and indirect

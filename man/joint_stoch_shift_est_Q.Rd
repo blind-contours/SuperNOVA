@@ -4,12 +4,12 @@
 \alias{joint_stoch_shift_est_Q}
 \title{Estimate the Outcome Mechanism}
 \usage{
-joint_stoch_shift_est_Q(exposures, delta, mu_learner, covars, av, at, y_name)
+joint_stoch_shift_est_Q(exposures, deltas, mu_learner, covars, av, at)
 }
 \arguments{
 \item{exposures}{A \code{character} vector of exposures to be shifted.}
 
-\item{delta}{A \code{numeric} indicating the magnitude of the shift to be
+\item{deltas}{A \code{numeric} indicating the magnitude of the shift to be
 computed for the exposure \code{A}. This is passed to the internal
 \code{\link{shift_additive}} and is currently limited to additive shifts.}
 
@@ -18,8 +18,9 @@ computed for the exposure \code{A}. This is passed to the internal
 
 \item{covars}{A \code{character} vector covariates to adjust for.}
 
-\item{av}{A \code{dataframe} of validation data specific to the fold
-@param at A \code{dataframe} of training data specific to the fold}
+\item{av}{A \code{dataframe} of validation data specific to the fold}
+
+\item{at}{A \code{dataframe} of training data specific to the fold}
 }
 \value{
 A \code{data.table} with two columns, containing estimates of the

@@ -1,0 +1,248 @@
+@article{Bobb2014,
+abstract = {Because humans are invariably exposed to complex chemical mixtures, estimating the health effects of multi-pollutant exposures is of critical concern in environmental epidemiology, and to regulatory agencies such as the U.S. Environmental Protection Agency. However, most health effects studies focus on single agents or consider simple two-way interaction models, in part because we lack the statistical methodology to more realistically capture the complexity of mixed exposures. We introduce Bayesian kernel machine regression (BKMR) as a new approach to study mixtures, in which the health outcome is regressed on a flexible function of the mixture (e.g. air pollution or toxic waste) components that is specified using a kernel function. In high-dimensional settings, a novel hierarchical variable selection approach is incorporated to identify important mixture components and account for the correlated structure of the mixture. Simulation studies demonstrate the success of BKMR in estimating the exposure-response function and in identifying the individual components of the mixture responsible for health effects. We demonstrate the features of the method through epidemiology and toxicology applications.},
+author = {Bobb, Jennifer F. and Valeri, Linda and {Claus Henn}, Birgit and Christiani, David C. and Wright, Robert O. and Mazumdar, Maitreyi and Godleski, John J. and Coull, Brent A.},
+doi = {10.1093/biostatistics/kxu058},
+file = {:Users/davidmccoy/Library/Application Support/Mendeley Desktop/Downloaded/Bobb et al. - 2014 - Bayesian kernel machine regression for estimating the health effects of multi-pollutant mixtures.pdf:pdf},
+issn = {14684357},
+journal = {Biostatistics},
+keywords = {Air pollution,Bayesian variable selection,Environmental health,Gaussian process regression,Metal mixtures.},
+number = {3},
+pages = {493--508},
+pmid = {25532525},
+title = {{Bayesian kernel machine regression for estimating the health effects of multi-pollutant mixtures}},
+volume = {16},
+year = {2014}
+}
+@article{Keil2019,
+abstract = {Background: Exposure mixtures frequently occur in data across many domains, particularly in the fields of environmental and nutritional epidemiology. Various strategies have arisen to answer questions about exposure mixtures, including methods such as weighted quantile sum (WQS) regression that estimate a joint effect of the mixture components. Objectives: We demonstrate a new approach to estimating the joint effects of a mixture: quantile g-computation. This approach combines the inferential simplicity of WQS regression with the flexibility of g-computation, a method of causal effect estimation. We use simulations to examine whether quantile g-computation and WQS regression can accurately and precisely estimate effects of mixtures in a variety of common scenarios. Methods: We examine the bias, confidence interval coverage, and bias-variance tradeoff of quantile g-computation and WQS regression, and how these quantities are impacted by the presence of non-causal exposures, exposure correlation, unmeasured confounding, and non-linearity of exposure effects. Results: Quantile g-computation, unlike WQS regression allows inference on mixture effects that is unbiased with appropriate confidence interval coverage at sample sizes typically encountered in epidemiologic studies, and when the assumptions of WQS regression are not met. Further, WQS regression can magnify bias from unmeasured confounding that might occur if important components of the mixture are omitted from analysis. Discussion: Unlike inferential approaches that examine effects of individual exposures, while holding other exposures constant, methods like quantile g-computation that can estimate the effect of a mixture are essential for understanding effects of potential public health actions that act on exposure sources. Our approach may serve to help bridge gaps between epidemiologic analysis and interventions such as regulations on industrial emissions or mining processes, dietary changes, or consumer behavioral changes that act on multiple exposures simultaneously.},
+archivePrefix = {arXiv},
+arxivId = {1902.04200},
+author = {Keil, Alexander P. and Buckley, Jessie P. and O'Brien, Katie M. and Ferguson, Kelly K. and Zhao, Shanshan and White, Alexandra J.},
+doi = {10.1097/01.ee9.0000606120.58494.9d},
+eprint = {1902.04200},
+file = {:Users/davidmccoy/Library/Application Support/Mendeley Desktop/Downloaded/Keil et al. - 2019 - A quantile-based g-computation approach to addressing the effects of exposure mixtures.pdf:pdf},
+issn = {23318422},
+journal = {arXiv},
+number = {April},
+pages = {1--10},
+title = {{A quantile-based g-computation approach to addressing the effects of exposure mixtures}},
+volume = {128},
+year = {2019}
+}
+
+@article{Athey2016,
+abstract = {In this paper we propose methods for estimating heterogeneity in causal effects in experimental and observational studies and for conducting hypothesis tests about the magnitude of differences in treatment effects across subsets of the population. We provide a data-driven approach to partition the data into subpopulations that differ in the magnitude of their treatment effects. The approach enables the construction of valid confidence intervals for treatment effects, even with many covariates relative to the sample size, and without "sparsity" assumptions. We propose an "honest" approach to estimation, whereby one sample is used to construct the partition and another to estimate treatment effects for each subpopulation. Our approach builds on regression tree methods, modified to optimize for goodness of fit in treatment effects and to account for honest estimation. Our model selection criterion anticipates that bias will be eliminated by honest estimation and also accounts for the effect of making additional splits on the variance of treatment effect estimates within each subpopulation. We address the challenge that the "ground truth" for a causal effect is not observed for any individual unit, so that standard approaches to cross-validation must be modified. Through a simulation study, we show that for our preferred method honest estimation results in nominal coverage for 90% confidence intervals, whereas coverage ranges between 74% and 84% for nonhonest approaches. Honest estimation requires estimating the model with a smaller sample size; the cost in terms of mean squared error of treatment effects for our preferred method ranges between 7-22%.},
+archivePrefix = {arXiv},
+arxivId = {1504.01132},
+author = {Athey, Susan and Imbens, Guido},
+doi = {10.1073/pnas.1510489113},
+eprint = {1504.01132},
+file = {:Users/davidmccoy/Downloads/pnas.1510489113.pdf:pdf},
+issn = {10916490},
+journal = {Proceedings of the National Academy of Sciences of the United States of America},
+keywords = {Causal inference,Cross-validation,Heterogeneous treatment effects,Potential outcomes,Supervised machine learning},
+number = {27},
+pages = {7353--7360},
+pmid = {27382149},
+title = {{Recursive partitioning for heterogeneous causal effects}},
+volume = {113},
+year = {2016}
+}
+
+@article{Hubbard2016,
+abstract = {Consider one observes n i.i.d. copies of a random variable with a probability distribution that is known to be an element of a particular statistical model. In order to define our statistical target we partition the sample in V equal size sub-samples, and use this partitioning to define V splits in an estimation sample (one of the V subsamples) and corresponding complementary parameter-generating sample. For each of the V parameter-generating samples, we apply an algorithm that maps the sample to a statistical target parameter. We define our sample-split data adaptive statistical target parameter as the average of these V-sample specific target parameters. We present an estimator (and corresponding central limit theorem) of this type of data adaptive target parameter. This general methodology for generating data adaptive target parameters is demonstrated with a number of practical examples that highlight new opportunities for statistical learning from data. This new framework provides a rigorous statistical methodology for both exploratory and confirmatory analysis within the same data. Given that more research is becoming "data-driven", the theory developed within this paper provides a new impetus for a greater involvement of statistical inference into problems that are being increasingly addressed by clever, yet ad hoc pattern finding methods. To suggest such potential, and to verify the predictions of the theory, extensive simulation studies, along with a data analysis based on adaptively determined intervention rules are shown and give insight into how to structure such an approach. The results show that the data adaptive target parameter approach provides a general framework and resulting methodology for data-driven science.},
+author = {Hubbard, Alan E. and Kherad-Pajouh, Sara and {Van Der Laan}, Mark J.},
+doi = {10.1515/ijb-2015-0013},
+file = {:Users/davidmccoy/Library/Application Support/Mendeley Desktop/Downloaded/Hubbard, Kherad-Pajouh, Van Der Laan - 2016 - Statistical Inference for Data Adaptive Target Parameters.pdf:pdf},
+issn = {15574679},
+journal = {International Journal of Biostatistics},
+keywords = {Asymptotic linearity,clustering,cross-validation,data mining,influence curve,loss-function,machine learning,risk,sample splitting,sub-group analysis,super-learner,targeted maximum likelihood estimation},
+number = {1},
+pages = {3--19},
+pmid = {27227715},
+title = {{Statistical inference for data adaptive target parameters}},
+volume = {12},
+year = {2016}
+}
+@article{Zheng2010,
+abstract = {We consider a targeted maximum likelihood estimator of a path-wise differen- tiable parameter of the data generating distribution in a semi-parametric model based on observing n independent and identically distributed observations. The targeted maximum likelihood estimator (TMLE) uses V-fold sample splitting for the initial estimator in order to make the TMLE maximally robust in its bias re- duction step. We prove a general theorem that states asymptotic efficiency (and thereby regularity) of the targeted maximum likelihood estimator when the initial estimator is consistent and a second order term converges to zero in probability at a rate faster than the square root of the sample size, but no other meaningful conditions are needed. In particular, the conditions of this theorem allow the full utilization of loss based super learning to obtain the initial estimator. In particular, the theorem proves that first order efficient and unbiased estima- tion is enhanced in an important way by using adaptive estimators such as an super learner, thereby formally dealing with the concern that adaptive estimation might make it harder to construct valid confidence intervals. On the contrary, the theorem teaches us that to achieve first order efficiency and regularity, it is crucial to estimate the relevant parts of the true data generating distribution as good as possible. The theorem is applied to prove asymptotic efficiency of the targeted maximum likelihood estimator of the additive causal effect of a binary treatment on an outcome in a randomized controlled trial and in an observational study. Excellent finite sample performance of this estimator has been demonstrated in past articles (e.g.van der Laan et al. (September, 2009), Gruber and van der Laan (2010), Stitelman and van der Laan (2010), Petersen et al. (2010).},
+author = {Zheng, Wenjing and van der Laan, MJ},
+file = {:Users/davidmccoy/Library/Application Support/Mendeley Desktop/Downloaded/Zheng, Laan - 2010 - Asymptotic theory for cross-validated targeted maximum likelihood estimation.pdf:pdf},
+journal = {U.C. Berkeley Division of Biostatistics Working Paper Series},
+keywords = {Asymptotic efficiency,asymptotic linearity,canonical gradient,cross-validation,empirical process theory,targeted maximum likelihood estimator},
+number = {273},
+title = {{Asymptotic theory for cross-validated targeted maximum likelihood estimation}},
+url = {http://biostats.bepress.com/ucbbiostat/paper273/},
+year = {2010}
+}
+
+@article{rose2011targeted2sd,
+  title={A targeted maximum likelihood estimator for two-stage designs},
+  author={Rose, Sherri and {van der Laan}, Mark J},
+  journal={The International Journal of Biostatistics},
+  volume={7},
+  number={1},
+  pages={1--21},
+  year={2011},
+  publisher={De Gruyter},
+  url = {https://doi.org/10.2202/1557-4679.1217},
+  doi = {10.2202/1557-4679.1217}
+}
+
+@article{diaz2012population,
+  title={Population intervention causal effects based on stochastic
+    interventions},
+  author={D{\'\i}az, Iv{\'a}n and {van der Laan}, Mark J},
+  journal={Biometrics},
+  volume={68},
+  number={2},
+  pages={541--549},
+  year={2012},
+  publisher={Wiley Online Library},
+  url = {https://doi.org/10.1111/j.1541-0420.2011.01685.x},
+  doi = {10.1111/j.1541-0420.2011.01685.x}
+}
+
+@article{haneuse2013estimation,
+  title={Estimation of the effect of interventions that modify the received
+    treatment},
+  author={Haneuse, Sebastian and Rotnitzky, Andrea},
+  journal={Statistics in medicine},
+  volume={32},
+  number={30},
+  pages={5260--5277},
+  year={2013},
+  publisher={Wiley Online Library},
+  url = {https://doi.org/10.1002/sim.5907},
+  doi = {10.1002/sim.5907}
+}
+
+@incollection{diaz2018stochastic,
+  title={Stochastic Treatment Regimes},
+  author={D{\'\i}az, Iv{\'a}n and {van der Laan}, Mark J},
+  booktitle={Targeted Learning in Data Science: Causal Inference for Complex
+    Longitudinal Studies},
+  pages={167--180},
+  year={2018},
+  publisher={Springer Science \& Business Media},
+  url = {https://doi.org/10.1007/978-3-319-65304-4_14},
+  doi = {10.1007/978-3-319-65304-4_14}
+}
+
+@book{vdl2011targeted,
+  title={Targeted learning: causal inference for observational and experimental
+         data},
+  author={{van der Laan}, Mark J and Rose, Sherri},
+  year={2011},
+  publisher={Springer Science \& Business Media},
+  url = {https://doi.org/10.1007/978-1-4419-9782-1},
+  doi = {10.1007/978-1-4419-9782-1}
+}
+
+@book{vdl2018targeted,
+  title={Targeted Learning in Data Science: Causal Inference for Complex
+    Longitudinal Studies},
+  author={{van der Laan}, Mark J and Rose, Sherri},
+  year={2018},
+  publisher={Springer Science \& Business Media},
+  url = {https://doi.org/10.1007/978-3-319-65304-4},
+  doi = {10.1007/978-3-319-65304-4}
+}
+
+@article{diaz2011super,
+  title={Super learner based conditional density estimation with application to
+    marginal structural models},
+  author={D{\'\i}az, Iv{\'a}n and {van der Laan}, Mark J},
+  journal={The International Journal of Biostatistics},
+  volume={7},
+  number={1},
+  pages={1--20},
+  year={2011},
+  publisher={De Gruyter},
+  url = {https://doi.org/10.2202/1557-4679.1356},
+  doi = {10.2202/1557-4679.1356}
+}
+
+@article{diaz2020causal,
+  title={Causal mediation analysis for stochastic interventions},
+  author={D{\'\i}az, Iv{\'a}n and Hejazi, Nima S},
+  year={2020},
+  url = {https://doi.org/10.1111/rssb.12362},
+  doi = {10.1111/rssb.12362},
+  journal={Journal of the Royal Statistical Society: Series B (Statistical
+    Methodology)},
+  volume = {82},
+  number = {3},
+  pages = {661-683},
+  publisher={Wiley Online Library}
+}
+
+@article{hejazi2020efficient,
+  title = {Efficient nonparametric inference on the effects of stochastic
+    interventions under two-phase sampling, with applications to vaccine
+    efficacy trials},
+  author = {Hejazi, Nima S and {van der Laan}, Mark J and Janes, Holly E and
+    Gilbert, Peter B and Benkeser, David C},
+  year={2020},
+  url = {https://doi.org/10.1111/biom.13375},
+  doi = {10.1111/biom.13375},
+  journal = {Biometrics},
+  volume={},
+  number={},
+  pages={},
+  publisher = {Wiley Online Library}
+}
+
+@article{hejazi2020hal9001,
+  title = {{hal9001}: Scalable highly adaptive lasso regression in {R}},
+  author = {Hejazi, Nima S and Coyle, Jeremy R and {van der Laan}, Mark J},
+  year  = {2020},
+  url = {https://doi.org/10.21105/joss.02526},
+  doi = {10.21105/joss.02526},
+  journal = {Journal of Open Source Software},
+  volume = {5},
+  number = {53},
+  pages = {2526},
+  publisher = {The Open Journal}
+}
+
+@manual{R,
+  title = {R: A language and environment for statistical computing},
+  author = {{R Core Team}},
+  organization = {R Foundation for Statistical Computing},
+  address = {Vienna, Austria},
+  year = {2020},
+  url = {https://www.R-project.org/}
+}
+
+@manual{coyle2020sl3,
+  title = {{sl3}: Modern super learning with pipelines},
+  author = {Coyle, Jeremy R and Hejazi, Nima S and Malenica, Ivana and
+    Sofrygin, Oleg},
+  year = {2020},
+  howpublished = {\url{https://github.com/tlverse/sl3}},
+  note = {{R} package version 1.3.7},
+  url = {https://doi.org/10.5281/zenodo.1342293},
+  doi = {10.5281/zenodo.1342293}
+}
+
+@manual{coyle2020hal9001,
+  title = {{hal9001}: The scalable highly adaptive lasso},
+  author = {Coyle, Jeremy R and Hejazi, Nima S and {van der Laan}, Mark J},
+  year  = {2019},
+  howpublished = {\url{https://CRAN.R-project.org/package=hal9001}},
+  note = {{R} package version 0.2.6},
+  url = {https://doi.org/10.5281/zenodo.3558313},
+  doi = {10.5281/zenodo.3558313}
+}
+
+@manual{hejazi2020haldensify,
+  title = {{haldensify}: Conditional density estimation with the highly
+    adaptive lasso},
+  author = {Hejazi, Nima S and Benkeser, David C and {van der Laan}, Mark J},
+  year  = {2020},
+  howpublished = {\url{https://CRAN.R-project.org/package=haldensify}},
+  note = {{R} package version 0.0.5},
+  url = {https://doi.org/10.5281/zenodo.3698329},
+  doi = {10.5281/zenodo.3698329}
+}

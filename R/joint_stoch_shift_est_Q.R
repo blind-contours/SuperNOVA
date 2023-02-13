@@ -7,13 +7,13 @@
 #'
 #' @param exposures A \code{character} vector of exposures to be shifted.
 #' @param covars A \code{character} vector covariates to adjust for.
-#' @param delta A \code{numeric} indicating the magnitude of the shift to be
+#' @param deltas A \code{numeric} indicating the magnitude of the shift to be
 #'  computed for the exposure \code{A}. This is passed to the internal
 #'  \code{\link{shift_additive}} and is currently limited to additive shifts.
 #' @param mu_learner Object containing a set of instantiated learners from the
 #'  \pkg{sl3}, to be used in fitting an ensemble model.
-##' @param av A \code{dataframe} of validation data specific to the fold
-#'  @param at A \code{dataframe} of training data specific to the fold
+#' @param av A \code{dataframe} of validation data specific to the fold
+#' @param at A \code{dataframe} of training data specific to the fold
 #'
 #' @importFrom stats glm as.formula predict
 #' @importFrom data.table as.data.table setnames copy set
@@ -29,8 +29,7 @@ joint_stoch_shift_est_Q <- function(exposures,
                                     mu_learner,
                                     covars,
                                     av,
-                                    at,
-                                    y_name) {
+                                    at) {
   future::plan(future::sequential, gc = TRUE)
 
   # scale the outcome for logit transform
@@ -59,7 +58,7 @@ joint_stoch_shift_est_Q <- function(exposures,
       a = subset(av, select = exposure), delta = delta
     ))
 
-    a # need a data set with the exposure stochastically shifted UPWARDS A+2delta
+    # need a data set with the exposure stochastically shifted UPWARDS A+2delta
     av_upupshifted <- data.table::copy(av)
     data.table::set(av_upupshifted, j = exposure, value = shift_additive(
       a = subset(av, select = exposure), delta = 2 * delta

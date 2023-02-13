@@ -7,12 +7,12 @@
 shift_additive(a, w = NULL, delta)
 }
 \arguments{
+\item{a}{A \code{numeric} vector of observed treatment values.}
+
+\item{w}{A \code{numeric} matrix of observed baseline covariate values.}
+
 \item{delta}{A \code{numeric} indicating the magnitude of the shift to be
 computed for the treatment \code{A}.}
-
-\item{A}{A \code{numeric} vector of observed treatment values.}
-
-\item{W}{A \code{numeric} matrix of observed baseline covariate values.}
 }
 \value{
 A \code{numeric} vector containing the shifted exposure values.

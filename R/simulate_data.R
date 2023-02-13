@@ -1,18 +1,16 @@
 #' DGP for testing SuperNOVA without mediation
 #'
 #' @param n_obs Number of observations
-#' @param mu Vector of means for exposures
 #' @param sigma_mod Sigma matrix of exposures
-#' @param effect_mod_binary TRUE/FALSE Whether the effect modifier is binary
-#' @param delta_1 Delta for M1 Exposure
-#' @param delta_2 Delta for M3 Exposure
+#' @param delta Amount to shift exposure by
+#' @param shift_var_index for the exposure vector that indicates which
+#' exposure to shift
 #'
-#' @return
+#' @return A dataframe of simulated data
 #' @export
 #' @importFrom MASS mvrnorm
 #' @importFrom bindata rmvbin
 
-#' @examples
 simulate_data <- function(n_obs = 100000,
                           shift_var_index = 1,
                           sigma_mod = matrix(
@@ -39,7 +37,6 @@ simulate_data <- function(n_obs = 100000,
     Sigma = sigma_mod
   )
 
-
   y_mean <- function(mixtures, covars) {
     0.1 * log(4 * pi * mixtures[, 1]) + 0.6 * plogis(2 * mixtures[, 3]) *
       covars[, 1] + 0.4 * (plogis(2 * mixtures[, 3]) * exp(mixtures[, 1]) / 100) + 0.1 *
@@ -49,7 +46,6 @@ simulate_data <- function(n_obs = 100000,
   y <- y_mean(mixtures, covars)
 
   mixtures[, shift_var_index] <- mixtures[, shift_var_index] + delta
-
   y_shifted <- y_mean(mixtures, covars)
 
   effect <- mean(

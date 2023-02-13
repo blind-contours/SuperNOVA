@@ -13,19 +13,23 @@
 #' @param at Training dataframe
 #' @param covars Covariates to be used as predictors in the Super Learner
 #' @param outcome Variable name for the outcome
+#' @param family Family of outcome variable
+#' @param quantile_thresh Quantile level to set the f-statistic in determining
+#' basis functions for estimation
 #' @param zeta_learner Stack of algorithms made in SL 3 used in ensemble machine
 #' learning to fit Y|A,W
 #' @param fold Current fold in the cross-validation
-#' @param max_iter Max number of iterations of iterative backfitting algorithm
-#' @param verbose Run in verbose setting
 #' @param seed Seed number for consistent results
 #' @import sl3
-#' @importFrom pre pre maxdepth_sampler
 #' @importFrom magrittr %>%
 #' @importFrom rlang .data
 #' @importFrom dplyr group_by filter top_n
-#' @return Rules object. TODO: add more detail here.
-#' @examples
+#' @importFrom stats lm anova model.matrix quantile
+#' @import polspline
+#' @return A list of results from fitting the best b-spline model to the data
+#' this list includes the selected learner model, the name of the learner,
+#' the anova fit on the model matrix of the basis functions, the basis used,
+#' and the residual metrics
 
 #' @export
 
@@ -64,11 +68,11 @@ fit_basis_estimators <- function(at,
     best_model_basis <- as.data.frame(model.matrix(
       selected_learner$fit_object
     ))
-    full_lm_mod <- lm(at[, get(outcome)] ~ .,
+    full_lm_mod <- stats::lm(at[, get(outcome)] ~ .,
       data = as.data.frame(best_model_basis)
     )
 
-    anova_fit <- anova(full_lm_mod)
+    anova_fit <- stats::anova(full_lm_mod)
 
     if (quantile_thresh != 0) {
       anova_fit <- subset(anova_fit, `F value` >
@@ -127,7 +131,7 @@ fit_basis_estimators <- function(at,
       data = as.data.frame(best_model_basis)
     )
 
-    anova_fit <- anova(polymars_model)
+    anova_fit <- stats::anova(polymars_model)
 
     if (quantile_thresh != 0) {
       anova_fit <- subset(anova_fit, `F value` > quantile(anova_fit$`F value`,

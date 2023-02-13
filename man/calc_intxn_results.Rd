@@ -6,6 +6,11 @@
 \usage{
 calc_intxn_results(results_table, joint_shift_fold_results)
 }
+\arguments{
+\item{results_table}{Table of interaction results}
+
+\item{joint_shift_fold_results}{Joint shift results}
+}
 \description{
 Using the output results for the eif use the delta method
 to simply subtract the two additive estimates from the joint shift. Do

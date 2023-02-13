@@ -3,3 +3,12 @@
 ^doc$
 ^Meta$
 ^README\.Rmd$
+^\.github$
+^paper$
+^_pkgdown\.yml$
+^pkgdown$
+^sandbox$
+^.lintr$
+^codecov\.yml$
+^LICENSE\.md$
+^contributing\.md$

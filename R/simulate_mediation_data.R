@@ -1,15 +1,14 @@
 #' DGP for testing SuperNOVA with mediation
 #'
 #' @param n_obs Number of observations
-#' @param mu Vector of means for exposures
 #' @param delta Delta for M1 Exposure
 #'
-#' @return
+#' @return A data frame of simulated mediation data
 #' @export
 #' @importFrom MASS mvrnorm
 #' @importFrom bindata rmvbin
+#' @importFrom stats rnorm rbinom
 
-#' @examples
 simulate_mediation_data <- function(n_obs = 100000,
                                     delta = 1) {
   # simulate some baseline covariates

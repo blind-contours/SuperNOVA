@@ -1,4 +1,3 @@
-context("additive treatment shifting mechanism works as expected")
 library(data.table)
 set.seed(73294)
 
@@ -40,7 +39,7 @@ gn_spec_fitted <- as.data.table(
   lapply(
     c(-delta_shift, 0, delta_shift, 2 * delta_shift),
     function(delta) {
-      SuperNOVA:::shift_additive(A = A, delta = delta)
+      SuperNOVA:::shift_additive(a = A, delta = delta)
     }
   )
 )

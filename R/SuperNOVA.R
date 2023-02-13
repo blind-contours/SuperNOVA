@@ -13,12 +13,16 @@
 #' @param a \code{matrix}, \code{data.frame}, or similar containing an
 #' individual or set of
 #'  exposures
-#' @param a \code{matrix}, \code{data.frame}, or similar containing an
+#' @param z \code{matrix}, \code{data.frame}, or similar containing an
 #' individual or set of mediators
 #' @param y \code{numeric} vector of the observed outcomes.
 #' @param deltas A \code{numeric} value indicating the shift in the exposures to
 #'  be used in defining the target parameter. This is defined with respect to
 #'  the scale of the exposures (A).
+#' @param var_sets If using SuperNOVA deterministically, this parameter takes
+#' in a list of the form var_sets <- c("A_1", "A_1-Z_2") etc. where the
+#' analyst passes in variable sets for exposures, exosure-mediator, or exposure-
+#' covariate.
 #' @param estimator The type of estimator to be fit, either \code{"tmle"} for
 #'  targeted maximum likelihood or \code{"onestep"} for a one-step estimator.
 #' @param fluctuation The method to be used in the submodel fluctuation step
@@ -37,6 +41,8 @@
 #' via \pkg{sl3}
 #' @param zeta_learner Learners used to fit Super Learner ensembles to the outcome
 #' model via \pkg{sl3}
+#' @param em_learner Super learner from \pkg{sl3} of decision trees used to
+#' apply to the EIF of the shift applied to an exposure using covariates W.
 #' @param n_folds Number of folds to use in cross-validation
 #' @param family Outcome type family
 #' @param quantile_thresh Threshold based on quantiles of the f-statistic used
@@ -45,6 +51,12 @@
 #' @param parallel TRUE/FALSE parallelize across cores
 #' @param seed \code{numeric} seed value to be passed to all functions
 #' @param hn_trunc_thresh Truncation level for the clever covariate
+#' @param parallel_type If parallel is TRUE, type of parallelization to use. Default
+#' is "multi_session", other values are multicore and sequential.
+#' @param num_cores Number of CPU cores to use in parallelization
+#' @param adaptive_delta If TRUE, this reduces the user specified delta until
+#' the Hn calculated for a shift does not have any observation that is greater
+#' than hn_trunc_thresh.
 #'
 #' @export
 #' @importFrom MASS mvrnorm
@@ -54,29 +66,15 @@
 #' @importFrom stats as.formula glm p.adjust plogis predict qlogis qnorm qunif rnorm runif
 #' @importFrom rlang :=
 #' @importFrom stringr str_count
+#' @import furrr
+#' @import purrr
 #' @importFrom data.table rbindlist
 #' @return S3 object of class \code{SuperNOVA} containing the results of the
 #'  procedure to compute a TML or one-step estimate of the counterfactual mean
 #'  under a modified treatment policy that shifts a continuous-valued exposure
 #'  by a scalar amount \code{delta}. These exposure are data-adaptively
 #'  identified using the CV-TMLE procedure.
-#' @examples
-#' seed <- 429153
-#' n_obs <- 300
-#' W <- replicate(2, rbinom(n_obs, 1, 0.5))
-#' A <- rnorm(n_obs, mean = 2 * W, sd = 1)
-#' Y <- rbinom(n_obs, 1, plogis(A + W + rnorm(n_obs, mean = 0, sd = 1)))
-
-#' example_results <- SuperNOVA(
-#'  w = W,
-#'  a = A,
-#'  z = Z,
-#'  y = Y,
-#'  delta = 0.5,
-#'  estimator = "tmle",
-#'  seed = seed,
-#'  n_folds = 2
-#' )
+#')
 
 SuperNOVA <- function(w,
                       a,
@@ -101,7 +99,6 @@ SuperNOVA <- function(w,
                       num_cores = 2,
                       seed = seed,
                       hn_trunc_thresh = 50,
-                      alpha = 0.0001,
                       adaptive_delta = FALSE) {
   # check arguments and set up some objects for programmatic convenience
   call <- match.call(expand.dots = TRUE)
@@ -278,8 +275,8 @@ SuperNOVA <- function(w,
             covars = w_names,
             av,
             at,
-            alpha = alpha,
-            adaptive_delta = adaptive_delta
+            adaptive_delta = adaptive_delta,
+            hn_trunc_thresh = hn_trunc_thresh
           )
 
           delta <- ind_gn_exp_estim$delta
@@ -296,15 +293,12 @@ SuperNOVA <- function(w,
           )
 
           Hn <- ind_gn_exp_estim$Hn_av
-          Hn_trunc <- as.data.frame(apply(Hn, 2, function(x) {
-            ifelse(x >= hn_trunc_thresh, hn_trunc_thresh, x)
-          }))
 
           tmle_fit <- tmle_exposhift(
             data_internal = av,
             delta = delta,
             Qn_scaled = ind_qn_estim$q_av,
-            Hn = Hn_trunc,
+            Hn = Hn,
             fluctuation = fluctuation,
             y = av$y
           )
@@ -324,7 +318,7 @@ SuperNOVA <- function(w,
           ]] <- list(
             "data" = av,
             "Qn_scaled" = ind_qn_estim$q_av,
-            "Hn" = Hn_trunc,
+            "Hn" = Hn,
             "k_fold_result" = indiv_shift_in_fold,
             "Delta" = delta
           )
@@ -352,8 +346,8 @@ SuperNOVA <- function(w,
             covars = covars,
             av = av,
             at = at,
-            alpha = alpha,
-            adaptive_delta = adaptive_delta
+            adaptive_delta = adaptive_delta,
+            hn_trunc_thresh = hn_trunc_thresh
           )
 
           delta <- gn_exp_estim$delta
@@ -370,20 +364,13 @@ SuperNOVA <- function(w,
           )
 
           Hn_av <- gn_exp_estim$Hn_av
-          Hn_av_trunc <- as.data.frame(apply(Hn_av, 2, function(x) {
-            ifelse(x >= hn_trunc_thresh, hn_trunc_thresh, x)
-          }))
-
           Hn_at <- gn_exp_estim$Hn_at
-          Hn_at_trunc <- as.data.frame(apply(Hn_at, 2, function(x) {
-            ifelse(x >= hn_trunc_thresh, hn_trunc_thresh, x)
-          }))
 
           tmle_fit_av <- tmle_exposhift(
             data_internal = av,
             delta = delta,
             Qn_scaled = qn_estim$q_av,
-            Hn = Hn_av_trunc,
+            Hn = Hn_av,
             fluctuation = fluctuation,
             y = av$y
           )
@@ -392,7 +379,7 @@ SuperNOVA <- function(w,
             data_internal = at,
             delta = delta,
             Qn_scaled = qn_estim$q_at,
-            Hn = Hn_at_trunc,
+            Hn = Hn_at,
             fluctuation = fluctuation,
             y = at$y
           )
@@ -417,8 +404,8 @@ SuperNOVA <- function(w,
             "at_data" = at,
             "Qn_scaled_av" = qn_estim$q_av,
             "Qn_scaled_at" = qn_estim$q_at,
-            "Hn_av" = Hn_av_trunc,
-            "Hn_at" = Hn_at_trunc,
+            "Hn_av" = Hn_av,
+            "Hn_at" = Hn_at,
             "k_fold_result" = effect_mod_in_fold,
             "delta" = delta
           )
@@ -444,9 +431,8 @@ SuperNOVA <- function(w,
             covars,
             av,
             at,
-            delta_adapt = TRUE,
-            alpha = alpha,
-            adaptive_delta = adaptive_delta
+            adaptive_delta = adaptive_delta,
+            hn_trunc_thresh = hn_trunc_thresh
           )
 
           joint_gn_exp_estims$gn_results[[3]] <- mapply(
@@ -476,9 +462,6 @@ SuperNOVA <- function(w,
 
           for (i in 1:length(joint_qn_estims)) {
             hn_estim <- joint_gn_exp_estims$Hn_results[[i]]
-            hn_estim_trunc <- as.data.frame(apply(hn_estim, 2, function(x) {
-              ifelse(x >= hn_trunc_thresh, hn_trunc_thresh, x)
-            }))
 
             qn_estim <- joint_qn_estims[[i]]
             delta <- deltas_updated[[i]]
@@ -487,13 +470,13 @@ SuperNOVA <- function(w,
               data_internal = av,
               delta = delta,
               Qn_scaled = qn_estim,
-              Hn = hn_estim_trunc,
+              Hn = hn_estim,
               fluctuation = fluctuation,
               y = av$y
             )
 
             intxn_results_list[[i]] <- tmle_fit
-            joint_hn_estims[[i]] <- hn_estim_trunc
+            joint_hn_estims[[i]] <- hn_estim
           }
 
           intxn_in_fold <- calc_final_joint_shift_param(
@@ -534,8 +517,8 @@ SuperNOVA <- function(w,
             covars = covars,
             av = av,
             at = at,
-            alpha = alpha,
-            adaptive_delta = adaptive_delta
+            adaptive_delta = adaptive_delta,
+            hn_trunc_thresh = hn_trunc_thresh
           )
 
           delta_updated <- gn_exp_estim$delta
@@ -554,13 +537,6 @@ SuperNOVA <- function(w,
 
           nde_gn_estim_av <- est_hn(gn_exp = gn_exp_estim$av)
           nie_gn_estim_av <- est_hn(gn_exp = gn_exp_estim$av * zn_exp_estim$av)
-
-          nde_gn_estim_av_trunc <- as.data.frame(apply(nde_gn_estim_av, 2, function(x) {
-            ifelse(x >= hn_trunc_thresh, hn_trunc_thresh, x)
-          }))
-          nie_gn_estim_av_trunc <- as.data.frame(apply(nie_gn_estim_av, 2, function(x) {
-            ifelse(x >= hn_trunc_thresh, hn_trunc_thresh, x)
-          }))
 
           covars <- c(a_names, w_names)
 
@@ -591,7 +567,7 @@ SuperNOVA <- function(w,
             data_internal = av,
             delta = delta_updated,
             Qn_scaled = qn_estim$a_shifted,
-            Hn = nde_gn_estim_av_trunc,
+            Hn = nde_gn_estim_av,
             fluctuation = fluctuation,
             y = av$y
           )
@@ -600,7 +576,7 @@ SuperNOVA <- function(w,
             data_internal = av,
             delta = delta_updated,
             Qn_scaled = qn_estim$a_z_shifted,
-            Hn = nie_gn_estim_av_trunc,
+            Hn = nie_gn_estim_av,
             fluctuation = fluctuation,
             y = av$y
           )
@@ -621,8 +597,8 @@ SuperNOVA <- function(w,
             "data" = av,
             "Qn_a_shift_scaled" = qn_estim$a_shifted,
             "Qn_a_z_shift_scaled" = qn_estim$a_z_shifted,
-            "Hn_a_shift" = nde_gn_estim_av_trunc,
-            "Hn_az_shift" = nie_gn_estim_av_trunc,
+            "Hn_a_shift" = nde_gn_estim_av,
+            "Hn_az_shift" = nie_gn_estim_av,
             "k_fold_result" = mediation_in_fold,
             "delta" = delta_updated
           )
@@ -661,7 +637,6 @@ SuperNOVA <- function(w,
 
   if (!is.null(indiv_shift_results)) {
     pooled_indiv_shift_results <- calc_pooled_indiv_shifts(
-      basis_prop_in_fold = basis_prop_in_fold,
       indiv_shift_results = indiv_shift_results,
       estimator = estimator,
       fluctuation = fluctuation
@@ -673,12 +648,10 @@ SuperNOVA <- function(w,
   if (!is.null(em_shift_results)) {
     pooled_em_shift_results <- calc_pooled_em_shifts(
       y,
-      basis_prop_in_fold = basis_prop_in_fold,
       em_shift_results = em_shift_results,
       estimator = estimator,
       w_names = w_names,
       a_names = a_names,
-      y_name = y_name,
       fluctuation = fluctuation,
       em_learner = em_learner
     )
@@ -688,7 +661,6 @@ SuperNOVA <- function(w,
 
   if (!is.null(intxn_shift_results)) {
     pooled_intxn_shift_results <- calc_pooled_intxn_shifts(
-      basis_prop_in_fold = basis_prop_in_fold,
       intxn_shift_results = intxn_shift_results,
       estimator = estimator,
       a_names = a_names,
@@ -702,7 +674,6 @@ SuperNOVA <- function(w,
 
   if (!is.null(med_shift_results)) {
     pooled_med_shift_results <- calc_pooled_med_shifts(
-      basis_prop_in_fold = basis_prop_in_fold,
       med_shift_results = med_shift_results,
       estimator = estimator,
       fluctuation = fluctuation,

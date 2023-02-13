@@ -6,67 +6,11 @@
 \usage{
 calc_joint_results(results_element)
 }
+\arguments{
+\item{results_element}{Joint results for formatting}
+}
 \description{
 Using the output results for the eif use the delta method
 to simply subtract the joint estimate from the no shift estimate. Do
 the same for the eif to get the variance for this new parameter.
 }
-\section{compute confidence interval}{
-ci <- stats::confint(x, level = ci_level)
-}
-
-\section{construct and print output}{
-message("Counterfactual Mean of Shifted Treatment")
-message("Intervention: ", "Treatment + ", x$.delta)
-message("txshift Estimator: ", x$estimator)
-message("Estimate: ", round(x$psi, 4))
-message("Std. Error: ", round(sqrt(x$var), 4))
-message(paste0(
-scales::percent(ci_level), " CI: [",
-round(ci\link{1}, 4), ", ", round(ci\link{3}, 4), "]"
-))
-}
-###############################################################################
-
-#' Print Method for Marginal Structural Models
-#'
-#' @details The \code{print} method for objects of class \code{txshift_msm}.
-#'
-#' @param x An object of class \code{txshift_msm}.
-#' @param ... Other options (not currently used).
-#'
-#' @method print txshift_msm
-#'
-#' @importFrom scales percent
-#'
-#' @return None. Called for the side effect of printing an informative summary
-#'  of slots of objects of class \code{txshift_msm}.
-#'
-#' @export
-#'
-#' @examples
-#' if (require("sl3")) {
-#'   set.seed(3287)
-#'   n_obs <- 1000
-#'   W <- as.numeric(replicate(1, rbinom(n_obs, 1, 0.5)))
-#'   A <- as.numeric(rnorm(n_obs, mean = 2 * W, sd = 1))
-#'   Y <- rbinom(n_obs, 1, plogis(2 * A - W))
-#'   msm <- msm_vimshift(
-#'     W = W, A = A, Y = Y, estimator = "tmle",
-#'     g_exp_fit_args = list(
-#'       fit_type = "sl",
-#'       sl_learners_density = Lrnr_density_hse$new(Lrnr_glm$new())
-#'     ),
-#'     Q_fit_args = list(
-#'       fit_type = "glm",
-#'       glm_formula = "Y ~ ."
-#'     ),
-#'     delta_grid = seq(-1, 1, 0.25)
-#'   )
-#'   print(msm)
-#' }
-print.txshift_msm <- function(x, ...) {
-
-
-}
-

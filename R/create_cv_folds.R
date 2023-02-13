@@ -1,8 +1,8 @@
 #' @title Stratified CV to insure balance (by one grouping variable, Y)
 #' @description Creates a dummy variable that partitions the data into v
 #' equal sized groups for v-fold CV.
-#' @param v number of folds
-#' @param y Outcome variable. If binary will be used for stratification.
+#' @param V number of folds
+#' @param Y Outcome variable. If binary will be used for stratification.
 #' @param verbose If T will display extra output.
 #'
 #' @return Vector of fold assignments.

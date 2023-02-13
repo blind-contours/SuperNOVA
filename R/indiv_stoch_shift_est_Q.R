@@ -12,8 +12,8 @@
 #'  \code{\link{shift_additive}} and is currently limited to additive shifts.
 #' @param mu_learner Object containing a set of instantiated learners from the
 #'  \pkg{sl3}, to be used in fitting an ensemble model.
-##' @param av A \code{dataframe} of validation data specific to the fold
-#'  @param at A \code{dataframe} of training data specific to the fold
+#' @param av A \code{dataframe} of validation data specific to the fold
+#' @param at A \code{dataframe} of training data specific to the fold
 #'
 #' @importFrom stats glm as.formula predict
 #' @importFrom data.table as.data.table setnames copy set

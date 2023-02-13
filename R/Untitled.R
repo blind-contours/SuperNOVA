@@ -1,0 +1,14 @@
+utils::globalVariables(c(
+  "fold_k",
+  "n_folds",
+  "fold_results_mix_rules",
+  "mix_fold_data",
+  "fold_results_marg_rules",
+  "fold_results_marginal_data",
+  "direction",
+  "all_folds",
+  "coefficient",
+  "p1",
+  "p8",
+  "test"
+))

@@ -4,8 +4,8 @@
 #'  of the exposure by shifting it by a value \code{delta}. Note that this
 #'  shifting function assumes support of A|W across all strata of W.
 #'
-#' @param A A \code{numeric} vector of observed treatment values.
-#' @param W A \code{numeric} matrix of observed baseline covariate values.
+#' @param a A \code{numeric} vector of observed treatment values.
+#' @param w A \code{numeric} matrix of observed baseline covariate values.
 #' @param delta A \code{numeric} indicating the magnitude of the shift to be
 #'  computed for the treatment \code{A}.
 #'

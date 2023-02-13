@@ -4,7 +4,22 @@
 \alias{calc_final_joint_shift_param}
 \title{Calculates the Joint Shift Parameter}
 \usage{
-calc_final_joint_shift_param(joint_shift_fold_results, exposures, fold_k)
+calc_final_joint_shift_param(
+  joint_shift_fold_results,
+  exposures,
+  fold_k,
+  deltas_updated
+)
+}
+\arguments{
+\item{joint_shift_fold_results}{Results of the joint shift}
+
+\item{exposures}{Exposures shifted}
+
+\item{fold_k}{Fold the joint shift is identified}
+
+\item{deltas_updated}{The new delta, could be updated if Hn has positivity
+violations}
 }
 \description{
 Estimates the shift parameter for a joint shift

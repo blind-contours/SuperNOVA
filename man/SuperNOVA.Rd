@@ -10,9 +10,10 @@ SuperNOVA(
   a,
   z = NULL,
   y,
-  delta,
+  deltas,
   estimator = "tmle",
   fluctuation = "standard",
+  var_sets = NULL,
   pi_learner = NULL,
   mu_learner = NULL,
   g_learner = NULL,
@@ -26,7 +27,9 @@ SuperNOVA(
   parallel = TRUE,
   parallel_type = "multi_session",
   num_cores = 2,
-  seed = seed
+  seed = seed,
+  hn_trunc_thresh = 50,
+  adaptive_delta = FALSE
 )
 }
 \arguments{
@@ -34,11 +37,15 @@ SuperNOVA(
 baseline covariates.}
 
 \item{a}{\code{matrix}, \code{data.frame}, or similar containing an
+individual or set of
+exposures}
+
+\item{z}{\code{matrix}, \code{data.frame}, or similar containing an
 individual or set of mediators}
 
 \item{y}{\code{numeric} vector of the observed outcomes.}
 
-\item{delta}{A \code{numeric} value indicating the shift in the exposures to
+\item{deltas}{A \code{numeric} value indicating the shift in the exposures to
 be used in defining the target parameter. This is defined with respect to
 the scale of the exposures (A).}
 
@@ -49,6 +56,11 @@ targeted maximum likelihood or \code{"onestep"} for a one-step estimator.}
 (targeting step) to compute the TML estimator. The choices are "standard"
 and "weighted" for where to place the auxiliary covariate in the logistic
 tilting regression.}
+
+\item{var_sets}{If using SuperNOVA deterministically, this parameter takes
+in a list of the form var_sets <- c("A_1", "A_1-Z_2") etc. where the
+analyst passes in variable sets for exposures, exosure-mediator, or exposure-
+covariate.}
 
 \item{pi_learner}{Learners used to fit Super Learner ensembles to densities
 via \pkg{sl3}}
@@ -64,6 +76,9 @@ via \pkg{sl3}}
 g(A|Z,W) - a probability estimator not a density estimator used in mediation
 via \pkg{sl3}}
 
+\item{em_learner}{Super learner from \pkg{sl3} of decision trees used to
+apply to the EIF of the shift applied to an exposure using covariates W.}
+
 \item{zeta_learner}{Learners used to fit Super Learner ensembles to the outcome
 model via \pkg{sl3}}
 
@@ -78,7 +93,18 @@ to identify "important" basis functions in the data-adaptive procedure}
 
 \item{parallel}{TRUE/FALSE parallelize across cores}
 
+\item{parallel_type}{If parallel is TRUE, type of parallelization to use. Default
+is "multi_session", other values are multicore and sequential.}
+
+\item{num_cores}{Number of CPU cores to use in parallelization}
+
 \item{seed}{\code{numeric} seed value to be passed to all functions}
+
+\item{hn_trunc_thresh}{Truncation level for the clever covariate}
+
+\item{adaptive_delta}{If TRUE, this reduces the user specified delta until
+the Hn calculated for a shift does not have any observation that is greater
+than hn_trunc_thresh.}
 }
 \value{
 S3 object of class \code{SuperNOVA} containing the results of the
@@ -86,6 +112,7 @@ procedure to compute a TML or one-step estimate of the counterfactual mean
 under a modified treatment policy that shifts a continuous-valued exposure
 by a scalar amount \code{delta}. These exposure are data-adaptively
 identified using the CV-TMLE procedure.
+)
 }
 \description{
 Data-adaptive efficient estimation of interactions and effect
@@ -99,21 +126,4 @@ targeted minimum loss estimations of the counterfactual mean differences
 under various target parameters for individual variables, effect modifying
 variables, or interacting variables. Ensemble machine learning may be used
 to construct the initial estimates of nuisance functions using \pkg{sl3}.
-}
-\examples{
-seed <- 429153
-n_obs <- 300
-W <- replicate(2, rbinom(n_obs, 1, 0.5))
-A <- rnorm(n_obs, mean = 2 * W, sd = 1)
-Y <- rbinom(n_obs, 1, plogis(A + W + rnorm(n_obs, mean = 0, sd = 1)))
-example_results <- SuperNOVA(
- w = W,
- a = A,
- z = Z,
- y = Y,
- delta = 0.5,
- estimator = "tmle",
- seed = seed,
- n_folds = 2
-)
 }

@@ -46,7 +46,7 @@ jobs:
           sudo apt install -y curl libcurl4-doc libcurl4-openssl-dev
       - name: Install package dependencies
         run: |
-          install.packages(c("remotes", "rcmdcheck", "covr", "sessioninfo", "xml2", "kableExtra", "ranger", "arm", "xgboost", "nnls", "hrbrthemes", "viridis"))
+          install.packages(c("remotes", "rcmdcheck", "covr", "sessioninfo", "xml2", "kableExtra", "ranger", "arm", "xgboost", "nnls", "hrbrthemes", "viridis", "Rsolnp"))
           remotes::install_deps(dependencies = TRUE)
           remotes::install_github(c("tlverse/sl3@devel"))
         shell: Rscript {0}

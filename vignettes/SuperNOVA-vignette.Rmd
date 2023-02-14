@@ -17,7 +17,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-
 ## Motivation 
 
 The motivation behind the package SuperNOVA is to address the limitations of traditional statistical methods in environmental epidemiology studies. Analysts are often interested in understanding the joint impact of a mixed exposure, i.e. a vector of exposures, but the most important variables and variable sets remain unknown. Traditional methods make overly simplistic assumptions, such as linear and additive relationships, and the resulting statistical quantities may not be directly applicable to public policy decisions.
@@ -34,36 +33,24 @@ The package SuperNOVA uses a data-adaptive approach to identify important variab
 2. Fit estimators for the relevant nuisance parameters and the final target parameter of interest using the identified variable sets.
 3. Obtain estimates of the nuisance parameters and the final target parameter of interest using the held-out validation data.
 4. The process is repeated in each fold to provide an estimate specific to each validation data. To optimize the balance between bias and variance, SuperNOVA uses targeted minimum loss based estimation (TMLE).
-5. Estimates across the folds are then averaged and a pooled fluctuation step is performed to estimate the efficient influence funciton and derive pooled variance estimates.
+5. Estimates across the folds are then averaged and a pooled fluctuation step is performed to estimate the efficient influence function and derive pooled variance estimates.
 
 
 ## Data and Notation
 
 ### Our Data-Generating System 
 
-Consider $n$ observed units $O_1, \ldots, O_n$, where each random variable $O =(V \subset W, A, Y)$ corresponds to a single observational unit. Let $W$ denote baseline covariates (e.g., age, sex, education level) that are not considered by the 
-analyst to be effect modifiers of any exposure variable, $V$ denote a subset of baseline covariates (measured before exposure) that may be potential effect modifiers of any exposure, $A$ denote a single exposure variable or a vector of
-exposure variables (mixture) of interest (e.g., mixed pesticide biomarkers, metals etc. that are measured at the same time), and $Y$ an outcome of interest (e.g.,disease status). Though it need not be the case, let $A$ be continuous-valued, i.e. $A \in \mathbb{R}$. Let $O_i \sim \mathcal{P} \in \mathcal{M}$, where $\mathcal{M}$ is the nonparametric statistical model defined as the set of continuous densities on $O$ with respect to some dominating measure. To formalize the definition of stochastic interventions and their corresponding causal effects, we introduce a nonparametric structural equation model (NPSEM), based on @pearl2000causality, to define how the system changes under posited interventions on:
+Consider $n$ observed units $O_1, \ldots, O_n$, where each unit $O_i$ is a random variable $(V \subset W, A, Y)$. The variable $W$ represents baseline covariates (such as age, sex, and education level), which are not considered to be effect modifiers. $V$ is a subset of $W$ that may be potential effect modifiers. $A$ is the exposure variable of interest (e.g., mixed pesticide biomarkers, metals, etc.), and $Y$ is the outcome of interest (e.g., disease status).
+
+We use a nonparametric structural equation model (NPSEM) to define how the system changes under interventions on $A$. The NPSEM is based on @pearl2000causality and the observed data is defined as $O = (W, A, Y)$.
+
+The NPSEM assumes a temporal ordering of the variables, that $Y$ occurs after $A$, which occurs after $W$. Each variable is generated from its corresponding function, and each function depends on exogenous variables denoted by $U$. The exogenous variables contain all unobserved causes of the corresponding observed variable.
 
 \begin{align*}\label{eqn:npsem}
   W &= f_W(U_W) \\ A &= f_A(W, U_A) \\ Y &= f_Y(A, W, U_Y),
 \end{align*}
 
-We denote the observed data structure $O = (W, A, Y)$.
-
-where the set of structural equations provide a mechanistic model by which the
-observed data $O$ is assumed to have been generated. 
-
-### Assumptions
-
-There are several standard
-assumptions embedded in the NPSEM -- specifically, a temporal ordering that
-supposes that $Y$ occurs after $A$, which occurs after $W$; each variable (i.e.,
-$\{W, A, Y\}$) is assumed to have been generated from its corresponding
-deterministic function (i.e., $\{f_W, f_A, f_Y\}$) of the observed variables
-that precede it temporally, as well as an exogenous variable, denoted by $U$;
-lastly, each exogenous variable is assumed to contain all unobserved causes of
-the corresponding observed variable. 
+The likelihood of the data $O$ can be factorized, and the components of the likelihood are essential for understanding the impact of interventions and evaluating corresponding causal effects.
 
 ### Factorizing the Likelihood
 
@@ -84,210 +71,76 @@ essential in developing an understanding of the manner in which stochastic
 treatment regimes perturb a system and how a corresponding causal effect may be
 evaluated. 
 
-### Data-Adaptive Target Parameter: Effect Modification
-
-
-For example, in `SuperNOVA` time ordering is used to determine our causal parameters of interest. That is, the analyst passes a vector $V$ of baseline covariates $W$ to `SuperNOVA` that may be effect modifiers of any mixture variable in the vector $A$. Here, the target causal parameter is effect modification of the shift parameter because $V$ is measured before $A$ in our NPSEM. The effect modification parameter is a measure of how different the counterfactual mean of $Y$ is given a shift in $A$ stratified on $V$. 
-
-### Data-Adaptive Target Parameter: Interaction
-
-Conversly, if sets of variables are found to be important in the data-adaptive procedure that are only in $A$ (a set of mixture components) because these variables are (in most cases) measured together at one time (such as biomarkers) the shift parameter is instead the counterfactual mean of $Y$ given a simultaneous shift in both variables in $A$. This is a measure of interaction, rather than effect modification, using our shift parameter. In the case that an individual variable in $V$ or $A$ is found to have a marginal impact on $Y$, then a simple univariate stochastic shift is done on this variable alone. 
 
 ### Overview Stochastic Shifts
 
-Briefly, let $A$ denote a continuous-valued exposure or set of exposures, we assume that the distribution of $A$ conditional on $W = w$ has support in the interval $(l(w), u(w))$ -- for convenience, let this support be _a.e._ That is, the minimum natural value of treatment $A$ for an individual with covariates $W = w$ is $l(w)$; similarly, the maximum is $u(w)$. Then, a simple stochastic intervention, based on a shift $\delta$, may be defined
+In single exposure problems, we can use the stochastic shift framework to calculate the average outcome after shifting the exposure. A stochastic intervention changes the function that defines the exposure $A$ and its conditional density $g(A \mid W)$ with a candidate density $g_{A_{\delta}}(A \mid W)$. The new density defines how the exposure is modified by a random draw from $g_{A_{\delta}}(A \mid W)$. This can include static interventions, where all mass is placed on a single value, such as the average treatment effect, where all observations either receive or don't receive treatment.
 
-\begin{equation}\label{eqn:shift}
-  d(a, w) =
-  \begin{cases}
-    a - \delta & \text{if } a > l(w) + \delta \\
-    a & \text{if } a \leq l(w) + \delta,
-  \end{cases}
-\end{equation}
+Stochastic interventions give rise to a counterfactual outcome $Y_{A_{\delta}} := f_Y(A_{\delta}, W, U_Y)$, which is obtained by replacing the natural value of the treatment with a shifted value. The degree of shift $\delta$ describes the reduction in exposure, based on the individual's baseline characteristics $W$. We can evaluate the causal effect of the intervention by finding the counterfactual mean of the outcome under the modified distribution, $\psi_{0, \delta} = E_{P_0}^{A_{\delta}}{Y_{A_{\delta}}}$. To accurately estimate this target causal estimand, we must assume that the data is generated by independent and identically distributed units and that there is no unmeasured confounding or interference and there is consistency.
 
-where $0 \leq \delta \leq u(w)$ is an arbitrary pre-specified value that defines the degree to which the observed value $A$ is to be shifted, where possible. In `SuperNOVA` there are four different shift parameters depending on what is found in the data-adaptive ANOVA within the cross-validated fold - these are discussed below. 
+Effectively, we estimate the the natural density of $a$ given $W$ and then get predicted values of this density under a shift, such as all individuals receive $10$ parts per trillion 
+less exposure to endocrine disrupting compounds. We then estimate how this changes the health outcome under this shift. 
 
-## Target Parameter 
+## Target Parameters
 
-Our target parameter of interest is the stochastic intervention of a data-adaptively identified exposure variable or variables. Stochastic interventions are a relatively simple yet flexible framework for defining realistic causal effects.
-In contrast to intervention regimens such as the average treatment effect (ATE), stochastic interventions can be applied to nearly any type of exposure variable (binary, ordinal, continuous). The resulting stochastic shift parameter can be interpreted in a similar fashion as coefficients in a regression model.
+Of course, in the setting of mixed exposures we don't know which individual exposures have a marginal impact, which exposures have a joint impact and which marginal or joint impacts
+may be modified by baseline covariates. Considering these variable(s) fixed for now, we develop non-parametric target parameters for interaction and effect modification based on stochastic interventions. Our target parameters are: 
 
-### Types of Shifts
+1. Marginal impact of an exposure: $E[Y^{a + \delta}] - E[Y^a]$ - the expected outcome given a shift compared to expected outcome under observed exposure. 
+2. Interaction of exposures: $\underbrace{E[E[Y_{A1_{\delta_1}, A2_{\delta_2}}]}_{\text{1. Joint Shift of A1 and A2}} - [\underbrace{E[Y_{A1_{\delta_1}, A2}]}_{\text{2. Individual Shift of A1}} + \underbrace{ E[Y_{A2_{\delta_2}, A1}]]]}_{\text{3. Individual Shift of A2}}$ - the expected outcome given a joint shift compared to the sum of individual shift of the respective variables
+3. Effect Modification of an exposure: $$E[Y^{a + \delta} | V = 1]$$ - the expected outcome given a shift in an exposure within a covariate region
 
-This `SuperNOVA` package examines the effects attributable to:
-
-1. shifting the observed value of an individual exposure up or down 
-by some scalar $\delta$.
-2. shifting the observed value of an individual exposure within 
-strata of an effect modifier up or down by some scalar $\delta$.
-3. shifting the observed value of a joint exposure up or down by 
-some scalar $\delta$.
-4. shifting the observed value of a joint exposure up or down by 
-some scalar $\delta$ within strata of an effect modifier. 
-
-
-The `SuperNOVA` package implements algorithms to data-adaptively identify mixture variables $A$ and effect modifiers $V$ that are associated  with an outcome and for these variable sets compute one-step  or targeted minimum loss-based (TML) estimates of the counterfactual means changes induced by a shifting function $\delta(A,W)$. 
+With these target parameters for a fixed exposure(s) defined we now can think about data-adaptively identifying them.
 
 ## Data-Adative Variable Set Selection
-SuperNOVA first fits an unrestricted Super Learner for $E(Y|W) = h_1(W)$, where $W$ is a set of baseline covariates that the analyst wants to control for, that is, baseline covariates with no suspected effect modification with exposures $A$. Residuals are calculated, $Y^*$, and a second Super Learner is fit $E(Y^*|A,V) = h_2(A,V)$ Here, for $h_2$ we only consider models for the conditional mean of $Y^*$ given $A,V$ that are a function of linear spline terms and their tensor products. Given a fit of such a model, we can then partition the variance using classic ANOVA decompositions by testing the null that some set of coefficient values (the $\beta_{s,i}$) are 0 (e.g., all terms that contain a particular variable, or represent two-way basis functions). We can then aggregate partial F-statistics for the basis functions up to the variable level for variable/interaction importance measures. Algorithms used in `SuperNOVA` return tensor products of arbitrary order and include `earth`, `polySpline` and `hal9001`. 
+
+`SuperNOVA` fits a Super Learner for of estimators which use varying smoothness orders of basis functions and their tensor products. These include estimators such as `earth`, `polySpline` and `hal9001` which are all varying types of non-parametric regression functions. 
+
+Once Super Learner has identified the best model we construct a model matrix of the basis functions (the linear combination of different regions in the observation space that are used to predict the outcome. We then partition the variance using classic ANOVA decompositions by testing the null that some set of coefficient values (the $\beta_{s,i}$) are 0 (e.g., all terms that contain a particular variable, or represent two-way basis functions). We can then aggregate partial F-statistics for the basis functions up to the variable level for variable/interaction importance measures. Algorithms used in `SuperNOVA` return tensor products of arbitrary order and include. 
 
 ### Basis functions
 
-Indicator variables can be used to indicate if a variable $A$ is less than or equal to a specific value $a_s$. The same can be done for $A_1, A_2$ to determine if both variable are less than or equal to a specific value. Thus, a function of our outcome is written as: 
+Indicator variables can be used to indicate if a variable $A$ is less than or equal to a specific value $a_s$. The same can be done for multiple variable, $A_1, A_2$, to determine if both variable are less than or equal to a specific value. Thus, a function of our outcome is written as: 
 
 $$\psi_{\beta} = \beta_0 + \sum_{s\subset \{1,2,...,p\}}\sum_{i=1}^{n} \beta_{s,i} \phi_{s,i},
-    \text{ where } \phi_{s,i} = I(\tilde{A}_{i,s} \leq w_s), A \in \mathbb{R}^p$$ and $s$ denotes indices of subsets of the $W$ (e.g., both functions of single variables and two variables).The placement of knot-points for every potential value is not feasible in most real-world scenarios and therefore `SuperNOVA` chooses the best estimator from a class of basis algorithms. This approximates the exhaustive function.
+    \text{ where } \phi_{s,i} = I(\tilde{A}_{i,s} \leq w_s), A \in \mathbb{R}^p$$ 
+
+and $s$ denotes indices of subsets of the $W$ (e.g., both functions of single variables and two variables). The placement of knot-points for every potential value is not feasible in most real-world scenarios and therefore `SuperNOVA` chooses the best estimator from a class of basis algorithms which approximate this exhaustive function.
     
 ### Defining Important Basis Functions
 
-The user can pass into `SuperNOVA` the parameter `quantile_thresh` which designates the F-statistic threshold by which basis functions are kept. For example, if the user uses `quantile_thresh = 0.25` and the resulting vector is $M_1, M_1V_1, M_1M_3$ then this indicates that the basis functions that had an F-statistic above the 25th quantile included basis functions for $M_1$ alone, basis functions for $M_1$ and $V_1$ and basis functions for $M_1$ and $M_3$. 
+The user can pass into `SuperNOVA` the parameter `quantile_thresh` which designates the F-statistic threshold by which basis functions are kept. For example, if the user uses `quantile_thresh = 0.25` and the resulting vector is $M_1, M_1V_1, M_1M_3$ then this indicates that the basis functions that had an F-statistic above the 25th quantile included basis functions for $M_1$ alone, basis functions for $M_1$ and $V_1$ (exposure and effect modifier) and basis functions for $M_1$ and $M_3$ (twp exposures). 
 
-This means that, within this fold we would train estimators for each of our estimates of interest, that is, the individual stochastic shift of $M_1$, how $V_1$ modifies the shift relationship between $M_1$ and $Y$, and the joint shift of $M1,M_3$. Now let's more formally define these paramters. 
+This means that, within this fold we would train estimators for each of our estimates of interest, that is, the individual stochastic shift of $M_1$, how $V_1$ modifies the shift relationship between $M_1$ on $Y$, and the joint shift of $M1,M_3$. 
 
-## Target Parameter: Interaction 
+We mention folds above, this is because we use V-fold cross-validation wherein we split the full data into folds. In the parameter-generating sample, we find the variable sets from the best basis function estimator and we train our estimators for the nuisance parameters necessary for each parameter. In the estimation-sample, we then get our predictions from these models and our final plug-in targeted learning estimator for the fold specific estimates. This is explained in more detail next. 
 
-Once `SuperNOVA` has identified interacting variables with the highest partial F-statistic from the basis functions we need to get statistical estimation for how these interactions affect our outcome of interest.
-
-Our target parameter of interest is a semi-parametric definition of an interaction, defined as: \begin{equation} \label{eq1}
-\begin{split}
-E(Y|A_{i^*} &+ \delta_1, A_{j^*} + \delta_2, W) - \\ 
-E(Y|A_{i^*} &+ \delta_1, A_{j^*}, W) - \\ 
-E(Y|A_{j^*} &+ \delta_2,  A_{i^*}, W) + \\
-E(Y|A_{i^*}&, A_{j^*}, W) 
-\end{split}
-\end{equation}
-
-For the bivariate case A $\in \{A_{i^*}, A_{j^*}$\}
-
-This joint causal quantity of interest is identified by: $E[Y_{g^o}] = E_W [\int_a E(Y|A=a, W)g^o(a|W)]$, $g^o(a|W)$ is similar to the propensity score estimator but here we are estimating joint densities.
-
-Where in the bivariate case: 
-$$g^o(a_1, a_2|w) = g(a_1 + \delta_1, a_2 + \delta_2|W = w)$$
-
-Which can be estimated as: 
-
-$$g^o(a_1, a_2|w) =  g(a_1 + \delta_1|W = w) * g(a_2 + \delta_2|W = w, A = a_1)$$. 
-
-We can write our interaction target parameter as: 
-
-$$E[Y_{g^o_{\delta_1,\delta_2}}] - E[Y_{g^o_{\delta_1}}] - E[Y_{g^o_{\delta_2}}] + E[Y_{g^o_{1,2}}]$$ 
-
-Where: 
-
-\begin{equation} \label{eq2}
-\begin{split}
-E[Y_{g^o_{\delta_1,\delta_2}}] &= E_W [\int_{a_{1,\delta_1} a_{2, \delta_2}} E(Y|A=a_{1,\delta_1},a_{2,\delta_2} , W)g^o_{\delta_1,\delta_2}(a|W)]\\
-E[Y_{g^o_{\delta_1}}] &= E_W [\int_{a_1} E(Y|A=a_{1, \delta_1}, W)g^o_{\delta_    1}(a|W)]\\
-E[Y_{g^o_{\delta_2}}] &= E_W [\int_{a_2} E(Y|A=a_{2, \delta_2}, W)g^o_{\delta_2}(a|W)]\\
-E[Y_{g^o_{1,2}}] &= E_W [\int_{a_1,a_2} E(Y|A=a_1,a_2, W)g^o_{1,2}(a|W)]
-\end{split}
-\end{equation}
-
-We can think of this interaction target parameter as the expected outcome given a joint shift in both exposure variables marginalized over the joint densities of both variables given both delta shifts subtracted by the expected outcome given both individual shifts marginalized over each shifted density respectively and adding back in the expected outcome under no shift marginalized over the joint density under no shift intervention. 
-
-
-## Target Parameter: Effect Modification
-
-Our effect modification follows in the same vein but instead looks at the difference in expected outcome under a shift intervention in an exposure between strata of an effect modifying variable. In the bivariate case where $V$ is a binary effect modifier this looks like: 
-
-$$E[Y_{g^o_{\delta}} | V = 1] - E[Y_{g^o_{\delta}} | V = 0]$$
-
-Where: 
-
-\begin{equation} \label{eq3}
-\begin{split}
-E[Y_{g^o_{a_\delta}}] &= E_W [\int_{a_{\delta}} E(Y|A=a_{\delta}, W)g^o_{\delta}(a | V = 1, W)]\\
-
-E[Y_{g^o_{a_\delta}}] &= E_W [\int_{a_{\delta}} E(Y|A=a_{\delta}, W)g^o_{\delta}(a | V = 0, W)]
-\end{split}
-\end{equation}
-
-In words, this can be interpreted as the expected outcome given a shift in $A$ within strata where $V = 1$, marginalized over the conditional density of A under this stratified shift and minus the expected outcome given a shift in $A$ in strata $V = 0$ marginalized over the conditional density of A under this stratified shift.
-
-
-## Target Parameter: Individual Stochastic Shift
-
-In the case where a basis function consists of only 1 variable that is included in $A$ or $V$ and individual stochastic shift is done, which is simply: 
-
-$$E[Y_{g^o_{\delta}}]$$
-Where: 
-
-$$E[Y_{g^o_{\delta}}] = E_W [\int_{a} E(Y|A=a_{ \delta}, W)g^o_{\delta}(a|W)]$$
-
-Or simply, the expected outcome given a shift in $A$ by $\delta$ marginalized over the conditional distribution of $a$ given such a shift.
-
-## Estimating the Causal Effect for each Stochastic Intervention 
-
-With identification assumptions satisfied, the efficient influence function (EIF) with respect to
-the nonparametric model $\mathcal{M}$ can be estimated for each of our parameters of interested based on work from @diaz2012population and @diaz2018stochastic. The EIF for a stochastic intervention is: 
-
-\begin{equation}
-  D(P_0)(x) = H(a, w)({y - \overline{Q}(a, w)}) +
-  \overline{Q}(d(a, w), w) - \Psi(P_0),
- 
-\end{equation}
-where the auxiliary covariate $H(a,w)$ may be expressed
-\begin{equation}
-  H(a,w) = \mathbb{I}(a + \delta < u(w)) \frac{g_0(a - \delta \mid w)}
-  {g_0(a \mid w)} + \mathbb{I}(a + \delta \geq u(w)),
-  
-\end{equation}
-which may be reduced to
-\begin{equation}
-  H(a,w) = \frac{g_0(a - \delta \mid w)}{g_0(a \mid w)} + 1
- 
-\end{equation}
-in the case that the treatment is within the limits that arise from conditioning
-on $W$, i.e., for $A_i \in (u(w) - \delta, u(w))$.
-
-This efficient influence function was originally derived to allow for the construction of a
-semiparametric-efficient estimators for a stochastic shift in the univariate setting. The argeted maximum likelihood (TML) estimator to solve this EIF was formulated in @diaz2018stochastic by using the following steps: 
-
-1. Construct initial density estimators $g_n$ of $g_0(A, W)$ and $Q_n$ of
-   $\overline{Q}_0(A, W)$, using data-adaptive regression techniques.
-2. Predict the density distribution of $d(A,W)$ under the shift $\delta$
-3. For each observation $i$, compute an estimate $H_n(a_i, w_i)$ of the
-   auxiliary covariate $H(a_i,w_i)$. This is the ratio of conditional densities, the shifted density in the numerator and natural density in the denominator.
-4. Estimate the parameter $\epsilon$ in the logistic regression model
-   $$ \text{logit}\overline{Q}_{\epsilon, n}(a, w) =
-   \text{logit}\overline{Q}_n(a, w) + \epsilon H_n(a, w),$$
-   or an alternative regression model incorporating weights.
-5. Compute TML estimator $\Psi_n$ of the target parameter, defining update
-   $\overline{Q}_n^{\star}$ of the initial estimate
-   $\overline{Q}_{n, \epsilon_n}$:
-   \begin{equation}
-     \Psi_n = \Psi(P_n^{\star}) = \frac{1}{n} \sum_{i = 1}^n
-     \overline{Q}_n^{\star}(d(A_i, W_i), W_i).
-   \end{equation}
-   
-### EIF and TMLE Applied to our Target Parameters
-
-
-The same EIF and TMLE steps to solve the EIF used in the univariate stochastic shift of a treatment can be used for all our target parameters of interest. That is, in the case that only one variable in $A,V$ was found data-adaptively in basis functions, then the targeting step is exactly the same as in the original stochastic intervention work. In the case of effect modification, the same procedure is done however the conditional densities used in construction of the clever covariate include the counterfactuals made on the effect modifier. Construction of initial density estimators for $g_n$ of $g_0(A, V=v, W)$ and $Q_n$ of $\overline{Q}_0(A, V=v, W)$, using data-adaptive regression techniques. As can be seen, once these densities are estimated, the same TMLE steps can be done to update the original estimates. Likewise, for our interaction parameter the same procedure holds but now for joint densitieis. We construct initial density estimators $g_n$ of $g_0(A_1, A_2, W)$ and $Q_n$ of
-$\overline{Q}_0(A_1, A_2, W)$, using data-adaptive regression techniques. Then our clever covariate becomes a ratio of the predicted joint likelihood of a joint shift over the unperturbed joint likelihood. The subsequent steps then all remain the same. 
-  
 ## Data-Adaptive Esimation
 
-The above theory works for stochastic shift situations where the $A$ is known \textit{a priori}. This is not the case for mixtures where we are interested in first identifying which variables are "important" given the fit of the best estimator and estimating the stochastic shift for these variable sets. Because the data is being used to both identify a target parameter and make estimates given this parameter, sample splitting (cross-validation) is used to avoid bias from over fitting, but still uses the entire data set to estimate a data-adaptive parameter. V-fold cross-validation involves: (i) ${1,..., n}$, observations, is divided into $V$ equal size subgroups, (ii) for each $v$, an estimation-sample, notationally $P_{n,v}$ , is defined by the v-th subgroup of size n/V, while the parameter-generating sample, $P_{n,v^c}$, is its complement. More concretely, for split $v$ the empirical distribution, $P_{n,v^c}$, is used to define the exposure(s) $A$ given our $\textit{a priori}$ basis function algorithm which outputs the target variables based on our ANOVA test of the basis functions used. The observations not in $P_{n,v^c}$, namely the empirical distribution for $P_{n,v}$ then is used to generate the parameter of interest. That is, if we had 1000 observations and 4 folds, our estimation sample $P_{n,v}$ would be of size 250. For each fold, the respective 750 observations would be used to train our estimators $g_n$ and $Q_n$ and given these estimators we then get predictions given the respective 250 observations. The predicted density, $g_n$ and outcome $Q_n$ are then used to construct our clever covariate for the shift intervention, $H_n(a_i, w_i)$ for the TMLE update within the fold. Therefore, TMLE updated estimates are given for each fold using the respective estimation sample data $P_{n,v}$. 
+Because the data is being used to both identify a target parameter and make estimates given this parameter, sample splitting (cross-validation) is used to avoid bias from over fitting, but still uses the entire data set to estimate a data-adaptive parameter. V-fold cross-validation involves: (i) ${1,..., n}$, observations, is divided into $V$ equal size subgroups, (ii) for each $v$, an estimation-sample, notationally $P_{n,v}$ , is defined by the v-th subgroup of size n/V, while the parameter-generating sample, $P_{n,v^c}$, is its complement. More concretely, for split $v$ the empirical distribution, $P_{n,v^c}$, is used to define the exposure(s) $A$ given our $\textit{a priori}$ basis function algorithm which outputs the target variables based on our ANOVA test of the basis functions used. The observations not in $P_{n,v^c}$, namely the empirical distribution for $P_{n,v}$ then is used to generate the parameter of interest. That is, if we had 1000 observations and 4 folds, our estimation sample $P_{n,v}$ would be of size 250. For each fold, the respective 750 observations would be used to train our estimators $g_n$ and $Q_n$ and given these estimators we then get predictions given the respective 250 observations. The predicted density, $g_n$ and outcome $Q_n$ are then used to construct our clever covariate for the shift intervention, $H_n(a_i, w_i)$ for the TMLE update within the fold. Therefore, TMLE updated estimates are given for each fold using the respective estimation sample data $P_{n,v}$. 
+
+## Targeted Learning
+
+We use targeted minimum loss based estimation (TMLE) to debias our initial outcome estimates given a shift in exposure such that the resulting estimator is asymptotically unbiased and has the smallest variance. This procedure involves constructing a least favorable submodel which uses a ratio of conditional exposure densities under shift and now shift as a covariate to debias the initial estimates. More details of targeted learning for stochastic shifts are here @diaz2012population
+
 
 ## Pooling Estimates Found Across the Folds
 
-Because `SuperNOVA` gets the TMLE updated shift parameter for each condition (individual, effect modification or joint), for each fold, when many folds are used the resulting tables can be very large. For estimates that are found across all folds (are consistently found in the data adaptive procedure) we can pool the effects across the folds similar to a meta-analysis. We should therefore give effect sizes with a higher precision (i.e. a smaller standard error derived from the efficient influence function (EIF)) a greater weight. If we want to calculate the pooled effect size under the fixed-effect model, we therefore simply use a weighted average of all studies. To calculate the weight $w_k$ for each fold $k$, we can use the standard error, which we square to obtain the variance $s^2_k$ of each effect size. Since a lower variance indicates higher precision, the inverse of the variance is used to determine the weight of each fold estimate.
+Because `SuperNOVA` gets the TMLE updated shift parameter for each condition (individual, effect modification interaction and joint), for each fold, we can pool estimates that are found across all folds (are consistently found in the data adaptive procedure). We do this by stacking the nuisance parameter estimates across the folds to do a pooled fluctuation step, making use of the full data to solve the efficient influence function. This allows us to estimate variance for the full data which results in tighter confidence intervals. Point estimates across the folds are averaged. Thus, `SuperNOVA` outputs estimates for both V-fold specific results and pooled estimates. 
 
-$$w_k = \frac{1}{s^2_k}$$
+## Data Adaptive Delta
 
-Once we know the weights, we can calculate the weighted average, our estimate of the true pooled effect $\hat{\psi}$ We only have to multiply each fold’s effect size $\hat{\theta}_k$
-with its corresponding weight $w_k$, sum the results across all studies $K$ in our pooled analysis, and then divide by the sum of all the individual weights.
+For each exposure, the user inputs a respective delta, for example for exposures $M1, M2, M3$ the analyst puts in the `deltas` vector 
 
-$$\hat{\psi} = \frac{\sum_{k = 1}^K \hat{\Psi}_k w_k}{\sum_{k = 1}^K w_k}$$
-Because we use the inverse of the variance, we can call this parameter the inverse-variance pooled-fold-analysis.
+```{r setup, message=FALSE, warning=FALSE}
+deltas <- c("M1" = 1, "M2" = 2.3, "M3" = 1.4)
+```
 
-The variance of the combined effect across the folds is defined as the reciprocal of the sum of the weights, or $v. = \frac{1}{\sum_{i=1}^K w_i}$ and likewise the standard error is $\sqrt{v.}$. Pooled confidence intervals and p-values are calculated in the normal way based on the calculated $\hat{\psi}$ and $v.$. Below we show the results tables output by the `SuperNOVA` for each parameter for each fold then we show output from the `compute_meta_results` function which calculates the pooled esimtates and creates plots. 
-
+Which assigns a delta shift amount to each exposure. However, because the user doesn't know the underlying experimentation in the data, a delta that is too big may result in positivity violations which leads to bias and high variance of the estimator. That is, if the user asks for a shift in exposure density that is very unlikely given the data. To solve this, the analyst can also choose to set `adaptive_delta = TRUE` which then makes the shift amount a data adaptive parameter as well. The delta will be reduced until the max of the ratio of densities for each exposure is less than or equal to `hn_trunc_thresh`.
 
 ## Application:
 
-Firts, let's load the packages we'll use and set a seed for simulation:
+First, let's load the packages we'll use and set a seed for simulation:
 
 ```{r setup, message=FALSE, warning=FALSE}
 library(data.table)

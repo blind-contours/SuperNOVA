@@ -58,8 +58,8 @@ calc_final_effect_mod_param <- function(tmle_fit_av,
                                         effect_m_name,
                                         fold_k,
                                         em_learner) {
-  pseudo_outcome_at <- tmle_fit_at$eif - tmle_fit_at$noshift_eif
-  pseudo_outcome_av <- tmle_fit_av$eif - tmle_fit_av$noshift_eif
+  pseudo_outcome_at <- tmle_fit_at$qn_shift_star - tmle_fit_at$qn_noshift_star
+  pseudo_outcome_av <- tmle_fit_av$qn_shift_star - tmle_fit_av$qn_noshift_star
 
   names(pseudo_outcome_at) <- "pseudo_outcome_at"
   names(pseudo_outcome_av) <- "pseudo_outcome_av"
@@ -155,10 +155,10 @@ calc_final_effect_mod_param <- function(tmle_fit_av,
     psi_em_one <- mean(tmle_fit_av$qn_shift_star[em_split_data$ind == 1])
     psi_em_zero <- mean(tmle_fit_av$qn_shift_star[em_split_data$ind == 0])
 
-    psi_one_var <- var(tmle_fit_av$eif[em_split_data$ind == 1]) /
+    psi_one_var <- var(inverse_prop_eif_pos[em_split_data$ind == 1]) /
       table(em_split_data$ind)[[2]]
 
-    psi_zero_var <- var(tmle_fit_av$eif[em_split_data$ind == 0]) /
+    psi_zero_var <- var(inverse_prop_eif_neg[em_split_data$ind == 0]) /
       table(em_split_data$ind)[[1]]
 
     em_one_ci <- calc_CIs(psi_em_one, sqrt(psi_one_var))

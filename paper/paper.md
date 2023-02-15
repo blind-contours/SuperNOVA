@@ -12,6 +12,9 @@ authors:
   - name: David McCoy
     orcid: 0000-0002-5515-6307
     affiliation: 1
+  - name: Alejandro Schuler
+    orcid: 0000-0003-4853-6130
+    affiliation: 2
   - name: Alan Hubbard
     orcid: 0000-0002-3769-0127
     affiliation: 2

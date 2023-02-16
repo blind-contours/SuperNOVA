@@ -4,7 +4,7 @@ r_libdir <- Sys.getenv("R_LIBDIR")
 # set user-specific package library
 if (grepl("savio2", Sys.info()["nodename"])) {
   .libPaths(r_libdir)
-  Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS="true")
+  Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS = "true")
 }
 
 # packages
@@ -27,7 +27,7 @@ source(here("sandbox", "02_fit_estimators.R"))
 # simulation parameters
 set.seed(7259)
 n_sim <- 5 # number of simulations
-n_obs <- c(500, 1000, 1500)# sample sizes at root-n scale
+n_obs <- c(500, 1000, 1500) # sample sizes at root-n scale
 
 # Generate simulated data -----------------
 
@@ -49,34 +49,35 @@ for (sample_size in n_obs) {
   results <- list()
   print(sample_size)
 
-  for(this_iter in seq_len(n_sim)) {
+  for (this_iter in seq_len(n_sim)) {
     print(this_iter)
 
-    seed <- sample(1:10000,1)
+    seed <- sample(1:10000, 1)
     set.seed(seed)
 
-    data_sim <-  p0_data %>%
+    data_sim <- p0_data %>%
       dplyr::slice_sample(n = sample_size)
 
-    est_out <- fit_estimators(data = as.data.frame(data_sim),
-                              covars = c("w_1", "w_2", "w_3"),
-                              exposures = c("a_1", "a_2"),
-                              mediators = c("z_1"),
-                              outcome = "y",
-                              seed = seed,
-                              nde_truth = nde_truth,
-                              nie_truth = nie_truth,
-                              ate_a_1 = ate_a_1,
-                              ate_a_2 = ate_a_2,
-                              a2_effect_in_w2_1 = a2_effect_in_w2_1,
-                              a2_effect_in_w2_0 = a2_effect_in_w2_0,
-                              deltas = list("a_1" = 1, "a_2"= 1),
-                              cv_folds = 2)
+    est_out <- fit_estimators(
+      data = as.data.frame(data_sim),
+      covars = c("w_1", "w_2", "w_3"),
+      exposures = c("a_1", "a_2"),
+      mediators = c("z_1"),
+      outcome = "y",
+      seed = seed,
+      nde_truth = nde_truth,
+      nie_truth = nie_truth,
+      ate_a_1 = ate_a_1,
+      ate_a_2 = ate_a_2,
+      a2_effect_in_w2_1 = a2_effect_in_w2_1,
+      a2_effect_in_w2_0 = a2_effect_in_w2_0,
+      deltas = list("a_1" = 1, "a_2" = 1),
+      cv_folds = 2
+    )
 
     est_out$n_obs <- sample_size
 
     results[[this_iter]] <- est_out
-
   }
   # concatenate iterations
   results_out <- bind_rows(results, .id = "sim_iter")
@@ -86,5 +87,7 @@ for (sample_size in n_obs) {
 
 # save results to file
 timestamp <- str_replace_all(Sys.time(), " ", "_")
-saveRDS(object = sim_results_df,
-        file = here("sandbox/data", paste0("CVtreeMLE_", "sim", ".rds")))
+saveRDS(
+  object = sim_results_df,
+  file = here("sandbox/data", paste0("CVtreeMLE_", "sim", ".rds"))
+)

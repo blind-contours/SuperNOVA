@@ -15,7 +15,7 @@ if (TRUE) {
   sim_truth_cont_y <- readRDS(here("sandbox/data/sim_truth_cont_y.rds"))
 }
 
-##set sim truth here for binary or continuous plotting, calcs
+## set sim truth here for binary or continuous plotting, calcs
 sim_truth <- sim_truth_cont_y
 
 EY_A1_Z1 <- sim_truth$EY_A1_Z1
@@ -68,7 +68,7 @@ sim_statistics <- sim_results %>%
   mutate(
     covers = ifelse(
       (lower <= psi_NDE_true & psi_NDE_true <= upper) |
-      (lower <= psi_NIE_true & psi_NIE_true <= upper), 1,0
+        (lower <= psi_NIE_true & psi_NIE_true <= upper), 1, 0
     )
   ) %>%
   group_by(n_obs, type, sim_type) %>%
@@ -90,9 +90,9 @@ sim_statistics <- sim_results %>%
     ## stats for plotting
     abs_bias = abs(est_bias),
     sqrt_n_abs_bias = sqrt(n_obs) * abs(est_bias),
-    n_MSE = n_obs*est_MSE,
+    n_MSE = n_obs * est_MSE,
   ) %>%
-  ungroup
+  ungroup()
 
 sim_statistics_long <- sim_statistics %>%
   gather(statistic, value, -c(n_obs, type, sim_name, sim_type))
@@ -107,68 +107,75 @@ make_sim_statistics_plot <- function(sim_statistics_long, est_type, stats) {
     )
 
   ggplot(filtered_sim_stats, aes(n_obs, value)) +
-    geom_point() + geom_line(linetype = "dashed") +
+    geom_point() +
+    geom_line(linetype = "dashed") +
     facet_grid(statistic ~ sim_name, scales = "free_y") +
     theme_bw() +
     theme(
-      axis.text.x = element_text(angle=45, vjust=1, hjust=1)
+      axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)
     ) +
-    scale_x_sqrt(breaks=n_obs)
+    scale_x_sqrt(breaks = n_obs)
 }
 
-pathalogical <- c("Eff.(psi_Z & e--mis.)",
-                  "Eff.(psi_Z & m--mis.)",
-                  "Eff.(m--mis.)",
-                  "Eff.(psi_Z--mis.)")
+pathalogical <- c(
+  "Eff.(psi_Z & e--mis.)",
+  "Eff.(psi_Z & m--mis.)",
+  "Eff.(m--mis.)",
+  "Eff.(psi_Z--mis.)"
+)
 
 NDE_stats_plot <- make_sim_statistics_plot(
   sim_statistics_long %>% filter(!sim_name %in% pathalogical),
-  est_type = 'NDE',
+  est_type = "NDE",
   stats = c("abs_bias", "sqrt_n_abs_bias", "n_MSE", "CI_coverage")
 )
 
 NIE_stats_plot <- make_sim_statistics_plot(
   sim_statistics_long %>% filter(!sim_name %in% pathalogical),
-  est_type = 'NIE',
+  est_type = "NIE",
   stats = c("abs_bias", "sqrt_n_abs_bias", "n_MSE", "CI_coverage")
 )
 
 NDE_pathological_stats_plot <- make_sim_statistics_plot(
   sim_statistics_long %>% filter(sim_name %in% pathalogical),
-  est_type = 'NDE',
+  est_type = "NDE",
   stats = c("abs_bias", "sqrt_n_abs_bias", "n_MSE", "CI_coverage")
 )
 
 NIE_pathological_stats_plot <- make_sim_statistics_plot(
   sim_statistics_long %>% filter(sim_name %in% pathalogical),
-  est_type = 'NIE',
+  est_type = "NIE",
   stats = c("abs_bias", "sqrt_n_abs_bias", "n_MSE", "CI_coverage")
 )
 
 NDE_combined_stats_plot <- ggarrange(
-  NDE_stats_plot, NDE_pathological_stats_plot, ncol = 2
+  NDE_stats_plot, NDE_pathological_stats_plot,
+  ncol = 2
 ) %>% annotate_figure(
   top = text_grob("NDE", size = 14)
 )
 
 NIE_combined_stats_plot <- ggarrange(
-  NIE_stats_plot, NIE_pathological_stats_plot, ncol = 2
+  NIE_stats_plot, NIE_pathological_stats_plot,
+  ncol = 2
 ) %>% annotate_figure(
   top = text_grob("NIE", size = 14)
 )
 
 NDE_steps_plot <- make_sim_statistics_plot(
-  sim_statistics_long, est_type = 'NDE',
+  sim_statistics_long,
+  est_type = "NDE",
   stats = c("mean_steps", "median_steps", "sd_steps")
 ) + ggtitle("NDE")
 
 NIE_steps_plot <- make_sim_statistics_plot(
-  sim_statistics_long, est_type = 'NIE',
+  sim_statistics_long,
+  est_type = "NIE",
   stats = c("mean_steps", "median_steps", "sd_steps")
 ) + ggtitle("NIE")
 
 ggsave(
-  here('sandbox/plots/NDE_combined.png'),
+  here("sandbox/plots/NDE_combined.png"),
   NDE_combined_stats_plot,
   width = 13,
   height = 7,
@@ -176,7 +183,7 @@ ggsave(
 )
 
 ggsave(
-  here('sandbox/plots/NIE_combined.png'),
+  here("sandbox/plots/NIE_combined.png"),
   NIE_combined_stats_plot,
   width = 13,
   height = 7,
@@ -184,7 +191,7 @@ ggsave(
 )
 
 ggsave(
-  here('sandbox/plots/NDE_steps.png'),
+  here("sandbox/plots/NDE_steps.png"),
   NDE_steps_plot,
   width = 13,
   height = 7,
@@ -192,7 +199,7 @@ ggsave(
 )
 
 ggsave(
-  here('sandbox/plots/NIE_steps.png'),
+  here("sandbox/plots/NIE_steps.png"),
   NIE_steps_plot,
   width = 13,
   height = 7,

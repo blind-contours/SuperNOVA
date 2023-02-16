@@ -1,9 +1,9 @@
 #' Compute the Pooled Shift Parameter Estimate From the Fold Specific Results
 #' For the Effect Modification Parameter
 #'
-#' @details Estimate the value of the pooled causal parameter alongside statistical
-#'  inference for the parameter estimate based on the nuisance parameters from
-#'  the fold specific results.
+#' @details Estimate the value of the pooled causal parameter alongside
+#'  statistical inference for the parameter estimate based on the nuisance
+#'  parameters from the fold specific results.
 #'
 #' @param y A \code{numeric} vector of the observed outcomes.
 #' @param fluc_mod_out An object giving values of the logistic tilting model

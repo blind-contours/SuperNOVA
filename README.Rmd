@@ -36,22 +36,12 @@ __Authors:__ [David McCoy](https://davidmccoy.org)
 
 ## What's `SuperNOVA`?
 
-The `SuperNOVA` R package is designed to provide facilities to data-adaptively identify 
-variable sets that are most predictive of an outcome of interest and construct
-efficient estimators for the counterfactual mean of an outcome under
-stochastic interventions on these variables. Stochastic interventions are shifts
-to the exposures that depend on the naturally observed values
-[@diaz2012population; @haneuse2013estimation]. `SuperNOVA` builds off of the `txshift` 
-package which implements the targeted maximum likelihood (TML) estimator
-of a stochastic shift causal parameter originally proposed by @diaz2018stochastic. `SuperNOVA` extends 
-the original stochastic intervention methodology from one treatment/exposure variable to include
-joint stochastic interventions on two variables which allows for the construction of a non-parametric
-interaction parameter and mediation. Likewise, `SuperNOVA` also estimates both individual stochastic intervention outcomes
-under some delta shift compared to outcome under no intervention and a target parameter for effect modification which
-is the difference in mean outcomes under intervention compared to no intervention across strata of an effect modifier which is data-adaptively determined.
+The `SuperNOVA` R package provides users with the tools necessary to identify the most predictive variable sets for a given outcome and develop efficient estimators for the counterfactual mean of the outcome under stochastic interventions on those variables. These interventions are shifts to the exposures that are dependent on naturally observed values [@diaz2012population; @haneuse2013estimation]. Building on the `txshift` package, which implements the TML estimator for a stochastic shift causal parameter, `SuperNOVA` extends this methodology to include joint stochastic interventions on two variables, allowing for the construction of a non-parametric interaction parameter and mediation (in development). Additionally, `SuperNOVA` estimates individual stochastic intervention outcomes under some delta shift compared to the outcome under no intervention, and a target parameter for effect modification, which is the mean outcome under intervention in regions of the covariate space that are also data-adaptively determined.
 
-Of course, it is not known a priori in most cases what variables are interacting or modifying effects (especially in the case of a mixed exposure) and 
-therefore it is necessary to identify these variable sets first. As such `SuperNOVA` uses k-fold cross-validation framework to estimate a data-adaptive parameter in training folds and a non-parametric interaction target parameter in estimation folds. Our data-adaptive parameters are variable sets used in basis functions in the best fitting multivariate adaptive regression spline model or highly adaptive lasso model. The best fitting model is determined using a Super Learner which selects the model from an ensemble with the lowest cross-validated MSE. Variable sets are considered important based on ANOVA-like variance decompositions for the basis functions in the best fitting model. Individual variables and variable sets used in all the training folds are considered consistent predictors. The interaction target parameter is applied to variable sets composed of two variables in the mixed exposure. This target parameter is the expected outcome under a dual shift of both variables by some delta compared to the sum of individual shifts. Other parameters exist for effect modification and individual variable shifts. Cross-validated targeted minimum loss-based estimation (TMLE) is used to update the initial expected outcomes given stochastic shift interventions.  This method, called SuperNOVA, guarantees consistency, efficiency, and multiple robustness. SuperNOVA provides researchers with k-fold specific and pooled results for each target parameter. Additional information is provided in the vignette. 
+The `SuperNOVA` package provides a comprehensive solution for identifying variable sets that interact or modify effects in the context of mixed exposures. To achieve this, we use a k-fold cross-validation framework to estimate a data-adaptive parameter, namely, stochastic shift target parameters for variable sets that are discovered to be predictive of the outcome. We ensure unbiased estimation of the data-adaptive parameter by employing cross-validated targeted maximum likelihood estimation. In this approach, we split the data into parameter-generating and estimation samples. In the parameter-generating sample, we fit an ensemble of basis function estimators to the data and select the estimator with the lowest cross-validated mean squared error. We then extract important variable sets using ANOVA-like variance decomposition of the linear combination of basis functions. In the estimation fold, we use targeted learning to estimate causal target parameters for interaction, effect modification, and individual variable shifts. That is, we estimate the counterfactual mean different of these discovered variable sets under a shift of $\delta$ (an amount to shift an exposure by) compared to the observed outcome under observed exposure. `SuperNOVA` is a versatile tool that provides researchers with k-fold specific and pooled results for each target parameter. More details are available in the accompanying vignette.
+
+Users simply input a vector for exposures, covariates, and an outcome. The user also specifies the respective $\delta$ for each exposure (the amount to shift by) and if this delta should be adaptive based on positivity violations (see vignette). `SuperNOVA` comes with flexible default machine learning algorithms used in the data-adaptive procedure and for estimation of each of the nuisance parameters. Given these inputs `SuperNOVA` outputs tables for fold specific results (say exposure 1 under shifts for each fold it was found predictive) and pooled results which uses a pooled TMLE fluctuation across the folds to esimate an average effect. 
+
 
 `SuperNOVA` integrates with the [`sl3`
 package](https://github.com/tlverse/sl3) [@coyle-sl3-rpkg] to allow for ensemble
@@ -66,30 +56,46 @@ that are flexible yet not overly computationally taxing.
 
 ## Installation
 
-_Note:_ Because `SuperNOVA` package (currently) depends on `sl3` that allows 
-ensemble machine learning to be used for 
-nuisance parameter estimation and `sl3` is not on CRAN the `SuperNOVA` package 
-is not available on CRAN and must be downloaded here. 
+*Note:* Because the `SuperNOVA` package (currently) depends on `sl3` that
+allows ensemble machine learning to be used for nuisance parameter
+estimation and `sl3` is not on CRAN the `SuperNOVA` package is not
+available on CRAN and must be downloaded here.
 
+There are many depedencies for `SuperNOVA` so it's easier to break up 
+installation of the various packages to ensure proper installation. 
 
-```{r gh-master-installation, eval = FALSE}
-remotes::install_github("blind-contours/SuperNOVA@main")
+First install the basis estimators used in the data-adaptive
+variable discovery of the exposure and covariate space: 
+
+```{r tree-packages, eval = FALSE}
+install.packages("earth")
+install.packages("hal9001")
 ```
 
-`SuperNOVA` uses `sl3` so please download sl3 from:
-```{r sl3_install, eval = FALSE}
+`SuperNOVA` uses the `sl3` package to build ensemble machine learners for each nuisance parameter. 
+We have to install off the development branch, first download these two packages for `sl3`
+
+```{r super-learner-packages,  eval = FALSE}
+install.packages(c("ranger", "arm", "xgboost", "nnls"))
+```
+
+Now install `sl3` on devel:
+
+```{r sl3_devel,  eval = FALSE}
 remotes::install_github("tlverse/sl3@devel")
 ```
 
+Make sure `sl3` installs correctly then install `SuperNOVA`
 
-To contribute, install the _mediation_ version of `SuperNOVA` from GitHub via
-[`remotes`](https://CRAN.R-project.org/package=remotes):
-
-```{r gh-devel-installation, eval = FALSE}
-remotes::install_github("blind-contours/SuperNOVA@mediation")
+```{r SuperNOVA_install,  eval = FALSE}
+remotes::install_github("blind-contours/SuperNOVA@main")
 ```
 
-This is under development and issues should be written in the issues page.
+`SuperNOVA` has some other miscellaneous dependencies that are used in the examples as well as in the plotting functions. 
+
+```{r msc_package,  eval = FALSE}
+install.packages(c("kableExtra", "hrbrthemes", "viridis"))
+```
 
 ---
 
@@ -101,8 +107,8 @@ To illustrate how `SuperNOVA` may be used to ascertain the effect of a mixed exp
 library(SuperNOVA)
 library(devtools)
 library(kableExtra)
+library(sl3)
 
-load_all("~/sl3")
 set.seed(429153)
 # simulate simple data
 n_obs <- 100000
@@ -110,6 +116,7 @@ n_obs <- 100000
 
 
 The `simulate_data` function creates simulated data with a multivariate exposure, covariates (confounders), and a continuous outcome.
+
 ```{r simulate data, eval = TRUE}
 data <- simulate_data(n_obs = n_obs, shift_var_index = c(3))
 effect <- data$effect
@@ -188,15 +195,17 @@ joint_shift_results$M1M3 %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
 
-```
 ---
 
 ## Issues
 
-If you encounter any bugs or have any specific feature requests, please [file an
-issue](https://github.com/blind-contours/SuperNOVA/issues). Further details on filing
+If you encounter any bugs or have any specific feature requests, 
+please [file an
+issue](https://github.com/blind-contours/SuperNOVA/issues). Further details
+on filing
 issues are provided in our [contribution
-guidelines](https://github.com/blind-contours/SuperNOVA/blob/master/CONTRIBUTING.md).
+guidelines](https://github.com/blind-contours/
+SuperNOVA/main/contributing.md).
 
 ---
 

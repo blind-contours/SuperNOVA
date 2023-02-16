@@ -1,14 +1,15 @@
 Package: SuperNOVA
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Title: Semi-Parametric Identification and Estimation of Interaction and Effect Modification in Mixed Exposures using Stochastic Interventions
+Version: 1.0
 Authors@R: 
-    person(given = "First",
-           family = "Last",
+    person(given = "David",
+           family = "McCoy",
            role = c("aut", "cre"),
-           email = "first.last@example.com",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: MIT + file LICENSE
+           email = "david_mccoy@berkeley.edu",
+           comment = c(ORCID = "0000-0002-5515-6307"))
+Description: A methodology for mixed exposure analysis that leverages
+    data-adaptive target parameters, CV-TMLE, stochastic interventions and basis function decomposition.
+License: MIT
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)

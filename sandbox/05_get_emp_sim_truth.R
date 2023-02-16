@@ -3,7 +3,7 @@ source(here("sandbox/01_setup_data.R"))
 source(here("sandbox/02_fit_estimators.R"))
 source(here("/tests/testthat/helper-dgp.R"))
 
-timestamp <- '2020-04-20_16:57:52'
+timestamp <- "2020-04-20_16:57:52"
 sample_size <- 2000
 data_sim <- make_simulated_data(n_obs = sample_size)
 
@@ -13,7 +13,7 @@ get_sim_truth_NIE_NDE <- function(data = data_sim, n_obs) { # number of observat
 
   w_names <- str_subset(colnames(data), "W")
   z_names <- str_subset(colnames(data), "Z")
-  W <- subset(data, select =w_names)
+  W <- subset(data, select = w_names)
   Z <- subset(data, select = z_names)
 
   dgp <- make_dgp()
@@ -77,7 +77,3 @@ psi_NIE_true
 # load simulated data
 
 sim_results <- readRDS(file = here("data", paste0("tmle3mediate_", timestamp, ".rds")))
-
-
-
-

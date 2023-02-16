@@ -74,7 +74,7 @@
 #'  under a modified treatment policy that shifts a continuous-valued exposure
 #'  by a scalar amount \code{delta}. These exposure are data-adaptively
 #'  identified using the CV-TMLE procedure.
-#')
+#' )
 
 SuperNOVA <- function(w,
                       a,

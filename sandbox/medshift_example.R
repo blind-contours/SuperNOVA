@@ -36,27 +36,37 @@ m_learner <- phi_learner <-
   Lrnr_cv$new(Lrnr_glm$new(family = stats::gaussian()), full_fit = TRUE)
 
 # Test different estimators
-reweighted_medshift <- medshift(W = example_data$W, A = example_data$A,
-                                Z = example_data$Z, Y = example_data$Y,
-                                delta = 3, estimator = "reweighted",
-                                estimator_args = list(cv_folds = 3))
+reweighted_medshift <- medshift(
+  W = example_data$W, A = example_data$A,
+  Z = example_data$Z, Y = example_data$Y,
+  delta = 3, estimator = "reweighted",
+  estimator_args = list(cv_folds = 3)
+)
 
-onestep_medshift <- medshift(W = example_data$W, A = example_data$A,
-                             Z = example_data$Z, Y = example_data$Y,
-                             delta = 3, estimator = "onestep",
-                             estimator_args = list(cv_folds = 3))
+onestep_medshift <- medshift(
+  W = example_data$W, A = example_data$A,
+  Z = example_data$Z, Y = example_data$Y,
+  delta = 3, estimator = "onestep",
+  estimator_args = list(cv_folds = 3)
+)
 
-sub_medshift <- medshift(W = example_data$W, A = example_data$A,
-                         Z = example_data$Z, Y = example_data$Y,
-                         delta = 3, estimator = "substitution",
-                         estimator_args = list(cv_folds = 3))
+sub_medshift <- medshift(
+  W = example_data$W, A = example_data$A,
+  Z = example_data$Z, Y = example_data$Y,
+  delta = 3, estimator = "substitution",
+  estimator_args = list(cv_folds = 3)
+)
 
-#get 'tmle3_Task' not found error here
-tmle_medshift <- medshift(W = example_data$W, A = example_data$A,
-                          Z = example_data$Z, Y = example_data$Y,
-                          delta = 3, estimator = "tmle",
-                          g_learners = g_learner, e_learner = e_learner,
-                          m_learner = m_learner, phi_learners = phi_learner,
-                          estimator_args = list(cv_folds = 3,
-                                                max_iter =  10,
-                                                step_size = 1e-6))
+# get 'tmle3_Task' not found error here
+tmle_medshift <- medshift(
+  W = example_data$W, A = example_data$A,
+  Z = example_data$Z, Y = example_data$Y,
+  delta = 3, estimator = "tmle",
+  g_learners = g_learner, e_learner = e_learner,
+  m_learner = m_learner, phi_learners = phi_learner,
+  estimator_args = list(
+    cv_folds = 3,
+    max_iter = 10,
+    step_size = 1e-6
+  )
+)

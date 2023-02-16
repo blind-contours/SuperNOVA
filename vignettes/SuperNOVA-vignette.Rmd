@@ -144,6 +144,7 @@ First, let's load the packages we'll use and set a seed for simulation:
 
 ```{r setup, message=FALSE, warning=FALSE}
 library(data.table)
+library(dplyr)
 library(kableExtra)
 library(SuperNOVA)
 
@@ -189,7 +190,8 @@ NIEH_results <- SuperNOVA(
   verbose = TRUE,
   parallel = TRUE,
   num_cores = 5,
-  seed = seed
+  seed = seed,
+  adaptive_delta = TRUE
 )
 
 proc.time() - ptm
@@ -200,14 +202,17 @@ joint_shift_results <- NIEH_results$`Joint Shift Results`
 ```
 
 
-Let's look at the results for the variable $X1$ which should have a positive 
+Let's look at the results for the variable $X7$ which should have a positive 
 effect given the data dictionary provided: 
 
 ```{r individual results}
-indiv_shift_results$X1 %>%
+indiv_shift_results$X7 %>%
   kableExtra::kbl(caption = "Effect Modification Results") %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
+
+We ran `SuperNOVA` with two folds and above we see this exposure was identified in both folds. We also set `adaptive_delta` = TRUE, 
+with an initial shift value of 1. As we can see - in both folds this exposure was found, the delta was reduced to 0.59 to ensure there are no positivity violations (incurring a shift that is unfeasible). The pooled estimate is an average across the folds and variance estimates for the pooled result are done via a pooled targeted estimation fluctuation step using nuisance parameters across the folds. Here, our interpretation of this finding is "If all individuals were exposed to a 0.59 increase in X7 the expected outcome increases by 2.37". This result is significant for both the pooled estimate and the fold specific estimates. 
 
 Now let's look for effect modification: 
 ```{r joint results}
@@ -217,16 +222,17 @@ em_results$X7Z %>%
 ```
 
 This shows there are differential effects on the impact of shifting $X7$ between
-strata of the baseline covariate Z. 
+strata of the baseline covariate Z. This result was found in 1 fold and so the fold specific and pooled results are the same. This is an example of a less consistent finding as it wasn't found in all the folds. The user should incorporate this information into their interpretation of findings. Findings are more consistent with higher CV fold values. 
+
+Here we see that when Z = 0 a 0.47 shift in X7 leads to an average outcome of 17.43 and when Z = 1 the average outcome for the same shift is 33.7. 
 
 ```{r interaction results}
-joint_shift_results$X1X5 %>%
+joint_shift_results$X2X7 %>%
   kableExtra::kbl(caption = "Interaction Results") %>%
-  kableExtra::kable_classic(full_width = F, html_font = "Cambria")
+  kableExtra::kable_classic(full_width = T, html_font = "Cambria")
 ```
 
-Here we see in three of the folds an interaction effect was found for $X1$ and
-$X5$. 
+Here we see that in one of the folds an interaction between X2 and X7 was found. The adaptive delta was set to 0.22 for X2 and 0.35 for X7. An increase of 0.22 in X2 leads to a 0.64 increase in Y and a 0.35 increase in X7 leads to a 1.23 increase in Y. An increase in both by these amounts changes Y by 1.87 compared to the additive sum 1.87 if we just add both these individual estimates together. Thus, there is no evidence of interaction given our definition in this case that is more than additive effects. 
 
 
 

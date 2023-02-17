@@ -9,8 +9,8 @@ if (grepl("savio2", Sys.info()["nodename"])) {
 
 # packages
 library(here)
-library(SuperNOVA)
-devtools::load_all(here())
+library(devtools)
+load_all(here())
 source(here("sandbox/02_fit_estimators.R"))
 
 # simulation parameters

@@ -132,7 +132,7 @@ Because `SuperNOVA` gets the TMLE updated shift parameter for each condition (in
 
 For each exposure, the user inputs a respective delta, for example for exposures $M1, M2, M3$ the analyst puts in the `deltas` vector 
 
-```{r setup, message=FALSE, warning=FALSE}
+```{r deltas, message=FALSE, warning=FALSE}
 deltas <- c("M1" = 1, "M2" = 2.3, "M3" = 1.4)
 ```
 

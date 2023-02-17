@@ -9,37 +9,19 @@ if (grepl("savio2", Sys.info()["nodename"])) {
 
 # packages
 library(here)
-library(foreach)
-library(future)
-library(doFuture)
-library(doRNG)
-library(data.table)
-library(tidyverse)
-library(hal9001)
-library(origami)
-library(sl3)
-library(tmle3)
 library(SuperNOVA)
 devtools::load_all(here())
-source(here("sandbox", "02_fit_estimators.R"))
-
+source(here("sandbox/02_fit_estimators.R"))
 
 # simulation parameters
-set.seed(7259)
 n_sim <- 5 # number of simulations
-n_obs <- c(500, 1000, 1500) # sample sizes at root-n scale
+n_obs <- c(250, 500, 1000, 1500, 2000, 2500) # sample sizes at root-n scale
 
 # Generate simulated data -----------------
 
-data <- simulate_mediation_data(n_obs = 100000)
-nde_truth <- data$nde
-nie_truth <- data$nie
-ate_a_1 <- data$ate_a_1
-ate_a_2 <- data$ate_a_2
-a2_effect_in_w2_1 <- data$effect_mod_a2w2_lvl_1
-a2_effect_in_w2_0 <- data$effect_mod_a2w2_lvl_0
-
-p0_data <- data$data
+full_data <- simulate_data(n_obs = 100000, shift_var_index = 1)
+p0_data <- sim_data$data
+effect <- sim_data$effect
 
 # perform simulation across sample sizes
 sim_results_df <- data.frame()
@@ -60,18 +42,13 @@ for (sample_size in n_obs) {
 
     est_out <- fit_estimators(
       data = as.data.frame(data_sim),
-      covars = c("w_1", "w_2", "w_3"),
-      exposures = c("a_1", "a_2"),
-      mediators = c("z_1"),
-      outcome = "y",
+      covars = c("W1", "W2"),
+      exposures = c("M1", "M2", "M3"),
+      outcome = "Y",
       seed = seed,
-      nde_truth = nde_truth,
-      nie_truth = nie_truth,
-      ate_a_1 = ate_a_1,
-      ate_a_2 = ate_a_2,
-      a2_effect_in_w2_1 = a2_effect_in_w2_1,
-      a2_effect_in_w2_0 = a2_effect_in_w2_0,
-      deltas = list("a_1" = 1, "a_2" = 1),
+      effect_truth = effect,
+      deltas = list("M1" = 1, "M2" = 0, "M3" = 0),
+      shift_var = "M1",
       cv_folds = 2
     )
 
@@ -89,5 +66,5 @@ for (sample_size in n_obs) {
 timestamp <- str_replace_all(Sys.time(), " ", "_")
 saveRDS(
   object = sim_results_df,
-  file = here("sandbox/data", paste0("CVtreeMLE_", "sim", ".rds"))
+  file = here("sandbox/data", paste0("SuperNOVA_", "sim", ".rds"))
 )

@@ -33,30 +33,23 @@ est_nde_nie <- function(data, m_learners, g_learners, e_learners,
 fit_estimators <- function(data,
                            covars,
                            exposures,
-                           mediators,
                            outcome,
                            seed,
-                           nde_truth,
-                           nie_truth,
-                           ate_a_1,
-                           ate_a_2,
-                           a2_effect_in_w2_1,
-                           a2_effect_in_w2_0,
+                           effect_truth,
                            deltas,
-                           cv_folds) {
+                           shift_var,
+                           cv_folds){
   ## setup learners
 
   w <- data[, covars]
   a <- data[, exposures]
-  z <- data[, mediators]
   y <- data[, outcome]
 
   sim_results <- SuperNOVA(
     w = w,
     a = a,
-    z = z,
     y = y,
-    var_sets = c("a_1"),
+    var_sets = shift_var,
     delta = deltas,
     estimator = "tmle",
     fluctuation = "standard",
@@ -74,61 +67,25 @@ fit_estimators <- function(data,
   joint_shift_results <- sim_results$`Joint Shift Results`
   med_shift_results <- sim_results$`Mediation Shift Results`
 
-  if (is.null(indiv_shift_results$a_1) == FALSE) {
-    a1_results <- indiv_shift_results$a_1
-    a1_pooled <- a1_results[a1_results$Fold == "Pooled TMLE", ]
-    a1_est <- a1_pooled$Psi
-    a1_bias <- a1_est - ate_a_1
-    a1_cov <- ifelse(
-      (a1_pooled$`Lower CI` <= ate_a_1 &
-        ate_a_1 <= a1_pooled$`Upper CI`), 1, 0
+  if (is.null(indiv_shift_results[[shift_var]]) == FALSE) {
+    exposure_results <- indiv_shift_results[[shift_var]]
+    exposure_results_pooled <- exposure_results[exposure_results$Fold == "Pooled TMLE", ]
+    pooled_exposure_est <- exposure_results_pooled$Psi
+    pooled_bias <- effect - pooled_exposure_est
+    exposure_cov <- ifelse(
+      (exposure_results_pooled$`Lower CI` <= effect &
+        effect <= exposure_results_pooled$`Upper CI`), 1, 0
     )
   } else {
-    a1_est <- NULL
-    a1_bias <- NULL
-    a1_cov <- NULL
-  }
-
-  if (is.null(indiv_shift_results$a_2) == FALSE) {
-    a2_results <- indiv_shift_results$a_2
-    a2_pooled <- a2_results[a2_results$Fold == "Pooled TMLE", ]
-    a2_est <- a2_pooled$Psi
-    a2_bias <- a2_est - ate_a_2
-    a2_cov <- ifelse(
-      (a2_pooled$`Lower CI` <= ate_a_2 &
-        ate_a_2 <= a2_pooled$`Upper CI`), 1, 0
-    )
-  } else {
-    a2_est <- NULL
-    a2_bias <- NULL
-    a2_cov <- NULL
-  }
-
-  if (is.null(indiv_shift_results$a_3) == FALSE) {
-    a3_results <- indiv_shift_results$a_3
-    a3_pooled <- a3_results[a3_results$Fold == "Pooled TMLE", ]
-    a3_est <- a3_pooled$Psi
-    a3_bias <- a3_est - ate_a_3
-    a3_cov <- ifelse(
-      (a3_pooled$`Lower CI` <= ate_a_3 &
-        ate_a_3 <= a3_pooled$`Upper CI`), 1, 0
-    )
-  } else {
-    a3_est <- NULL
-    a3_bias <- NULL
-    a3_cov <- NULL
+    pooled_exposure_est <- NULL
+    pooled_bias <- NULL
+    exposure_cov <- NULL
   }
 
   indiv_results <- list(
-    "a1_est" = a1_est,
-    "a1_bias" = a1_bias,
-    "a1_cov" = a1_cov,
-    "a2_est" = a2_est,
-    "a2_bias" = a2_bias,
-    "a2_cov" = a2_cov,
-    "a3_est" = a3_est,
-    "a3_bias" = a3_bias,
-    "a3_cov" = a3_cov
+    "pooled_exposure_est" = pooled_exposure_est,
+    "pooled_bias" = pooled_bias,
+    "exposure_cov" = exposure_cov
   )
 
 
@@ -155,25 +112,19 @@ fit_estimators <- function(data,
       (a_2w_2_pooled_1$`Lower CI` <= a2_effect_in_w2_1 &
         a2_effect_in_w2_1 <= a_2w_2_pooled_1$`Upper CI`), 1, 0
     )
+
+    em_results <- list(
+      "a_2w_2_pooled_0_est" = a_2w_2_pooled_0_est,
+      "a_2w_2_pooled_1_est" = a_2w_2_pooled_1_est,
+      "a_2w_2_0_bias" = a_2w_2_0_bias,
+      "a_2w_2_1_bias" = a_2w_2_1_bias,
+      "a_2w_2_0_cov" = a_2w_2_0_cov,
+      "a_2w_2_1_cov" = a_2w_2_1_cov
+    )
+
   } else {
-    a_2w_2_pooled_0_est <- NULL
-    a_2w_2_pooled_1_est <- NULL
-
-    a_2w_2_0_bias <- NULL
-    a_2w_2_1_bias <- NULL
-
-    a_2w_2_0_cov <- NULL
-    a_2w_2_1_cov <- NULL
+    em_results <-  NULL
   }
-
-  em_results <- list(
-    "a_2w_2_pooled_0_est" = a_2w_2_pooled_0_est,
-    "a_2w_2_pooled_1_est" = a_2w_2_pooled_1_est,
-    "a_2w_2_0_bias" = a_2w_2_0_bias,
-    "a_2w_2_1_bias" = a_2w_2_1_bias,
-    "a_2w_2_0_cov" = a_2w_2_0_cov,
-    "a_2w_2_1_cov" = a_2w_2_1_cov
-  )
 
   if (is.null(names(med_shift_results)) == FALSE) {
     if (is.null(med_shift_results$a_1z) == FALSE) {
@@ -208,19 +159,19 @@ fit_estimators <- function(data,
       a_1z_nde_cov <- NULL
       a_1z_nie_cov <- NULL
     }
+
+    med_results <- list(
+      "a_1z_nde" = a_1z_nde,
+      "a_1z_nie" = a_1z_nie,
+      "a_1z_nde_bias" = a_1z_nde_bias,
+      "a_1z_nie_bias" = a_1z_nie_bias,
+      "a_1z_nde_cov" = a_1z_nde_cov,
+      "a_1z_nie_cov" = a_1z_nie_cov
+    )
+
+  }else{
+    med_results <- NULL
   }
-
-
-  med_results <- list(
-    "a_1z_nde" = a_1z_nde,
-    "a_1z_nie" = a_1z_nie,
-    "a_1z_nde_bias" = a_1z_nde_bias,
-    "a_1z_nie_bias" = a_1z_nie_bias,
-    "a_1z_nde_cov" = a_1z_nde_cov,
-    "a_1z_nie_cov" = a_1z_nie_cov
-  )
-
-
 
   # bundle estimators in list
   estimates <- c(indiv_results, em_results, med_results)

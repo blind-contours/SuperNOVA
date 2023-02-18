@@ -11,8 +11,8 @@ n_obs <- c(250, 500, 1000, 1500, 2000, 2500) # sample sizes at root-n scale
 # Generate simulated data -----------------
 
 full_data <- simulate_data(n_obs = 100000, shift_var_index = 1)
-p0_data <- sim_data$data
-effect <- sim_data$effect
+p0_data <- full_data$data
+effect <- full_data$effect
 
 # perform simulation across sample sizes
 sim_results_df <- data.frame()

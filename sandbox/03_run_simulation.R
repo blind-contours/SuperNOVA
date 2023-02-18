@@ -2,6 +2,7 @@
 library(here)
 library(devtools)
 library(SuperNOVA)
+library(magrittr)
 source(here("sandbox/02_fit_estimators.R"))
 
 # simulation parameters

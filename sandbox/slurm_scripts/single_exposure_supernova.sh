@@ -3,16 +3,16 @@
 #SBATCH --job-name=single_shift_supernova
 #
 # Partition:
-#SBATCH --partition=savio3
+#SBATCH --partition=savio2
 #
 
-#SBATCH --qos=biostat_savio3_normal
+#SBATCH --qos=biostat_savio2_normal
 #SBATCH --account=co_biostat
 
 # Number of nodes for use case:
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=30
+#SBATCH --cpus-per-task=20
 #SBATCH --exclusive
 #
 # Wall clock limit:

@@ -1,12 +1,3 @@
-# be sure to set this env variable by `export R_LIBDIR=/path/to/your/R/libs`
-r_libdir <- Sys.getenv("R_LIBDIR")
-
-# set user-specific package library
-if (grepl("savio2", Sys.info()["nodename"])) {
-  .libPaths(r_libdir)
-  Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS = "true")
-}
-
 # packages
 library(here)
 library(devtools)

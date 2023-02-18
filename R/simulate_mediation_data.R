@@ -6,7 +6,6 @@
 #' @return A data frame of simulated mediation data
 #' @export
 #' @importFrom MASS mvrnorm
-#' @importFrom bindata rmvbin
 #' @importFrom stats rnorm rbinom
 
 simulate_mediation_data <- function(n_obs = 100000,

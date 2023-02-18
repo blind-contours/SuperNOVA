@@ -16,14 +16,12 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.1
 Imports: 
     assertthat,
-    bindata,
     cvTools,
     data.table,
     dplyr,
     foreach,
     future,
     ggplot2,
-    haldensify,
     magrittr,
     MASS,
     Rdpack,
@@ -38,7 +36,8 @@ Suggests:
     rmarkdown,
     knitr,
     testthat (>= 3.0.0),
-    kableExtra
+    kableExtra,
+    haldensify
 VignetteBuilder: knitr
 Depends: 
     R (>= 2.10)

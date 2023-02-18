@@ -3,8 +3,7 @@
 #'
 #' @return The density learner used in the g and z density estimation procedure
 #' @export
-#' @importFrom MASS mvrnorm
-#' @importFrom bindata rmvbin
+#' @import sl3
 
 make_density_superlearner <- function() {
   make_metalearner <- function() {

@@ -9,7 +9,6 @@
 #' @return A dataframe of simulated data
 #' @export
 #' @importFrom MASS mvrnorm
-#' @importFrom bindata rmvbin
 
 simulate_data <- function(n_obs = 100000,
                           shift_var_index = 1,

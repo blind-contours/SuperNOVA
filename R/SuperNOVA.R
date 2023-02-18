@@ -60,7 +60,6 @@
 #'
 #' @export
 #' @importFrom MASS mvrnorm
-#' @importFrom bindata rmvbin
 #' @importFrom foreach %dopar%
 #' @importFrom magrittr %>%
 #' @importFrom stats as.formula glm p.adjust plogis predict qlogis qnorm qunif rnorm runif

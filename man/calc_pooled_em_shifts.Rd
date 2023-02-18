@@ -49,7 +49,7 @@ Compute the Pooled Shift Parameter Estimate From the Fold Specific Results
 For the Effect Modification Parameter
 }
 \details{
-Estimate the value of the pooled causal parameter alongside statistical
-inference for the parameter estimate based on the nuisance parameters from
-the fold specific results.
+Estimate the value of the pooled causal parameter alongside
+statistical inference for the parameter estimate based on the nuisance
+parameters from the fold specific results.
 }

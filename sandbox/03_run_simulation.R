@@ -1,7 +1,7 @@
 # packages
 library(here)
 library(devtools)
-load_all(here())
+library(SuperNOVA)
 source(here("sandbox/02_fit_estimators.R"))
 
 # simulation parameters

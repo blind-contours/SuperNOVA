@@ -8,7 +8,7 @@ library(stringr)
 source(here("sandbox/02_fit_estimators.R"))
 
 # simulation parameters
-n_sim <- 5 # number of simulations
+n_sim <- 50 # number of simulations
 n_obs <- c(250, 500, 1000, 1500, 2000, 2500) # sample sizes at root-n scale
 
 # Generate simulated data -----------------

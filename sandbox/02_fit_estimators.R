@@ -35,10 +35,14 @@ fit_estimators <- function(data,
                            exposures,
                            outcome,
                            seed,
-                           effect_truth,
+                           true_effects,
+                           m14_effect_truth,
+                           m14_intxn_truth,
+                           true_em_effects,
                            deltas,
                            shift_var,
-                           cv_folds){
+                           cv_folds,
+                           var_sets){
   ## setup learners
 
   w <- data[, covars]
@@ -49,7 +53,6 @@ fit_estimators <- function(data,
     w = w,
     a = a,
     y = y,
-    var_sets = shift_var,
     delta = deltas,
     estimator = "tmle",
     fluctuation = "standard",
@@ -58,123 +61,96 @@ fit_estimators <- function(data,
     quantile_thresh = 0,
     verbose = TRUE,
     parallel = TRUE,
-    seed = seed
+    seed = seed,
+    var_sets = var_sets
   )
 
 
   indiv_shift_results <- sim_results$`Indiv Shift Results`
   em_results <- sim_results$`Effect Mod Results`
   joint_shift_results <- sim_results$`Joint Shift Results`
-  med_shift_results <- sim_results$`Mediation Shift Results`
 
-  if (is.null(indiv_shift_results[[shift_var]]) == FALSE) {
-    exposure_results <- indiv_shift_results[[shift_var]]
+  indiv_biases <- vector()
+  indiv_coverage <- vector()
+  indiv_estimates <- vector()
+
+  for (i in seq(true_effects)) {
+    true_effect <- true_effects[i]
+    exposure_results <- indiv_shift_results[[i]]
     exposure_results_pooled <- exposure_results[exposure_results$Fold == "Pooled TMLE", ]
     pooled_exposure_est <- exposure_results_pooled$Psi
-    pooled_bias <- effect - pooled_exposure_est
-    exposure_cov <- ifelse(
-      (exposure_results_pooled$`Lower CI` <= effect &
-        effect <= exposure_results_pooled$`Upper CI`), 1, 0
+    indiv_biases[[i]] <- true_effect - pooled_exposure_est
+    indiv_coverage[[i]] <- ifelse(
+      (exposure_results_pooled$`Lower CI` <= true_effect &
+         true_effect <= exposure_results_pooled$`Upper CI`), 1, 0
     )
-  } else {
-    pooled_exposure_est <- NULL
-    pooled_bias <- NULL
-    exposure_cov <- NULL
+
+    indiv_estimates[[i]] <- pooled_exposure_est
   }
 
+
   indiv_results <- list(
-    "pooled_exposure_est" = pooled_exposure_est,
-    "pooled_bias" = pooled_bias,
-    "exposure_cov" = exposure_cov
+    "indiv_est" = mean(indiv_estimates),
+    "indiv_bias" = mean(indiv_biases),
+    "indiv_cov" = mean(indiv_coverage)
   )
 
 
-  if (is.null(em_results$a_2w_2) == FALSE) {
-    a_2w_2_results <- em_results$a_2w_2
-    a_2w_2_pooled <- a_2w_2_results[a_2w_2_results$Fold == "Pooled TMLE", ]
+  M1W3_results <- em_results$M1W3
+  M1W3_pooled <- M1W3_results[M1W3_results$Fold == "Pooled TMLE", ]
 
-    a_2w_2_pooled_0 <- a_2w_2_pooled[1, ]
-    a_2w_2_pooled_1 <- a_2w_2_pooled[2, ]
+  est_biases <- mean(true_em_effects[1] -  M1W3_pooled$Psi[2], true_em_effects[2] -  M1W3_pooled$Psi[1])
+
+  level_1_cov <- ifelse(
+    (M1W3_pooled$`Lower CI`[1] <= true_em_effects[2] &
+       true_em_effects[2] <= M1W3_pooled$`Upper CI`[1]), 1, 0
+  )
+
+  level_2_cov <- ifelse(
+    (M1W3_pooled$`Lower CI`[2] <= true_em_effects[1] &
+       true_em_effects[1] <= M1W3_pooled$`Upper CI`[2]), 1, 0
+  )
 
 
-    a_2w_2_pooled_0_est <- a_2w_2_pooled_0$Psi
-    a_2w_2_pooled_1_est <- a_2w_2_pooled_1$Psi
+  effect_mod_results <- list(
+    "em_bias" = est_biases,
+    "em_est" = mean(M1W3_pooled$Psi),
+    "em_cov" = mean(level_1_cov, level_2_cov),
+  )
 
-    a_2w_2_0_bias <- a_2w_2_pooled_0_est - a2_effect_in_w2_0
-    a_2w_2_1_bias <- a_2w_2_pooled_1_est - a2_effect_in_w2_1
 
-    a_2w_2_0_cov <- ifelse(
-      (a_2w_2_pooled_0$`Lower CI` <= a2_effect_in_w2_0 &
-        a2_effect_in_w2_0 <= a_2w_2_pooled_0$`Upper CI`), 1, 0
-    )
+  joint_intxn_results <- joint_shift_results$M1M4
+  pooled_tmle_joint_intxn <- joint_intxn_results[joint_intxn_results$Fold == "Pooled TMLE", ]
+  pooled_tmle_joint <- pooled_tmle_joint_intxn[pooled_tmle_joint_intxn$Condition == "M1&M4", ]
+  pooled_tmle_intxn <- pooled_tmle_joint_intxn[pooled_tmle_joint_intxn$Condition == "Psi", ]
 
-    a_2w_2_1_cov <- ifelse(
-      (a_2w_2_pooled_1$`Lower CI` <= a2_effect_in_w2_1 &
-        a2_effect_in_w2_1 <= a_2w_2_pooled_1$`Upper CI`), 1, 0
-    )
+  intxn_bias <- pooled_tmle_intxn$Psi - m14_intxn_truth
+  joint_bias <- pooled_tmle_joint$Psi - m14_effect_truth
 
-    em_results <- list(
-      "a_2w_2_pooled_0_est" = a_2w_2_pooled_0_est,
-      "a_2w_2_pooled_1_est" = a_2w_2_pooled_1_est,
-      "a_2w_2_0_bias" = a_2w_2_0_bias,
-      "a_2w_2_1_bias" = a_2w_2_1_bias,
-      "a_2w_2_0_cov" = a_2w_2_0_cov,
-      "a_2w_2_1_cov" = a_2w_2_1_cov
-    )
+  intxn_cov <- ifelse(
+    (pooled_tmle_intxn$`Lower CI` <= m14_intxn_truth &
+       m14_intxn_truth <= pooled_tmle_intxn$`Upper CI`), 1, 0
+  )
 
-  } else {
-    em_results <-  NULL
-  }
+  joint_cov <- ifelse(
+    (pooled_tmle_joint$`Lower CI` <= m14_effect_truth &
+       m14_effect_truth <= pooled_tmle_joint$`Upper CI`), 1, 0
+  )
 
-  if (is.null(names(med_shift_results)) == FALSE) {
-    if (is.null(med_shift_results$a_1z) == FALSE) {
-      a_1z_results <- med_shift_results$a_1z
-      a_1z_pooled <- a_1z_results[a_1z_results$Fold == "Pooled TMLE", ]
+  joint_results <- list(
+    "joint_bias" = joint_bias,
+    "joint_est" = pooled_tmle_joint$Psi,
+    "joint_cov" = joint_cov,
+  )
 
-      a_1z_pooled_NDE <- a_1z_pooled[1, ]
-      a_1z_pooled_NIE <- a_1z_pooled[2, ]
-
-      a_1z_nde <- a_1z_pooled_NDE$Estimate
-      a_1z_nie <- a_1z_pooled_NIE$Estimate
-
-      a_1z_nde_bias <- a_1z_nde - nde_truth
-      a_1z_nie_bias <- a_1z_nie - nie_truth
-
-      a_1z_nde_cov <- ifelse(
-        (a_1z_pooled_NDE$`Lower CI` <= nde_truth &
-          nde_truth <= a_1z_pooled_NDE$`Upper CI`), 1, 0
-      )
-
-      a_1z_nie_cov <- ifelse(
-        (a_1z_pooled_NIE$`Lower CI` <= nie_truth &
-          nie_truth <= a_1z_pooled_NIE$`Upper CI`), 1, 0
-      )
-    } else {
-      a_1z_nde <- NULL
-      a_1z_nie <- NULL
-
-      a_1z_nde_bias <- NULL
-      a_1z_nie_bias <- NULL
-
-      a_1z_nde_cov <- NULL
-      a_1z_nie_cov <- NULL
-    }
-
-    med_results <- list(
-      "a_1z_nde" = a_1z_nde,
-      "a_1z_nie" = a_1z_nie,
-      "a_1z_nde_bias" = a_1z_nde_bias,
-      "a_1z_nie_bias" = a_1z_nie_bias,
-      "a_1z_nde_cov" = a_1z_nde_cov,
-      "a_1z_nie_cov" = a_1z_nie_cov
-    )
-
-  }else{
-    med_results <- NULL
-  }
+  intxn_results <- list(
+    "intxn_bias" = intxn_bias,
+    "intxn_est" = pooled_tmle_intxn$Psi,
+    "intxn_cov" = intxn_cov,
+  )
 
   # bundle estimators in list
-  estimates <- c(indiv_results, em_results, med_results)
+  estimates <- c(indiv_results, effect_mod_results, joint_results, intxn_results)
 
   return(estimates)
 }

@@ -149,11 +149,13 @@ calc_final_effect_mod_param <- function(tmle_fit_av,
       / length(em_split_data$ind)), 0
     )
 
-    inverse_prop_eif_pos <- inverse_prop_positive * tmle_fit_av$eif
-    inverse_prop_eif_neg <- inverse_prop_negative * tmle_fit_av$eif
+    inverse_prop_eif_pos <- inverse_prop_positive * (tmle_fit_av$eif - tmle_fit_av$noshift_eif)
+    inverse_prop_eif_neg <- inverse_prop_negative * (tmle_fit_av$eif - tmle_fit_av$noshift_eif)
 
-    psi_em_one <- mean(tmle_fit_av$qn_shift_star[em_split_data$ind == 1])
-    psi_em_zero <- mean(tmle_fit_av$qn_shift_star[em_split_data$ind == 0])
+    diff <- tmle_fit_av$qn_shift_star - tmle_fit_av$qn_noshift_star
+
+    psi_em_one <- mean(diff[em_split_data$ind == 1])
+    psi_em_zero <- mean(diff[em_split_data$ind == 0])
 
     psi_one_var <- var(inverse_prop_eif_pos[em_split_data$ind == 1]) /
       table(em_split_data$ind)[[2]]

@@ -11,7 +11,6 @@
 #' @importFrom MASS mvrnorm
 
 simulate_data <- function(n_obs = 100000,
-                          shift_var_index = 1,
                           sigma_mod = matrix(
                             c(
                               1, 0.5, 0.8, 0.5,
@@ -20,15 +19,19 @@ simulate_data <- function(n_obs = 100000,
                             nrow = 3,
                             ncol = 3
                           ),
-                          delta = 1) {
+                          delta = 0.5) {
+
   covars <- MASS::mvrnorm(
     n = n_obs, mu = c(6, 7),
     Sigma = matrix(c(1, 0.4, 0.4, 1), 2, 2)
   )
 
-  mu_1 <- mean(exp(covars[, 1] / 4))
-  mu_2 <- mean(covars[, 2] / 5)
-  mu_3 <- 2
+  covars <- as.data.frame(covars)
+  covars[,3] <- rbinom(n_obs, size = 1, prob = 0.5)
+
+  mu_1 <- mean(exp(covars[, 1] / 2))
+  mu_2 <- mean(covars[, 2] / 2)
+  mu_3 <- 5
 
   mixtures <- MASS::mvrnorm(
     n = n_obs,
@@ -36,25 +39,85 @@ simulate_data <- function(n_obs = 100000,
     Sigma = sigma_mod
   )
 
+  mixtures <- as.data.frame(mixtures)
+  mixtures[,4] <- rnorm(n_obs, mean = 4, sd = 2)
+
+  mixtures_m14 <- mixtures_m1 <- mixtures_m2 <- mixtures_m3 <- mixtures_m4 <- mixtures
+  covars_0 <- covars_1 <- covars
+
+  covars_0[,3] <- 0
+  covars_1[,3] <- 1
+
   y_mean <- function(mixtures, covars) {
-    0.1 * log(4 * pi * mixtures[, 1]) + 0.6 * plogis(2 * mixtures[, 3]) *
-      covars[, 1] + 0.4 * (plogis(2 * mixtures[, 3]) * exp(mixtures[, 1]) / 100) + 0.1 *
-      covars[, 1] + 0.3 * covars[, 2]
+      1.3 * mixtures[, 4] +
+      ifelse(covars[, 3] == 1,  mixtures[, 3]^2, mixtures[, 3]) +
+      0.4 * mixtures[, 4] * mixtures[, 1] +
+      0.1 * covars[, 1] + 0.3 * covars[, 2]
   }
 
   y <- y_mean(mixtures, covars)
 
-  mixtures[, shift_var_index] <- mixtures[, shift_var_index] + delta
-  y_shifted <- y_mean(mixtures, covars)
+  # shift mixture 1
+  mixtures_m1[, 1] <- mixtures[, 1] + delta
+  m1_y_shifted <- y_mean(mixtures_m1, covars)
 
-  effect <- mean(
-    y_shifted -
+  m1_effect <- mean(
+    m1_y_shifted -
       y
   )
 
+  # shift mixture 2
+  mixtures_m2[, 2] <- mixtures[, 2] + delta
+  m2_y_shifted <- y_mean(mixtures_m2, covars)
 
-  data <- as.data.frame(cbind(mixtures, covars, y, y_shifted))
-  colnames(data) <- c("M1", "M2", "M3", "W1", "W2", "Y", "Y_shifted")
+  m2_effect <- mean(
+    m2_y_shifted -
+      y
+  )
 
-  return(list("data" = data, "effect" = effect))
+  # shift mixture 3
+  mixtures_m3[, 3] <- mixtures[, 3] + delta
+  m3_y_shifted <- y_mean(mixtures_m3, covars)
+
+  m3_y_shifted_covar0 <- mean(y_mean(mixtures_m3, covars_0) - y)
+  m3_y_shifted_covar1 <- mean(y_mean(mixtures_m3, covars_1) - y)
+
+  m3_effect <- mean(
+    m3_y_shifted -
+      y
+  )
+
+  # shift mixture 4
+  mixtures_m4[, 4] <- mixtures[, 4] + delta
+  m4_y_shifted <- y_mean(mixtures_m4, covars)
+
+  m4_effect <- mean(
+    m4_y_shifted -
+      y
+  )
+
+  # shift mixture 1 and 2
+  mixtures_m14[, c(1,4)] <- mixtures[, c(1,4)] + delta
+  m14_y_shifted <- y_mean(mixtures_m14, covars)
+
+  m14_effect <- mean(
+    m14_y_shifted -
+      y
+  )
+
+  m14_intxn <- m14_effect - (m1_effect + m4_effect)
+
+  data <- as.data.frame(cbind(mixtures, covars, y))
+  colnames(data) <- c("M1", "M2", "M3", "M4", "W1", "W2", "W3", "Y")
+
+
+  return(list("data" = data,
+              "m1_effect" = m1_effect,
+              "m2_effect" = m2_effect,
+              "m3_effect" = m3_effect,
+              "m4_effect" = m4_effect,
+              "m14_effect" = m14_effect,
+              "m14_intxn" = m14_intxn,
+              "m3_y_shifted_covar0" = m3_y_shifted_covar0,
+              "m3_y_shifted_covar1" = m3_y_shifted_covar1))
 }

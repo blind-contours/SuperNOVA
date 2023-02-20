@@ -238,7 +238,7 @@ SuperNOVA <- function(w,
   fold_results_intxn <- list()
   fold_results_mediation <- list()
 
-  fold_SuperNOVA_results <- furrr::future_map(
+    fold_SuperNOVA_results <- furrr::future_map(
     unique(data_internal$folds), function(fold_k) {
       at <- data_internal[data_internal$folds != fold_k, ]
       av <- data_internal[data_internal$folds == fold_k, ]
@@ -361,6 +361,7 @@ SuperNOVA <- function(w,
             av = av,
             at = at
           )
+
 
           Hn_av <- gn_exp_estim$Hn_av
           Hn_at <- gn_exp_estim$Hn_at

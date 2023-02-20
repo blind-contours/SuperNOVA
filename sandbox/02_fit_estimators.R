@@ -96,26 +96,25 @@ fit_estimators <- function(data,
   )
 
 
-  M1W3_results <- em_results$M1W3
-  M1W3_pooled <- M1W3_results[M1W3_results$Fold == "Pooled TMLE", ]
+  M3W3_results <- em_results$M3W3
+  M3W3_pooled <- M3W3_results[M3W3_results$Fold == "Pooled TMLE", ]
 
-  est_biases <- mean(true_em_effects[1] -  M1W3_pooled$Psi[2], true_em_effects[2] -  M1W3_pooled$Psi[1])
+  est_biases <- mean(true_em_effects[1] -  M3W3_pooled$Psi[2], true_em_effects[2] -  M3W3_pooled$Psi[1])
 
   level_1_cov <- ifelse(
-    (M1W3_pooled$`Lower CI`[1] <= true_em_effects[2] &
-       true_em_effects[2] <= M1W3_pooled$`Upper CI`[1]), 1, 0
+    (M3W3_pooled$`Lower CI`[1] <= true_em_effects[2] &
+       true_em_effects[2] <= M3W3_pooled$`Upper CI`[1]), 1, 0
   )
 
   level_2_cov <- ifelse(
-    (M1W3_pooled$`Lower CI`[2] <= true_em_effects[1] &
-       true_em_effects[1] <= M1W3_pooled$`Upper CI`[2]), 1, 0
+    (M3W3_pooled$`Lower CI`[2] <= true_em_effects[1] &
+       true_em_effects[1] <= M3W3_pooled$`Upper CI`[2]), 1, 0
   )
-
 
   effect_mod_results <- list(
     "em_bias" = est_biases,
     "em_est" = mean(M1W3_pooled$Psi),
-    "em_cov" = mean(level_1_cov, level_2_cov),
+    "em_cov" = mean(level_1_cov, level_2_cov)
   )
 
 
@@ -140,13 +139,13 @@ fit_estimators <- function(data,
   joint_results <- list(
     "joint_bias" = joint_bias,
     "joint_est" = pooled_tmle_joint$Psi,
-    "joint_cov" = joint_cov,
+    "joint_cov" = joint_cov
   )
 
   intxn_results <- list(
     "intxn_bias" = intxn_bias,
     "intxn_est" = pooled_tmle_intxn$Psi,
-    "intxn_cov" = intxn_cov,
+    "intxn_cov" = intxn_cov
   )
 
   # bundle estimators in list

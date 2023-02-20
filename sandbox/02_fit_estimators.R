@@ -40,7 +40,6 @@ fit_estimators <- function(data,
                            m14_intxn_truth,
                            true_em_effects,
                            deltas,
-                           shift_var,
                            cv_folds,
                            var_sets){
   ## setup learners

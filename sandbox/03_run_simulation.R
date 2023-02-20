@@ -47,6 +47,8 @@ for (sample_size in n_obs) {
     data_sim <- p0_data %>%
       dplyr::slice_sample(n = sample_size)
 
+    colnames(data_sim)
+
     est_out <- fit_estimators(
       data = as.data.frame(data_sim),
       covars = c("W1", "W2", "W3"),

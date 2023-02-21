@@ -2,10 +2,10 @@
 library(here)
 library(devtools)
 library(dplyr)
-library(SuperNOVA)
 library(magrittr)
 library(stringr)
 source(here("sandbox/02_fit_estimators.R"))
+install()
 
 # simulation parameters
 n_sim <- 2 # number of simulations

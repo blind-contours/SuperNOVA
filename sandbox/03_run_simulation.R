@@ -11,8 +11,6 @@ library(SuperNOVA)
 n_sim <- 2 # number of simulations
 n_obs <- c(250, 500, 1000, 1500, 2000, 2500, 3000, 5000) # sample sizes at root-n scale
 p0_obs <- 100000
-shift_var_index <- 1
-delta <- 2
 
 # Generate simulated data -----------------
 
@@ -63,7 +61,7 @@ for (sample_size in n_obs) {
                               m14_effect_truth = m1m4_effect,
                               m14_intxn_truth = m1m4_intxn,
                               true_em_effects = c(m3_y_shifted_covar1, m3_y_shifted_covar0),
-                              deltas = list("M1" = 2, "M2" = 2, "M3" = 2, "M4" = 2),
+                              deltas = list("M1" = 1, "M2" = 1, "M3" = 1, "M4" = 1),
                               cv_folds = 2,
                               var_sets = c("M1", "M2", "M3", "M4", "M1M4", "M3W3")
     )

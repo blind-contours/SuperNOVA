@@ -47,6 +47,7 @@ calc_final_ind_shift_param <- function(tmle_fit, exposure, fold_k) {
 #' @param em_learner The Super Learner of decision trees
 #' @importFrom partykit glmtree
 #' @importFrom stats median
+#' @importFrom dplyr mutate
 
 #' @export
 
@@ -136,7 +137,7 @@ calc_final_effect_mod_param <- function(tmle_fit_av,
     # TODO: if the rule does not partition the validation sample and leads to
     # all one value then pass to next rule - think about better implementation.
     if (dim(table(em_split_data$ind)) == 1) {
-      next
+      next()
     }
 
     inverse_prop_positive <- ifelse(em_split_data$ind == 1,
@@ -179,7 +180,7 @@ calc_final_effect_mod_param <- function(tmle_fit_av,
     P_val_ests <- c(level_1_p_val, level_0_p_val)
 
     condition <- c(
-      paste("Level 1 Shift Diff in ", rule),
+      paste("Level 1 Shift Diff in", rule),
       paste("Level 0 Shift Diff in", rule)
     )
 
@@ -198,9 +199,9 @@ calc_final_effect_mod_param <- function(tmle_fit_av,
     )
 
     results_list[[i]] <- results
-
-    results_df <- do.call(rbind, results_list)
   }
+
+  results_df <- do.call(rbind, results_list)
 
   results_df <- results_df[!duplicated(results_df$Psi), ]
 

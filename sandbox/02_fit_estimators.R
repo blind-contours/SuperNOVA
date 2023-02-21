@@ -74,7 +74,7 @@ fit_estimators <- function(w,
 
   effect_mod_results <- list(
     "em_bias" = est_biases,
-    "em_est" = mean(M1W3_pooled$Psi),
+    "em_est" = mean(M3W3_pooled$Psi),
     "em_cov" = mean(level_1_cov, level_2_cov)
   )
 

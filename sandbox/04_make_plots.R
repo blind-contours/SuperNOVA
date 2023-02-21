@@ -10,10 +10,10 @@ sim_results <- readRDS(
 sim_statistics <- sim_results %>%
   group_by(n_obs) %>%
   summarize(
-    est_bias = mean(pooled_bias),
-    est_sd = sd(pooled_bias),
-    est_MSE = est_bias^2 + est_sd^2,
-    CI_coverage = mean(exposure_cov)
+    indiv_bias = mean(indiv_bias),
+    indiv_est_sd = sd(indiv_bias),
+    indiv_est_MSE = est_bias^2 + est_sd^2,
+    indiv_CI_coverage = mean(indiv_cov)
   ) %>%
   mutate(
     abs_bias = abs(est_bias),

@@ -1,4 +1,6 @@
-fit_estimators <- function(data,
+fit_estimators <- function(w,
+                           a,
+                           y,
                            covars,
                            exposures,
                            outcome,
@@ -10,11 +12,6 @@ fit_estimators <- function(data,
                            deltas,
                            cv_folds,
                            var_sets){
-  ## setup learners
-
-  w <- data[, covars]
-  a <- data[, exposures]
-  y <- data[, outcome]
 
   sim_results <- SuperNOVA(
     w = w,

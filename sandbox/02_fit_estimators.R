@@ -1,35 +1,3 @@
-est_nde_nie <- function(data, m_learners, g_learners, e_learners,
-                        psi_Z_learners) {
-  node_list <- list(
-    W = c("W_1", "W_2", "W_3"),
-    A = "A",
-    Z = c("Z_1", "Z_2", "Z_3"),
-    Y = "Y"
-  )
-  learner_list <- list(
-    Y = m_learners,
-    A = g_learners
-  )
-  tmle_spec_NIE <- tmle_NIE(
-    e_learners = e_learners,
-    psi_Z_learners = psi_Z_learners,
-    max_iter = 100
-  )
-  NIE_est <- tmle3(tmle_spec_NIE, data, node_list, learner_list)
-
-  tmle_spec_NDE <- tmle_NDE(
-    e_learners = e_learners,
-    psi_Z_learners = psi_Z_learners,
-    max_iter = 100
-  )
-  NDE_est <- tmle3(tmle_spec_NDE, data, node_list, learner_list)
-
-  return(list(nie = NIE_est, nde = NDE_est))
-}
-
-###############################################################################
-# fit estimators
-###############################################################################
 fit_estimators <- function(data,
                            covars,
                            exposures,

@@ -8,7 +8,7 @@ library(stringr)
 source(here("sandbox/02_fit_estimators.R"))
 
 # simulation parameters
-n_sim <- 5 # number of simulations
+n_sim <- 2 # number of simulations
 n_obs <- c(250, 500, 1000, 1500, 2000, 2500, 3000, 5000) # sample sizes at root-n scale
 p0_obs <- 100000
 shift_var_index <- 1
@@ -47,7 +47,7 @@ for (sample_size in n_obs) {
     data_sim <- p0_data %>%
       dplyr::slice_sample(n = sample_size)
 
-    colnames(data_sim)
+    data_sim <- as.data.frame(data_sim)
 
     est_out <- fit_estimators(
       data = as.data.frame(data_sim),

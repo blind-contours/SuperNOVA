@@ -29,6 +29,10 @@ m1m4_intxn <- full_data$m14_intxn
 m3_y_shifted_covar1 <- full_data$m3_y_shifted_covar1
 m3_y_shifted_covar0 <- full_data$m3_y_shifted_covar0
 
+covars <- c("W1", "W2", "W3")
+exposures <- c("M1", "M2", "M3", "M4")
+outcome <- "Y"
+
 
 # perform simulation across sample sizes
 sim_results_df <- data.frame()
@@ -47,21 +51,21 @@ for (sample_size in n_obs) {
     data_sim <- p0_data %>%
       dplyr::slice_sample(n = sample_size)
 
-    data_sim <- as.data.frame(data_sim)
+    w <- data_sim[, covars]
+    a <- data_sim[, exposures]
+    y <- data_sim[, outcome]
 
-    est_out <- fit_estimators(
-      data = as.data.frame(data_sim),
-      covars = c("W1", "W2", "W3"),
-      exposures = c("M1", "M2", "M3", "M4"),
-      outcome = "Y",
-      seed = seed,
-      true_effects = c(m1_effect, m2_effect, m3_effect, m4_effect),
-      m14_effect_truth = m1m4_effect,
-      m14_intxn_truth = m1m4_intxn,
-      true_em_effects = c(m3_y_shifted_covar1, m3_y_shifted_covar0),
-      deltas = list("M1" = 2, "M2" = 2, "M3" = 2, "M4" = 2),
-      cv_folds = 2,
-      var_sets = c("M1", "M2", "M3", "M4", "M1M4", "M3W3")
+    est_out <- fit_estimators(w = w,
+                              a = a,
+                              y = y,
+                              seed = seed,
+                              true_effects = c(m1_effect, m2_effect, m3_effect, m4_effect),
+                              m14_effect_truth = m1m4_effect,
+                              m14_intxn_truth = m1m4_intxn,
+                              true_em_effects = c(m3_y_shifted_covar1, m3_y_shifted_covar0),
+                              deltas = list("M1" = 2, "M2" = 2, "M3" = 2, "M4" = 2),
+                              cv_folds = 2,
+                              var_sets = c("M1", "M2", "M3", "M4", "M1M4", "M3W3")
     )
 
     est_out$n_obs <- sample_size

@@ -15,7 +15,7 @@ p0_obs <- 100000
 # Generate simulated data -----------------
 
 full_data <- simulate_data(n_obs = 100000,
-                           delta = delta )
+                           delta = 1)
 p0_data <- full_data$data
 
 m1_effect <- full_data$m1_effect

@@ -1,0 +1,2 @@
+load("/Users/davidmccoy/Documents/PhD/Causal/final_proj/ph252d_group_project/output/fully_merged_NHANES_mediation.RDS")
+load("/Users/davidmccoy/Documents/PhD/Causal/final_proj/ph252d_group_project/output/fully_merged_NHANES.RDS")

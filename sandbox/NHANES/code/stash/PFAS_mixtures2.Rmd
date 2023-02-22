@@ -1,0 +1,214 @@
+---
+title: "Per- and Polyfluoroalkyl Substances affect on Weight"
+author: "David McCoy"
+date: "2/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(foreign)
+library(tidyverse)
+library(readxl)
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Gathering relevant data from NHANES
+
+The main exposure data frames will be for PFAS
+The main outcome data frames will be weight
+
+
+```{r load_data_dictionary}
+Dictionary_1516 <- read_excel("~/Documents/PhD/Causal/final_proj/ph252d_group_project/input/Dictionary_1516.xlsx")
+vars_of_interest <- 
+```
+```{r set up cycle arrays}
+#it actually makes more sense to break up the dataframes such that we can more dynamically construct the final data based on covariates we choose sto be relevant: 
+
+pfas_data_array <- list('PFAS_H.xpt', 'PFAS_I.xpt', 'PFC_D.xpt', 
+                        'PFC_E.xpt', 'PFC_F.xpt', 'PFC_G.xpt', 
+                        'L24PFC_C.xpt', 'PFC_Pool.xpt','SSPFAS_H.xpt',
+                        'SSPFSU_H.xpt')
+
+names(pfas_data_array) <- c('2013-2014', '2015-2016', '2005-2006',
+                            '2007-2008', '2009-2010', '2011-2012',
+                            '2003-2004', '2001-2002', '2013-2014',
+                            '2013-2014')
+
+bdy_measure_data_array <- list('BMX.xpt','BMX_B.xpt', 'BMX_C.xpt',
+                               'BMX_D.xpt','BMX_E.xpt','BMX_F.xpt',
+                               'BMX_G.xpt', 'BMX_H.xpt', 'BMX_I.xpt')
+
+names(bdy_measure_data_array) <- c('1999-2000', '2001-2002','2003-2004',
+                                   '2005-2006','2007-2008','2009-2010',
+                                   '2011-2012', '2013-2014','2015-2016')
+
+demo_data_array <- list('DEMO.xpt','DEMO_B.xpt', 'DEMO_C.xpt',
+                        'DEMO_D.xpt','DEMO_E.xpt','DEMO_F.xpt',
+                        'DEMO_G.xpt', 'DEMO_H.xpt', 'DEMO_I.xpt')
+
+names(demo_data_array) <- c('1999-2000', '2001-2002','2003-2004',
+                            '2005-2006','2007-2008','2009-2010',
+                            '2011-2012', '2013-2014','2015-2016')
+
+caffeine_data_array <- c('DRXIFF.xpt','DRXIFF_B.xpt','DR1IFF_C.xpt',
+                         'DR1IFF_D.xpt', 'DR1IFF_E', 'DR1IFF_F', 
+                         'DR1IFF_G', 'DR1IFF_H', 'DR1IFF_I')
+
+names(caffeine_data_array) <- c('1999-2000', '2001-2002', '2003-2004',
+                                '2005-2006','2007-2008','2009-2010',
+                            '2011-2012', '2013-2014','2015-2016')
+
+smokine_data_array <- c('LAB06.xpt', 'L06_B.xpt','L06COT_C.xpt',
+                        'COT_D.xpt','COTNAL_E.xpt','COTNAL_F.xpt', 
+                        'COTNAL_G.xpt', 'COT_H.xpt', 'COT_I.xpt')
+
+names(smokine_data_array) <- c('1999-2000', '2001-2002', '2003-2004',
+                               '2005-2006','2007-2008', '2009-2010',
+                               '2011-2012','2013-2014' ,'2015-2016')
+##diet total
+diet_ttl_data_array <- c('DR2TOT.xpt', 'DR2TOT_B.xpt','DR2TOT_C.xpt',
+                        'DR2TOT_D.xpt','DR2TOTL_E.xpt','DR2TOT_F.xpt', 
+                        'DR2TOT_G.xpt', 'DR2TOT_H.xpt', 'DR2TOT_I.xpt')
+
+names(diet_ttl_data_array) <- c('1999-2000', '2001-2002', '2003-2004',
+                               '2005-2006','2007-2008', '2009-2010',
+                               '2011-2012','2013-2014' ,'2015-2016')
+
+##exercise total
+exercise_data_array <- c('PAQ.xpt', 'PAQ_B.xpt','PAQ_C.xpt',
+                        'PAQ_D.xpt','PAQ_E.xpt','PAQ_F.xpt', 
+                        'PAQ_G.xpt', 'PAQ_H.xpt', 'PAQ_I.xpt')
+
+names(exercise_data_array) <- c('1999-2000', '2001-2002', '2003-2004',
+                               '2005-2006','2007-2008', '2009-2010',
+                               '2011-2012','2013-2014' ,'2015-2016')
+
+
+gluc_insulin_data_array <- list('LAB13AM.xpt', 'L13AM_B.xpt', 'L13AM_C.xpt', 
+                                'TRIGLY_D.xpt', 'TRIGLY_E.xpt', 'TRIGLY_F.xpt', 
+                                'TRIGLY_G.xpt','TRIGLY_H.xpt', 'TRIGLY_I.xpt' )
+
+names(gluc_insulin_data_array) <- c('1999-2000', '2001-2002', '2003-2004', 
+                                    '2005-2006','2007-2008','2009-2010', 
+                                    '2011-2012', '2013-2014', '2015-2016')
+
+df_list <- c(exercise_data_array)
+
+path <- '../input/'
+```
+
+```{r generate_nhanes_functions}
+
+files <- list.files(path = "/Users/davidmccoy/Documents/PhD/Causal/final_proj/ph252d_group_project/input", 
+                    pattern = ".rds")
+
+generate_nhanes_data <- function(data_array, save_path) {
+  
+  output <- list()
+
+  for (i in 1:length(data_array)) {
+    df <- data_array[[i]]
+    #if(any(grepl(df, files))){
+     # break} else{
+
+    year <- names(data_array)[i]
+    temp_save <- paste(gsub("\\..*","",df),'temp', sep = '_')
+    real_save <- paste(gsub("\\..*","",df),'data', sep = '_')
+    
+    if (grepl('SSTESTOS', df)==1){ 
+      base_path <- 'https://wwwn.cdc.gov/nchs/data/nhanes3'
+      } else{ 
+      base_path <- 'https://wwwn.cdc.gov/nchs/nhanes'
+    }
+    
+    
+    download.file(paste(base_path, year, df, sep = '/'), temp_save <- tempfile(), mode="wb")
+    data <- foreign::read.xport(temp_save)
+    saveRDS(data, file=paste(save_path,real_save,'.rds',sep = ''))
+    output[[real_save]] <- data
+      }
+  }
+  return(output)
+} 
+```
+
+```{r run_gen_data}
+dat <- generate_nhanes_data(data_array = df_list, 
+                            save_path = path)
+
+```
+
+```{r load_all_rds}
+
+BMX_data <- dat[grep('BMX', names(dat))]
+BMX_data <- bind_rows(BMX_data, .id = "column_label")
+
+DEMO_data <- dat[grep('DEMO', names(dat))]
+DEMO_data <- bind_rows(DEMO_data, .id = "column_label")
+
+PFAS_data <- dat[grep('PFAS_|PFC|SSPFSU|SSPFAS|PFC_Pool|L24PFC', names(dat))]
+PFAS_data <- bind_rows(PFAS_data, .id = "column_label")
+
+
+Smoking_data <- dat[grep('LAB06|L06|L06COT|COT|COTNAL', names(dat))]
+Smoking_data <- bind_rows(Smoking_data, .id = "column_label")
+
+#GLU_data <- dat[grep('GLU_', names(dat))]
+#GLU_data <- bind_rows(GLU_data, .id = "column_label")
+
+All_data <- Reduce(function(x, y) merge(x, y, 
+                                        by='SEQN'), 
+                                        list(PFAS_data, 
+                                             BMX_data,
+                                             DEMO_data,
+                                             Smoking_data
+                                             ))
+
+
+match(colnames(All_data),Dictionary_1516$`Variable Name`)
+
+
+
+test <- All_data  %>% 
+ tidyr::drop_na(c(LBXPFOA,LBXTGN, LBXTST,LBXGLU, BMXBMI, RIAGENDR))
+
+dim(test)
+apply(All_data, 2, function(x) length(which(!is.na(x))))
+
+test <- test[, colSums(is.na(test)) != nrow(test)]
+dim(test)
+
+
+
+```
+
+
+```{r junk_drawer}
+
+sex_horomone_data_array <- list('TST_H.xpt', 'TST_I.xpt', 'SSTESTOS.xpt', 
+                                'SSCHL_A.xpt','SSCHL_B.xpt', 'SSCHL_C.xpt', 
+                                'TST_G.xpt'  )
+
+names(sex_horomone_data_array) <- c('2013-2014', '2015-2016', '1988-1994', 
+                                    '1999-2000', '2001-2002', '2003-2004', 
+                                    '2011-2012')
+
+thyroid_data_array <- list('THYROD_E.xpt', 'THYROD_F.xpt', 'THYROD_G.xpt', 
+                           'L40T4_B.xpt', 'SSNH4THY.xpt', 'L11_C.xpt', 
+                           'LAB18T4.xpt' )
+
+names(thyroid_data_array) <- c('2007-2008', '2009-2010', '2011-2012', 
+                               '2001-2002', '2001-2002', '2003-2004', 
+                               '1999-2000' )
+
+TST_data <- dat[grep('TST_|SSCHL|SSTESTOS|SSCHL', names(dat))]
+TST_data <- bind_rows(TST_data, .id = "column_label")
+
+THYR_data <- dat[grep('THYROD_|SSNH4THY|L40T4|L11|LAB18|PTH_D', names(dat))]
+THYR_data <- bind_rows(THYR_data, .id = "column_label")
+
+
+```
+

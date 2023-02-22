@@ -1,0 +1,239 @@
+---
+title: "Per- and Polyfluoroalkyl Substances affect on Weight"
+author: "David McCoy"
+date: "2/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(foreign)
+library(tidyverse)
+library(readxl)
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Gathering relevant data from NHANES
+
+The main exposure data frames will be for PFAS
+The main outcome data frames will be weight
+
+
+
+```{r set up cycle arrays}
+#it actually makes more sense to break up the dataframes such that we can more dynamically construct the final data based on covariates we choose to be relevant: 
+
+pfas_data_array <- list('PFAS_H.xpt', 'PFAS_I.xpt', 'PFC_D.xpt', 
+                        'PFC_E.xpt', 'PFC_F.xpt', 'PFC_G.xpt', 
+                        'L24PFC_C.xpt', 'PFC_Pool.xpt','SSPFAS_H.xpt',
+                        'SSPFSU_H.xpt')
+
+names(pfas_data_array) <- c('2013-2014', '2015-2016', '2005-2006',
+                            '2007-2008', '2009-2010', '2011-2012',
+                            '2003-2004', '2001-2002', '2013-2014',
+                            '2013-2014')
+
+telomere_data_array <- list('TELO_A.xpt', "TELO_B.xpt")
+
+names(telomere_data_array) <- c("1999-2000", "2001-2002")
+
+wbc_array <- list("L25_B.xpt", "L25_C.xpt", "CBC_D.xpt", "CBC_E.xpt", 
+                  "CBC_F.xpt", "CBC_G.xpt", "CBC_H.xpt")
+
+names(wbc_array) <- c("2001-2002", "2003-2004", "2005-2006", "2007-2008", 
+                      "2009-2010", "2011-2012", "2013-2014")
+
+metals_array <- list("LAB06HM.xpt", "L06HM_B.xpt", "L06HM_C.xpt", "UHM_D.xpt", "UHM_E.xpt", 
+                     "UHM_F.xpt", "UHM_G.xpt", "UM_H.xpt")
+
+names(metals_array) <- c("1999-2000", "2001-2002", "2003-2004", "2005-2006", 
+                         "2007-2008", "2009-2010",  "2011-2012", "2013-2014")
+
+
+fasting_data_array <- list('FASTQX_D.xpt','FASTQX_E.xpt','FASTQX_F.xpt',
+                           'FASTQX_G.xpt', 'FASTQX_H.xpt', 'FASTQX_I.xpt')
+
+
+names(fasting_data_array) <- c('2005-2006','2007-2008','2009-2010',
+                               '2011-2012', '2013-2014','2015-2016')
+
+
+eating_habits_array <- list('DBQ_B.xpt', 'DBQ_C.xpt',
+                            'DBQ_D.xpt', 'DBQ_E.xpt', 'DBQ_F.xpt',
+                            'DBQ_G.xpt', 'DBQ_H.xpt','DBQ_I.xpt')
+
+names(eating_habits_array) <- list('2001-2002','2003-2004',
+                                   '2005-2006','2007-2008','2009-2010',
+                                   '2011-2012', '2013-2014','2015-2016')
+
+
+bdy_measure_data_array <- list('BMX.xpt','BMX_B.xpt', 'BMX_C.xpt',
+                               'BMX_D.xpt','BMX_E.xpt','BMX_F.xpt',
+                               'BMX_G.xpt', 'BMX_H.xpt', 'BMX_I.xpt')
+
+names(bdy_measure_data_array) <- c('1999-2000', '2001-2002','2003-2004',
+                                   '2005-2006','2007-2008','2009-2010',
+                                   '2011-2012', '2013-2014','2015-2016')
+
+demo_data_array <- list('DEMO.xpt','DEMO_B.xpt', 'DEMO_C.xpt',
+                        'DEMO_D.xpt','DEMO_E.xpt','DEMO_F.xpt',
+                        'DEMO_G.xpt', 'DEMO_H.xpt', 'DEMO_I.xpt')
+
+names(demo_data_array) <- c('1999-2000', '2001-2002','2003-2004',
+                            '2005-2006','2007-2008','2009-2010',
+                            '2011-2012', '2013-2014','2015-2016')
+
+caffeine_data_array <- c('DRXIFF.xpt','DRXIFF_B.xpt','DR1IFF_C.xpt',
+                         'DR1IFF_D.xpt', 'DR1IFF_E', 'DR1IFF_F', 
+                         'DR1IFF_G', 'DR1IFF_H', 'DR1IFF_I')
+
+names(caffeine_data_array) <- c('1999-2000', '2001-2002', '2003-2004',
+                                '2005-2006','2007-2008','2009-2010',
+                            '2011-2012', '2013-2014','2015-2016')
+
+smokine_data_array <- c('LAB06.xpt', 'L06_B.xpt','L06COT_C.xpt',
+                        'COT_D.xpt','COTNAL_E.xpt','COTNAL_F.xpt', 
+                        'COTNAL_G.xpt', 'COT_H.xpt', 'COT_I.xpt')
+
+names(smokine_data_array) <- c('1999-2000', '2001-2002', '2003-2004',
+                               '2005-2006','2007-2008', '2009-2010',
+                               '2011-2012','2013-2014' ,'2015-2016')
+##diet total
+diet_ttl_data_array <- c('DR2TOT.xpt', 'DR2TOT_B.xpt','DR2TOT_C.xpt',
+                        'DR2TOT_D.xpt','DR2TOTL_E.xpt','DR2TOT_F.xpt', 
+                        'DR2TOT_G.xpt', 'DR2TOT_H.xpt', 'DR2TOT_I.xpt')
+
+names(diet_ttl_data_array) <- c('1999-2000', '2001-2002', '2003-2004',
+                               '2005-2006','2007-2008', '2009-2010',
+                               '2011-2012','2013-2014' ,'2015-2016')
+
+###second data set
+other_diet_ttl_data_array <- c('DRXTOT.xpt', 'DRXTOT_B.xpt','DR1TOT_C.xpt',
+                               'DR1TOT_D.xpt','DR1TOT_E.xpt','DR1TOT_F.xpt', 
+                               'DR1TOT_G.xpt', 'DR1TOT_H.xpt', 'DR1TOT_I.xpt')
+
+
+names(other_diet_ttl_data_array) <- c('1999-2000', '2001-2002', '2003-2004',
+                               '2005-2006','2007-2008', '2009-2010',
+                               '2011-2012','2013-2014' ,'2015-2016')
+
+day2_diet_ttl_data_array <- c('DR2TOT_C.xpt',
+                               'DR2TOT_D.xpt','DR2TOT_E.xpt','DR2TOT_F.xpt', 
+                               'DR2TOT_G.xpt', 'DR2TOT_H.xpt', 'DR2TOT_I.xpt')
+
+
+names(day2_diet_ttl_data_array) <- c('2003-2004',
+                               '2005-2006','2007-2008', '2009-2010',
+                               '2011-2012','2013-2014' ,'2015-2016')
+
+
+## medical conditions
+med_cond_data_array <- c('MCQ.xpt', 'MCQ_B.xpt','MCQ_C.xpt',
+                        'MCQ_D.xpt','MCQ_E.xpt','MCQ_F.xpt', 
+                        'MCQ_G.xpt', 'MCQ_H.xpt', 'MCQ_I.xpt')
+
+names(med_cond_data_array) <- c('1999-2000', '2001-2002', '2003-2004',
+                               '2005-2006','2007-2008', '2009-2010',
+                               '2011-2012','2013-2014' ,'2015-2016')
+
+
+##exercise total
+exercise_data_array <- c('PAQ.xpt', 'PAQ_B.xpt','PAQ_C.xpt',
+                        'PAQ_D.xpt','PAQ_E.xpt','PAQ_F.xpt', 
+                        'PAQ_G.xpt', 'PAQ_H.xpt', 'PAQ_I.xpt')
+
+names(exercise_data_array) <- c('1999-2000', '2001-2002', '2003-2004',
+                               '2005-2006','2007-2008', '2009-2010',
+                               '2011-2012','2013-2014' ,'2015-2016')
+
+
+
+gluc_insulin_data_array <- list('LAB13AM.xpt', 'L13AM_B.xpt', 'L13AM_C.xpt', 
+                                'TRIGLY_D.xpt', 'TRIGLY_E.xpt', 'TRIGLY_F.xpt', 
+                                'TRIGLY_G.xpt','TRIGLY_H.xpt', 'TRIGLY_I.xpt' )
+
+names(gluc_insulin_data_array) <- c('1999-2000', '2001-2002', '2003-2004', 
+                                    '2005-2006','2007-2008','2009-2010', 
+                                    '2011-2012', '2013-2014', '2015-2016')
+
+oral_gluc_test_data_array <- list('LAB13AM.xpt', 
+                                  'L13AM_B.xpt', 'L13AM_C.xpt', 
+                                'TRIGLY_D.xpt', 'TRIGLY_E.xpt', 'TRIGLY_F.xpt', 
+                                'TRIGLY_G.xpt','TRIGLY_H.xpt', 'TRIGLY_I.xpt' )
+
+
+gluc_data_array <- list("GLU_D.xpt", "GLU_E.xpt",
+                        "GLU_F.xpt", "GLU_G.xpt", "GLU_H.xpt", "GLU_I.xpt")
+
+
+names(gluc_data_array) <- c('2005-2006','2007-2008','2009-2010', 
+                                    '2011-2012', '2013-2014', '2015-2016')
+
+chol_data_array <- list(
+                        'HDL_E.xpt', 'HDL_F.xpt',
+                        'HDL_G.xpt', 'HDL_H.xpt', 'HDL_I.xpt')
+
+names(chol_data_array) <- c('2007-2008','2009-2010', 
+                            '2011-2012', '2013-2014', '2015-2016')
+
+diab_data_array <- list('DIQ_E.xpt', 'DIQ_F.xpt',
+                        'DIQ_G.xpt', 'DIQ_H.xpt', 'DIQ_I.xpt')
+
+names(diab_data_array) <- c('2007-2008','2009-2010', 
+                            '2011-2012', '2013-2014', '2015-2016')
+
+insulin_data_array <- list('GLU_D.xpt', 'GLU_E.xpt', 'GLU_F.xpt',
+                        'GLU_G.xpt', 'INS_H.xpt', 'INS_I.xpt')
+
+names(insulin_data_array) <- c('2005-2006', '2007-2008','2009-2010', 
+                            '2011-2012', '2013-2014', '2015-2016')
+
+diabetes_array <- list('LAB10AM.xpt', "L10AM_B.xpt", "L10_2_B.xpt", "L10AM_C.xpt")
+
+names(diabetes_array) <- c('1999-2000', "2001-2002", '2001-2002', "2003-2004")
+
+hypertension_array <- list("BPX.xpt", "BPX_B.xpt", "BPX_C.xpt", "BPX_D.xpt", "BPX_E.xpt", "BPX_F.xpt")
+names(hypertension_array) <- c("1999-2000", "2001-2002", "2003-2004", "2005-2006", "2007-2008", "2009-2010")
+
+df_list <- c(exercise_data_array)
+
+path <- here("sandbox/NHANES/input/")
+```
+
+```{r generate_nhanes_functions}
+
+files <- list.files(path = ".", pattern = ".xpt")
+
+generate_nhanes_data <- function(data_array, save_path) {
+  
+  output <- list()
+
+  for (i in 1:length(data_array)) {
+    
+    df <- data_array[[i]]
+    year <- names(data_array)[i]
+    temp_save <- paste(gsub("\\..*","",df),'temp', sep = '_')
+    real_save <- paste(gsub("\\..*","",df),'data', sep = '_')
+    
+    if (grepl('SSTESTOS', df)==1){ 
+      base_path <- 'https://wwwn.cdc.gov/nchs/data/nhanes3'
+      } else{ 
+      base_path <- 'https://wwwn.cdc.gov/nchs/nhanes'
+    }
+    
+    
+    download.file(paste(base_path, year, df, sep = '/'), temp_save <- tempfile(), mode="wb")
+    data <- foreign::read.xport(temp_save)
+    saveRDS(data, file=paste(save_path,real_save,'.rds',sep = ''))
+    output[[real_save]] <- data
+  }
+  return(output)
+} 
+```
+
+```{r run_gen_data}
+dat <- generate_nhanes_data(data_array = df_list, 
+                            save_path = path)
+
+```
+

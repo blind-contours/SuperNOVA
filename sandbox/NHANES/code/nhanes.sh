@@ -22,4 +22,4 @@
 module load r/4.0.3
 
 ### Run Simulation
-R CMD BATCH --no-save 2_nhanes_var_processing.R nhanes.Rout
+R CMD BATCH --no-save NHANES_example.R nhanes.Rout

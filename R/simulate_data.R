@@ -79,8 +79,13 @@ simulate_data <- function(n_obs = 100000,
   mixtures_m3[, 3] <- mixtures[, 3] + delta
   m3_y_shifted <- y_mean(mixtures_m3, covars)
 
-  m3_y_shifted_covar0 <- mean(y_mean(mixtures_m3, covars_0) - y)
-  m3_y_shifted_covar1 <- mean(y_mean(mixtures_m3, covars_1) - y)
+  diff <- m3_y_shifted - y
+
+  m3_y_shifted_covar0 <- mean(diff[covars$V3 == 0])
+  m3_y_shifted_covar1 <- mean(diff[covars$V3 == 1])
+
+  effect_mod_results <- list("Level 0 Shift Diff in W3 <= 0" = m3_y_shifted_covar1,
+  "Level 1 Shift Diff in W3 <= 0" = m3_y_shifted_covar0)
 
   m3_effect <- mean(
     m3_y_shifted -
@@ -118,6 +123,5 @@ simulate_data <- function(n_obs = 100000,
               "m4_effect" = m4_effect,
               "m14_effect" = m14_effect,
               "m14_intxn" = m14_intxn,
-              "m3_y_shifted_covar0" = m3_y_shifted_covar0,
-              "m3_y_shifted_covar1" = m3_y_shifted_covar1))
+              "effect_mod" = effect_mod_results))
 }

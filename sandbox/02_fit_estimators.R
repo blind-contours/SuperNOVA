@@ -60,24 +60,32 @@ fit_estimators <- function(w,
   M3W3_results <- em_results$M3W3
   M3W3_pooled <- M3W3_results[M3W3_results$Fold == "Pooled TMLE", ]
 
-  est_biases <- mean(true_em_effects[1] -  M3W3_pooled$Psi[2], true_em_effects[2] -  M3W3_pooled$Psi[1])
+  level_1_em_results <- M3W3_pooled[str_detect(M3W3_pooled$Condition, "Level 1"),]
+  level_0_em_results <- M3W3_pooled[str_detect(M3W3_pooled$Condition, "Level 0"),]
+
+  level_1_truth <- true_em_effects[str_detect(names(true_em_effects), "Level 1")]
+  level_0_truth <- true_em_effects[str_detect(names(true_em_effects), "Level 0")]
+
+  est_level_1_bias <- mean(level_1_truth[[1]] - level_1_em_results$Psi)
+  est_level_0_bias <- mean(level_0_truth[[1]] - level_0_em_results$Psi)
+
+  est_biases <- mean(est_level_1_bias, est_level_0_bias)
 
   level_1_cov <- ifelse(
-    (M3W3_pooled$`Lower CI`[1] <= true_em_effects[2] &
-       true_em_effects[2] <= M3W3_pooled$`Upper CI`[1]), 1, 0
+    (level_1_em_results$`Lower CI` <= level_1_truth[[1]] &
+       level_1_truth[[1]] <= level_1_em_results$`Upper CI`), 1, 0
   )
 
-  level_2_cov <- ifelse(
-    (M3W3_pooled$`Lower CI`[2] <= true_em_effects[1] &
-       true_em_effects[1] <= M3W3_pooled$`Upper CI`[2]), 1, 0
+  level_0_cov <- ifelse(
+    (level_0_em_results$`Lower CI` <= level_0_truth[[1]] &
+       level_0_truth[[1]] <= level_0_em_results$`Upper CI`), 1, 0
   )
 
   effect_mod_results <- list(
     "em_bias" = est_biases,
     "em_est" = mean(M3W3_pooled$Psi),
-    "em_cov" = mean(level_1_cov, level_2_cov)
+    "em_cov" = mean(level_1_cov, level_0_cov)
   )
-
 
   joint_intxn_results <- joint_shift_results$M1M4
   pooled_tmle_joint_intxn <- joint_intxn_results[joint_intxn_results$Fold == "Pooled TMLE", ]

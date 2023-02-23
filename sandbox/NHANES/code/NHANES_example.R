@@ -13,8 +13,8 @@ nhanes_data_measles_na_thresh <- nhanes_data_measles[, colSums(is.na(nhanes_data
 
 nhanes_data_measles_na_thresh <- as.data.frame(unclass(nhanes_data_measles_na_thresh), stringsAsFactors = TRUE)
 
-pfas <- c("pfas_pfhxs_ng_ml", "pfas_me_pfosa_acoh_ng_ml", "pfas_pfdea_ng_ml") #"pfas_pfna_ng_ml", "pfas_pfua_ng_ml", "pfas_pfdoa_ng_ml")
-pfas_deltas <- list("pfas_pfhxs_ng_ml" = 1, "pfas_me_pfosa_acoh_ng_ml" = 1, "pfas_pfdea_ng_ml" = 1) #"pfas_pfna_ng_ml" = 1, "pfas_pfua_ng_ml" = 1, "pfas_pfdoa_ng_ml" = 1)
+pfas <- c("pfas_pfhxs_ng_ml", "pfas_me_pfosa_acoh_ng_ml", "pfas_pfdea_ng_ml", "pfas_pfna_ng_ml", "pfas_pfua_ng_ml", "pfas_pfdoa_ng_ml")
+pfas_deltas <- list("pfas_pfhxs_ng_ml" = 1, "pfas_me_pfosa_acoh_ng_ml" = 1, "pfas_pfdea_ng_ml" = 1, "pfas_pfna_ng_ml" = 1, "pfas_pfua_ng_ml" = 1, "pfas_pfdoa_ng_ml" = 1)
 
 nhanes_data_measles_na_thresh <- nhanes_data_measles_na_thresh[complete.cases(nhanes_data_measles_na_thresh[, c("pfas_pfhxs_ng_ml")]), ]
 

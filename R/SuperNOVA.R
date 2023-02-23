@@ -232,7 +232,6 @@ SuperNOVA <- function(w,
     basis_prop_in_fold <- calc_basis_freq(fold_basis_results, n_folds)
   }
 
-
   fold_results_indiv <- list()
   fold_results_em <- list()
   fold_results_intxn <- list()

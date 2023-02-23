@@ -66,10 +66,10 @@ create_sls <- function() {
     pmethod = "none"
   )
   lrnr_earth_4 <- Lrnr_earth$new(
-    linpreds = FALSE, degree = 3,
+    linpreds = FALSE, degree = 2,
     thresh = 0.0005
   )
-  lrnr_earth_5 <- Lrnr_earth$new(linpreds = FALSE, degree = 4)
+  lrnr_earth_5 <- Lrnr_earth$new(linpreds = FALSE, degree = 2)
   lrnr_earth_6 <- Lrnr_earth$new(
     linpreds = FALSE, degree = 2,
     fast.k = 10
@@ -79,20 +79,19 @@ create_sls <- function() {
     fast.k = 5
   )
   lrnr_earth_8 <- Lrnr_earth$new(
-    linpreds = FALSE, degree = 3,
+    linpreds = FALSE, degree = 2,
     fast.beta = 0
   )
   lrnr_earth_9 <- Lrnr_earth$new(
-    linpreds = FALSE, degree = 3,
+    linpreds = FALSE, degree = 2,
     fast.k = 10, pmethod = "cv", nfold = 5
   )
   lrnr_earth_10 <- Lrnr_earth$new(
-    linpreds = FALSE, degree = 2,
-    pmethod = "exhaustive"
-  )
+    linpreds = TRUE, degree = 1)
+
   lrnr_earth_11 <- Lrnr_earth$new(
-    linpreds = FALSE, degree = 2,
-    pmethod = "exhaustive", fast.k = 0
+    linpreds = TRUE, degree = 2,
+    fast.k = 0
   )
 
   lrnr_poly_10 <- Lrnr_polspline$new(knots = 10)

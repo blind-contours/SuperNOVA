@@ -1,4 +1,5 @@
 library(SuperNOVA)
+library(readr)
 
 NIEHS_2019 <- read_csv("sandbox/NHANES/NIEHS_2019.csv")
 

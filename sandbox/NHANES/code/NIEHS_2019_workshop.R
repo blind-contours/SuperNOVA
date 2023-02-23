@@ -1,7 +1,7 @@
 library(SuperNOVA)
 library(readr)
-
-NIEHS_2019 <- read_csv("sandbox/NHANES/input/NIEHS_2019.csv")
+library(here)
+NIEHS_2019 <- read_csv(here("sandbox/NHANES/input/NIEHS_2019.csv"))
 
 exposures <- c("LBX074LA",
                "LBX099LA",

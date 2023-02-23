@@ -26,5 +26,9 @@ full_indiv_results <- do.call(rbind, sim_results$`Indiv Shift Results`)
 full_indiv_results <- full_indiv_results[,-"Type"]
 full_indiv_results <- full_indiv_results[,-"Variables"]
 
-sim_results$`Effect Mod Results`
-sim_results$`Joint Shift Results`
+full_joint_results <- do.call(bind_rows, sim_results$`Joint Shift Results`)
+drops <- c("Type","Variables", "Delta X5", "Delta X7", "Delta X2", "Delta X1")
+full_joint_results <- full_joint_results[ , !(names(full_joint_results) %in% drops)]
+
+
+

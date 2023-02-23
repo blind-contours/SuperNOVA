@@ -1,6 +1,7 @@
 library(SuperNOVA)
 library(readr)
 library(here)
+
 NIEHS_2019 <- read_csv(here("sandbox/NHANES/input/NIEHS_2019.csv"))
 
 exposures <- c("LBX074LA",
@@ -21,6 +22,8 @@ exposures <- c("LBX074LA",
                "LBXF08LA",
                "LBXHXCLA",
                "LBXPCBLA")
+
+NIEHS_2019 <- NIEHS_2019[complete.cases(NIEHS_2019[, exposures]), ]
 
 deltas <- list("LBX074LA" = 1,
                "LBX099LA" = 1,
@@ -71,7 +74,8 @@ nhanes_results <- SuperNOVA(
   num_cores = 20,
   family = "continuous",
   quantile_thresh = 0,
-  seed = 294580
+  seed = 294580,
+  adaptive_delta = TRUE
 )
 
 saveRDS(

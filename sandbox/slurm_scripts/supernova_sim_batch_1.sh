@@ -1,6 +1,6 @@
 #!/bin/bash
 # Job name:
-#SBATCH --job-name=iter1_supernova
+#SBATCH --job-name=prime_mixtures_nhanes
 #
 # Partition:
 #SBATCH --partition=savio2
@@ -22,4 +22,4 @@
 module load r/4.0.3
 
 ### Run Simulation
-R CMD BATCH --no-save ../03_run_simulation.R iter_1_supernova.Rout
+R CMD BATCH --no-save ../NHANES/code/NIEHS_2019_workshop.R mixutres_workshop.Rout

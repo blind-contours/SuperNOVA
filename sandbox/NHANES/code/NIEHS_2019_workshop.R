@@ -67,8 +67,8 @@ nhanes_results <- SuperNOVA(
   a = a,
   y = y,
   delta = deltas,
-  n_folds = 2,
-  num_cores = 6,
+  n_folds = 10,
+  num_cores = 20,
   family = "continuous",
   quantile_thresh = 0,
   seed = 294580

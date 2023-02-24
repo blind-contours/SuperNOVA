@@ -25,24 +25,24 @@ exposures <- c("LBX074LA",
 
 NIEHS_2019 <- NIEHS_2019[complete.cases(NIEHS_2019[, exposures]), ]
 
-deltas <- list("LBX074LA" = 5,
-               "LBX099LA" = 5,
-               "LBX118LA" = 5,
-               "LBX138LA" = 5,
-               "LBX153LA" = 5,
-               "LBX170LA" = 5,
-               "LBX180LA" = 5,
-               "LBX187LA" = 5,
-               "LBX194LA" = 5,
-               "LBXD03LA" = 5,
-               "LBXD05LA" = 5,
-               "LBXD07LA" = 5,
-               "LBXF03LA" = 5,
-               "LBXF04LA" = 5,
-               "LBXF05LA" = 5,
-               "LBXF08LA" = 5,
-               "LBXHXCLA" = 5,
-               "LBXPCBLA" = 5)
+deltas <- list("LBX074LA" = 2,
+               "LBX099LA" = 2,
+               "LBX118LA" = 2,
+               "LBX138LA" = 2,
+               "LBX153LA" = 2,
+               "LBX170LA" = 2,
+               "LBX180LA" = 2,
+               "LBX187LA" = 2,
+               "LBX194LA" = 2,
+               "LBXD03LA" = 2,
+               "LBXD05LA" = 2,
+               "LBXD07LA" = 2,
+               "LBXF03LA" = 2,
+               "LBXF04LA" = 2,
+               "LBXF05LA" = 2,
+               "LBXF08LA" = 2,
+               "LBXHXCLA" = 2,
+               "LBXPCBLA" = 2)
 
 outcome <- "TELOMEAN"
 
@@ -75,7 +75,7 @@ nhanes_results <- SuperNOVA(
   family = "continuous",
   quantile_thresh = 0,
   seed = 294580,
-  adaptive_delta = TRUE
+  adaptive_delta = FALSE
 )
 
 saveRDS(

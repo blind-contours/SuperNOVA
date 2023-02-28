@@ -78,5 +78,5 @@ for (sample_size in n_obs) {
 # save results to file
 saveRDS(
   object = sim_results_df,
-  file = here("sandbox/data", paste0("SuperNOVA_", "2_sim", ".rds"))
+  file = here("sandbox/data", paste0("SuperNOVA_", "8_sim", ".rds"))
 )

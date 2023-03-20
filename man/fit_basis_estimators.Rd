@@ -8,7 +8,9 @@ interventions.}
 \usage{
 fit_basis_estimators(
   at,
-  covars,
+  a_names,
+  z_names,
+  w_names,
   outcome,
   family,
   quantile_thresh,
@@ -19,8 +21,6 @@ fit_basis_estimators(
 }
 \arguments{
 \item{at}{Training dataframe}
-
-\item{covars}{Covariates to be used as predictors in the Super Learner}
 
 \item{outcome}{Variable name for the outcome}
 
@@ -35,6 +35,8 @@ learning to fit Y|A,W}
 \item{fold}{Current fold in the cross-validation}
 
 \item{seed}{Seed number for consistent results}
+
+\item{covars}{Covariates to be used as predictors in the Super Learner}
 }
 \value{
 A list of results from fitting the best b-spline model to the data

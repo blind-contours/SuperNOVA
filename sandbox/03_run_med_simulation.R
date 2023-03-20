@@ -1,0 +1,94 @@
+# packages
+library(here)
+library(devtools)
+library(dplyr)
+library(magrittr)
+library(stringr)
+source(here("sandbox/02_fit_estimators.R"))
+library(SuperNOVA)
+
+# simulation parameters
+n_sim <- 10 # number of simulations
+n_obs <- c(250, 500, 1000, 1500, 2000, 2500, 3000, 5000) # sample sizes at root-n scale
+p0_obs <- 100000
+
+# Generate simulated data -----------------
+
+full_data <- simulate_mediation_data(n_obs = 100000,
+                           delta = 1)
+p0_data <- full_data$data
+
+nde_a1 <- full_data$nde_a1
+nie_a1 <- full_data$nie_a1
+ate_a1 <- full_data$ate_a1
+
+nde_a3 <- full_data$nde_a3
+nie_a3 <- full_data$nie_a3
+ate_a3 <- full_data$ate_a3
+
+nde_a4 <- full_data$nde_a4
+nie_a4 <- full_data$nie_a4
+ate_a4 <- full_data$ate_a4
+
+nde_a34 <- full_data$nde_a3a4
+nie_a34 <- full_data$nie_a3a4
+ate_a34 <- full_data$ate_a34
+
+
+covars <- c("w_1", "w_2", "w_3", "w_4", "w_5")
+exposures <- c("a_1")
+mediators <- c("z_1")
+outcome <- "y"
+
+
+# perform simulation across sample sizes
+sim_results_df <- data.frame()
+
+for (sample_size in n_obs) {
+  # get results in parallel
+  results <- list()
+  print(sample_size)
+
+  for (this_iter in seq_len(n_sim)) {
+    print(this_iter)
+
+    seed <- sample(1:10000, 1)
+    set.seed(seed)
+
+    data_sim <- p0_data %>%
+      dplyr::slice_sample(n = sample_size)
+
+    w <- data_sim[, covars]
+    a <- data_sim[, exposures]
+    z <- data_sim[, mediators]
+    y <- data_sim[, outcome]
+
+    est_out <- fit_estimators_mediation(
+                              w = w,
+                              a = a,
+                              z = z,
+                              y = y,
+                              seed = seed,
+                              nde_effects = c(nde_a1, nde_a3, nde_a4),
+                              nie_effects = c(nie_a1, nie_a3, nie_a4),
+                              ate_effects = c(ate_a1, ate_a3, ate_a4),
+                              deltas = list("a_1" = 1, "a_2" = 1, "a_3" = 1, "a_4" = 1),
+                              cv_folds = 2,
+                              var_sets = NULL
+    )
+
+    est_out$n_obs <- sample_size
+
+    results[[this_iter]] <- est_out
+  }
+  # concatenate iterations
+  results_out <- bind_rows(results, .id = "sim_iter")
+  sim_results_df <- rbind(sim_results_df, results_out)
+}
+
+
+# save results to file
+saveRDS(
+  object = sim_results_df,
+  file = here("sandbox/data", paste0("SuperNOVA_", "8_sim", ".rds"))
+)

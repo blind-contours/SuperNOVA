@@ -33,16 +33,15 @@ est_Q_w_shifted_mediation <- function(exposure,
                                       mu_learner,
                                       covars,
                                       av,
-                                      at,
-                                      zn_estim) {
+                                      at) {
   future::plan(future::sequential, gc = TRUE)
 
-  # scale the outcome for logit transform
-  y_star_av <- scale_to_unit(vals = av$y)
-  y_star_at <- scale_to_unit(vals = at$y)
-
-  av$y <- y_star_av
-  at$y <- y_star_at
+  # # scale the outcome for logit transform
+  # y_star_av <- scale_to_unit(vals = av$y)
+  # y_star_at <- scale_to_unit(vals = at$y)
+  #
+  # av$y <- y_star_av
+  # at$y <- y_star_at
 
   # need a data set with the exposure stochastically shifted DOWNWARDS A-delta
   # do this for both AV and AT as AT is used in mediation
@@ -69,120 +68,58 @@ est_Q_w_shifted_mediation <- function(exposure,
   ))
 
 
-  av_a_z_upshifted <- data.table::copy(av)
-  data.table::set(av_a_z_upshifted,
-    j = exposure,
-    value = shift_additive(
-      a = subset(av, select = exposure), delta = delta
-    )
-  )
-
-  data.table::set(av_a_z_upshifted,
-    j = mediator,
-    value = zn_estim$upshift
-  )
-
-  av_a_z_downshifted <- data.table::copy(av)
-  data.table::set(av_a_z_downshifted,
-    j = exposure,
-    value = shift_additive(
-      a = subset(av, select = exposure), delta = -delta
-    )
-  )
-
-  data.table::set(av_a_z_downshifted,
-    j = mediator,
-    value = zn_estim$downshift
-  )
-
-  av_a_z_upupshifted <- data.table::copy(av)
-  data.table::set(av_a_z_upupshifted,
-    j = exposure,
-    value = shift_additive(
-      a = subset(av, select = exposure), delta = 2 * delta
-    )
-  )
-
-  data.table::set(av_a_z_upupshifted,
-    j = mediator,
-    value = zn_estim$upupshift
-  )
-
   # Outcome mechanism
   sl <- Lrnr_sl$new(
     learners = mu_learner,
-    metalearner = sl3::Lrnr_nnls$new()
+    metalearner = make_learner(Lrnr_cv_selector)
+
   )
 
   at_task_noshift <- sl3::sl3_Task$new(
     data = at,
     covariates = covars,
     outcome = "y",
-    outcome_type = "quasibinomial"
+    outcome_type = "continuous"
   )
 
   av_task_noshift <- sl3::sl3_Task$new(
     data = av,
     covariates = covars,
     outcome = "y",
-    outcome_type = "quasibinomial"
+    outcome_type = "continuous"
   )
 
   av_task_a_upshift <- sl3::sl3_Task$new(
     data = av_a_upshifted,
     covariates = covars,
     outcome = "y",
-    outcome_type = "quasibinomial"
+    outcome_type = "continuous"
   )
 
   av_task_a_upupshift <- sl3::sl3_Task$new(
     data = av_a_upupshifted,
     covariates = covars,
     outcome = "y",
-    outcome_type = "quasibinomial"
+    outcome_type = "continuous"
   )
 
   av_task_a_downshift <- sl3::sl3_Task$new(
     data = av_a_downshifted,
     covariates = covars,
     outcome = "y",
-    outcome_type = "quasibinomial"
-  )
-
-  av_task_a_z_upshift <- sl3::sl3_Task$new(
-    data = av_a_z_upshifted,
-    covariates = covars,
-    outcome = "y",
-    outcome_type = "quasibinomial"
-  )
-
-  av_task_a_z_upupshift <- sl3::sl3_Task$new(
-    data = av_a_z_upupshifted,
-    covariates = covars,
-    outcome = "y",
-    outcome_type = "quasibinomial"
-  )
-
-  av_task_a_z_downshift <- sl3::sl3_Task$new(
-    data = av_a_z_downshifted,
-    covariates = covars,
-    outcome = "y",
-    outcome_type = "quasibinomial"
+    outcome_type = "continuous"
   )
 
   sl_fit <- sl$train(at_task_noshift)
 
   # fit new Super Learner to the natural (no shift) data and predict
-  at_q_pred <- bound_precision(sl_fit$predict(at_task_noshift))
+  at_q_pred <- sl_fit$predict(at_task_noshift)
 
-  av_q_pred <- bound_precision(sl_fit$predict(av_task_noshift))
-  av_pred_a_upshift <- bound_precision(sl_fit$predict(av_task_a_upshift))
-  av_pred_a_downshift <- bound_precision(sl_fit$predict(av_task_a_downshift))
-  av_pred_a_upupshift <- bound_precision(sl_fit$predict(av_task_a_upupshift))
+  av_q_pred <- sl_fit$predict(av_task_noshift)
+  av_pred_a_upshift <- sl_fit$predict(av_task_a_upshift)
+  av_pred_a_downshift <- sl_fit$predict(av_task_a_downshift)
+  av_pred_a_upupshift <- sl_fit$predict(av_task_a_upupshift)
 
-  at_pred_a_z_upshift <- bound_precision(sl_fit$predict(av_task_a_z_upshift))
-  at_pred_a_z_upupshift <- bound_precision(sl_fit$predict(av_task_a_z_upupshift))
-  at_pred_a_z_downshift <- bound_precision(sl_fit$predict(av_task_a_z_downshift))
 
   # create output data frame and return result
   av_a_shifted <- data.table::as.data.table(cbind(
@@ -191,15 +128,7 @@ est_Q_w_shifted_mediation <- function(exposure,
     av_pred_a_upupshift,
     av_pred_a_downshift
   ))
-
-  av_a_z_shifted <- data.table::as.data.table(cbind(
-    av_q_pred,
-    at_pred_a_z_upshift,
-    at_pred_a_z_upupshift,
-    at_pred_a_z_downshift
-  ))
   data.table::setnames(av_a_shifted, c("noshift", "upshift", "upupshift", "downshift"))
-  data.table::setnames(av_a_z_shifted, c("noshift", "upshift", "upupshift", "downshift"))
 
-  return(list("a_shifted" = av_a_shifted, "a_z_shifted" = av_a_z_shifted))
+  return(list("a_shifted" = av_a_shifted, "model" = sl_fit))
 }

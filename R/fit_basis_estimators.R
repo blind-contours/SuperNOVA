@@ -25,7 +25,9 @@
 #' @importFrom rlang .data
 #' @importFrom dplyr group_by filter top_n
 #' @importFrom stats lm anova model.matrix quantile
+#' @importFrom purrr is_empty
 #' @import polspline
+#' @importFrom stringr str_extract_all
 #' @return A list of results from fitting the best b-spline model to the data
 #' this list includes the selected learner model, the name of the learner,
 #' the anova fit on the model matrix of the basis functions, the basis used,
@@ -34,7 +36,9 @@
 #' @export
 
 fit_basis_estimators <- function(at,
-                                 covars,
+                                 a_names,
+                                 z_names,
+                                 w_names,
                                  outcome,
                                  family,
                                  quantile_thresh,
@@ -44,8 +48,37 @@ fit_basis_estimators <- function(at,
   future::plan(future::sequential, gc = TRUE)
   set.seed(seed)
 
+
+  if (!is_empty(z_names)) {
+    mediator_exposures <- list()
+    for (mediator_i in seq(z_names)) {
+      mediator <- z_names[mediator_i]
+      task <- sl3::make_sl3_Task(
+        data = at,
+        covariates = c(a_names, w_names),
+        outcome = mediator,
+        outcome_type = family
+      )
+
+      discrete_sl_metalrn <- sl3::Lrnr_cv_selector$new(sl3::loss_squared_error)
+
+      mediator_discrete_sl <- sl3::Lrnr_sl$new(
+        learners = zeta_learner,
+        metalearner = discrete_sl_metalrn
+      )
+
+      sl_fit <- mediator_discrete_sl$train(task)
+      selected_learner <- sl_fit$learner_fits[[which(sl_fit$coefficients == 1)]]
+      exposure_drivers <- str_extract_all(rownames(selected_learner$fit_object$glm.coefficients), paste(a_names, collapse = "|"), simplify = FALSE)
+      exposure_drivers <- exposure_drivers[lapply(exposure_drivers, length) > 0]
+      exposure_drivers <- exposure_drivers[!is.na(exposure_drivers)]
+      mediator_exposures[[mediator]] <- unique(unlist(exposure_drivers))
+    }
+  }
+
   task <- sl3::make_sl3_Task(
-    data = at, covariates = covars,
+    data = at,
+    covariates = c(a_names, z_names, w_names),
     outcome = outcome,
     outcome_type = family
   )
@@ -88,7 +121,7 @@ fit_basis_estimators <- function(at,
   if (grepl("polspline", learner_name)) {
     best_model_basis <- polspline::design.polymars(
       selected_learner$fit_object,
-      x = data[, ..covars]
+      x = at[, ..covars]
     )
 
     best_model_basis <- best_model_basis[, -1]
@@ -143,6 +176,7 @@ fit_basis_estimators <- function(at,
 
   match_list <- list()
   i <- 1
+  covars <- c(a_names, z_names, w_names)
   for (j in covars) {
     matches <- stringr::str_match(rownames(anova_fit), j)
     matches[is.na(matches)] <- ""
@@ -153,6 +187,14 @@ fit_basis_estimators <- function(at,
   matches <- do.call(cbind, match_list)
   basis_used <- unique(apply(matches, 1, paste, collapse = ""))
   basis_used <- basis_used[basis_used != ""]
+
+
+  for (basis_name_i in seq(basis_used)) {
+    basis_check <- basis_used[basis_name_i]
+    if (basis_check %in% names(mediator_exposures)) {
+      basis_used[basis_name_i] <- paste(append(mediator_exposures[[basis_check]], basis_check), collapse = "-")
+    }
+  }
 
   results <- list(
     "learner" = selected_learner,

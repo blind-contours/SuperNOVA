@@ -28,122 +28,126 @@
 #'  (g(A | W)), an upshift (g(A + delta) | W), and an upshift of magnitude two
 #'  (g(A + 2 delta) | W).
 
-indiv_stoch_shift_est_z_exp <- function(exposure,
+indiv_stoch_shift_e_estimator <- function(exposure,
                                         mediator,
                                         delta,
                                         pi_learner,
-                                        covars,
+                                        w_names = w_names,
+                                        a_names = a_names,
+                                        z_names = z_names,
                                         av,
                                         at) {
   future::plan(future::sequential, gc = TRUE)
+
+  covars <- c(w_names, z_names)
 
   # need a data set with the exposure stochastically shifted DOWNWARDS A-delta
   av_downshifted <- data.table::copy(av)
 
   data.table::set(av_downshifted,
-    j = exposure,
+    j = mediator,
     value = shift_additive(
-      a = subset(av, select = exposure), delta = -delta
+      a = subset(av, select = mediator), delta = -delta
     )
   )
 
   at_downshifted <- data.table::copy(at)
 
   data.table::set(at_downshifted,
-    j = exposure,
+    j = mediator,
     value = shift_additive(
-      a = subset(at, select = exposure), delta = -delta
+      a = subset(at, select = mediator), delta = -delta
     )
   )
 
   # need a data set with the exposure stochastically shifted UPWARDS A+delta
   av_upshifted <- data.table::copy(av)
   data.table::set(av_upshifted,
-    j = exposure,
+    j = mediator,
     value = shift_additive(
-      a = subset(av, select = exposure), delta = delta
+      a = subset(av, select = mediator), delta = delta
     )
   )
 
   at_upshifted <- data.table::copy(at)
   data.table::set(at_upshifted,
-    j = exposure,
+    j = mediator,
     value = shift_additive(
-      a = subset(at, select = exposure), delta = delta
+      a = subset(at, select = mediator), delta = delta
     )
   )
 
   # need a data set with the exposure stochastically shifted UPWARDS A+2delta
   av_upupshifted <- data.table::copy(av)
   data.table::set(av_upupshifted,
-    j = exposure,
+    j = mediator,
     value = shift_additive(
-      a = subset(av, select = exposure), delta = 2 * delta
+      a = subset(av, select = mediator), delta = 2 * delta
     )
   )
 
   at_upupshifted <- data.table::copy(at)
   data.table::set(at_upupshifted,
-    j = exposure,
+    j = mediator,
     value = shift_additive(
-      a = subset(at, select = exposure), delta = 2 * delta
+      a = subset(at, select = mediator), delta = 2 * delta
     )
   )
 
   sl_task <- sl3::sl3_Task$new(
     data = at,
-    outcome = mediator,
+    outcome = exposure,
     covariates = covars
   )
 
   sl_task_noshift_at <- sl3::sl3_Task$new(
     data = at,
-    outcome = mediator,
+    outcome = exposure,
     covariates = covars
   )
 
   sl_task_noshift_av <- sl3::sl3_Task$new(
     data = av,
-    outcome = mediator,
+    outcome = exposure,
     covariates = covars
   )
 
   # sl3 task for data with exposure shifted DOWNWARDS A-delta
   sl_task_downshifted_at <- sl3::sl3_Task$new(
     data = at_downshifted,
-    outcome = mediator,
+    outcome = exposure,
     covariates = covars
   )
 
   sl_task_downshifted_av <- sl3::sl3_Task$new(
     data = av_downshifted,
-    outcome = mediator,
+    outcome = exposure,
     covariates = covars
   )
 
   # sl3 task for data with exposure shifted UPWARDS A+delta
   sl_task_upshifted_at <- sl3::sl3_Task$new(
     data = at_upshifted,
-    outcome = mediator,
+    outcome = exposure,
     covariates = covars
   )
 
   sl_task_upshifted_av <- sl3::sl3_Task$new(
     data = av_upshifted,
-    outcome = mediator,
+    outcome = exposure,
     covariates = covars
   )
 
   # sl3 task for data with exposure shifted UPWARDS A+2delta
   sl_task_upupshifted_at <- sl3::sl3_Task$new(
     data = at_upupshifted,
-    outcome = mediator,
+    outcome = exposure,
     covariates = covars
   )
 
   sl_task_upupshifted_av <- sl3::sl3_Task$new(
     data = av_upupshifted,
-    outcome = mediator,
+    outcome = exposure,
     covariates = covars
   )
 

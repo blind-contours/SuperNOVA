@@ -6,20 +6,19 @@
 \usage{
 simulate_data(
   n_obs = 1e+05,
-  shift_var_index = 1,
   sigma_mod = matrix(c(1, 0.5, 0.8, 0.5, 1, 0.7, 0.8, 0.7, 1), nrow = 3, ncol = 3),
-  delta = 1
+  delta = 0.5
 )
 }
 \arguments{
 \item{n_obs}{Number of observations}
 
-\item{shift_var_index}{for the exposure vector that indicates which
-exposure to shift}
-
 \item{sigma_mod}{Sigma matrix of exposures}
 
 \item{delta}{Amount to shift exposure by}
+
+\item{shift_var_index}{for the exposure vector that indicates which
+exposure to shift}
 }
 \value{
 A dataframe of simulated data

@@ -87,17 +87,17 @@ create_sls <- function() {
     fast.k = 10, pmethod = "cv", nfold = 5
   )
   lrnr_earth_10 <- Lrnr_earth$new(
-    linpreds = TRUE, degree = 1)
+    linpreds = TRUE, degree = 1
+  )
 
   lrnr_earth_11 <- Lrnr_earth$new(
     linpreds = TRUE, degree = 2,
     fast.k = 0
   )
 
-  lrnr_poly_10 <- Lrnr_polspline$new(knots = 10)
-  lrnr_poly_15 <- Lrnr_polspline$new(knots = 15)
-  lrnr_poly_20 <- Lrnr_polspline$new(knots = 20)
-  lrnr_poly_25 <- Lrnr_polspline$new(knots = 25)
+  lrnr_earth_12 <- Lrnr_earth$new(
+    degree = 3
+  )
 
   learners <- c(
     lrnr_earth_1,
@@ -110,7 +110,8 @@ create_sls <- function() {
     lrnr_earth_8,
     lrnr_earth_9,
     lrnr_earth_10,
-    lrnr_earth_11
+    lrnr_earth_11,
+    lrnr_earth_12
   )
 
   names(learners) <- c(
@@ -124,7 +125,8 @@ create_sls <- function() {
     "full earth 8",
     "full earth 9",
     "full earth 10",
-    "full earth 11"
+    "full earth 11",
+    "full earth 12"
   )
 
   zeta_learner <- make_learner(Stack, learners)

@@ -21,7 +21,16 @@ sim_results_4 <- readRDS(
   here("sandbox/data/SuperNOVA_5_sim.rds")
 )
 
-sim_results <- rbind(sim_results_1, sim_results_2, sim_results_3, sim_results_4)
+sim_results_5 <- readRDS(
+  here("sandbox/data/SuperNOVA_6_sim.rds")
+)
+
+sim_results_6 <- readRDS(
+  here("sandbox/data/SuperNOVA_7_sim.rds")
+)
+
+
+sim_results <- rbind(sim_results_1, sim_results_2, sim_results_3, sim_results_4, sim_results_5, sim_results_6)
 
 
 sim_statistics <- sim_results %>%
@@ -55,8 +64,8 @@ sim_statistics <- sim_results %>%
     abs_intxn_bias = abs(mean_intxn_bias),
     indiv_sqrt_n_abs_bias = sqrt(n_obs) * abs_indiv_bias,
     effect_mod_sqrt_n_abs_bias = sqrt(n_obs) * abs_effect_mod_bias,
-    effect_mod_sqrt_n_abs_bias = sqrt(n_obs) * abs_joint_abs_bias,
-    effect_mod_sqrt_n_abs_bias = sqrt(n_obs) * abs_intxn_bias,
+    joint_sqrt_n_abs_bias = sqrt(n_obs) * abs_joint_abs_bias,
+    intxn_sqrt_n_abs_bias = sqrt(n_obs) * abs_intxn_bias,
     indiv_n_MSE = n_obs * indiv_est_MSE,
     em_n_MSE = n_obs * effect_est_MSE,
     joint_n_MSE = n_obs * joint_est_MSE,
@@ -68,6 +77,12 @@ sim_statistics_long <- sim_statistics %>%
   gather(statistic, value, -c(n_obs))
 
 n_obs <- c(250, 500, 1000, 1500, 2000, 2500, 3000, 5000)
+inverse_sqrt <- 1 /sqrt(n_obs)
+comp_condition <- "1/sqrt(n)"
+ref_group <- bind_cols(n_obs, comp_condition, inverse_sqrt)
+colnames(ref_group) <- c("n_obs", "statistic", "value")
+
+sim_statistics_long <- rbind(sim_statistics_long, ref_group)
 
 make_sim_statistics_plot <- function(sim_statistics_long, stats) {
 
@@ -101,7 +116,7 @@ make_density_plot <- function(sim_statistics,
 
   sim_statistics$n_obs <- as.factor(sim_statistics$n_obs)
 
-  ggplot(sim_statistics, aes(x=eval(parse(text = "indiv_z")), color=n_obs, fill=n_obs)) +
+  ggplot(sim_statistics, aes(x=eval(parse(text = "joint_z")), color=n_obs, fill=n_obs)) +
     geom_density(alpha=0.4) +
     scale_fill_viridis(discrete=TRUE , option = "plasma") +
     scale_color_viridis(discrete=TRUE, option = "plasma") +
@@ -116,15 +131,15 @@ make_density_plot <- function(sim_statistics,
     ylab("Probability") +
     stat_function(fun = dnorm,
                   args = list(mean = 0,
-                              sd = 1,
+                              sd = 1),
                   col = "#1b98e0",
-                  size = 1)
+                  size = 1
     )
 
   }
 
 stats <- c("abs_indiv_bias", "abs_effect_mod_bias",
-           "abs_joint_abs_bias", "abs_intxn_bias")
+           "abs_joint_abs_bias", "abs_intxn_bias", "1/sqrt(n)")
 
 abs_bias_stats_plot <- make_sim_statistics_plot(
   sim_statistics_long,
@@ -155,7 +170,36 @@ cov_stats_plot <- make_sim_statistics_plot(
   stats = stats
 )
 
+stats <- c("indiv_est_sd", "effect_mod_sd",
+           "joint_est_sd", "intxn_est_sd")
 
+sd_stats_plot <- make_sim_statistics_plot(
+  sim_statistics_long,
+  stats = stats
+)
+
+stats <- c("indiv_sqrt_n_abs_bias", "effect_mod_sqrt_n_abs_bias",
+           "joint_sqrt_n_abs_bias", "intxn_sqrt_n_abs_bias")
+
+sd_stats_plot <- make_sim_statistics_plot(
+  sim_statistics_long,
+  stats = stats
+)
+
+stats <- c("indiv_sqrt_n_abs_bias", "effect_mod_sqrt_n_abs_bias",
+           "joint_sqrt_n_abs_bias", "intxn_sqrt_n_abs_bias")
+
+sd_stats_plot <- make_sim_statistics_plot(
+  sim_statistics_long,
+  stats = stats
+)
+
+stats <- c("indiv_n_MSE", "em_n_MSE", "joint_n_MSE", "intxn_n_MSE")
+
+sd_stats_plot <- make_sim_statistics_plot(
+  sim_statistics_long,
+  stats = stats
+)
 
 
 

@@ -368,6 +368,7 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
     "at" = at_out,
     "delta" = delta_reduced,
     "Hn_at" = Hn_at,
-    "Hn_av" = Hn_av
+    "Hn_av" = Hn_av,
+    "model" = sl_fit
   ))
 }

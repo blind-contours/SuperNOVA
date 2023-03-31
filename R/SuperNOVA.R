@@ -97,7 +97,7 @@ SuperNOVA <- function(w,
                       parallel_type = "multi_session",
                       num_cores = 2,
                       seed = seed,
-                      hn_trunc_thresh = 50,
+                      hn_trunc_thresh = 20,
                       adaptive_delta = FALSE) {
   # check arguments and set up some objects for programmatic convenience
   call <- match.call(expand.dots = TRUE)
@@ -241,7 +241,6 @@ SuperNOVA <- function(w,
 
   fold_SuperNOVA_results <- furrr::future_map(
     unique(data_internal$folds), function(fold_k) {
-
       at <- data_internal[data_internal$folds != fold_k, ]
       av <- data_internal[data_internal$folds == fold_k, ]
 
@@ -498,6 +497,8 @@ SuperNOVA <- function(w,
           )
         } else if (sum(stringr::str_count(matches, paste(c(a_names), collapse = "|"))) == 1 &
           sum(stringr::str_count(matches, paste(c(z_names), collapse = "|"))) == 1) {
+
+          ## get the exposure and mediator variables
           exposure <- stringr::str_extract(
             matches,
             paste(c(a_names), collapse = "|")
@@ -508,35 +509,69 @@ SuperNOVA <- function(w,
           exposure <- exposure[!is.na(exposure)]
           mediator <- mediator[!is.na(mediator)]
 
+         ## get delta from the list
+
           delta <- deltas[[exposure]]
 
-          gn_exp_estim <- indiv_stoch_shift_est_g_exp(
-            exposure = exposure,
-            delta = delta,
-            pi_learner = pi_learner,
-            covars = w_names,
-            av = av,
-            at = at,
-            adaptive_delta = adaptive_delta,
-            hn_trunc_thresh = hn_trunc_thresh
-          )
+          ## for density estimates user can pass in SL or haldensify
 
-          g_model <- gn_exp_estim$model
+            ## get g(A|W) under shifts and no shift
+            gn_exp_estim <- indiv_stoch_shift_est_g_exp(
+              exposure = exposure,
+              delta = delta,
+              pi_learner = pi_learner,
+              covars = w_names,
+              av = av,
+              at = at,
+              adaptive_delta = adaptive_delta,
+              hn_trunc_thresh = hn_trunc_thresh
+            )
 
-          delta_updated <- gn_exp_estim$delta
+            ## extract model for future integration
+            g_model <- gn_exp_estim$model
 
-          gn_exp_estim_z <- indiv_stoch_shift_est_g_exp(
-            exposure = exposure,
-            delta = delta,
-            pi_learner = pi_learner,
-            covars = c(w_names, mediator),
-            av = av,
-            at = at,
-            adaptive_delta = adaptive_delta,
-            hn_trunc_thresh = hn_trunc_thresh
-          )
+            ## if delta adapt is true get the new delta, if not true
+            ## delta_updated == delta
 
-          e_model <- gn_exp_estim_z$model
+            delta_updated <- gn_exp_estim$delta
+
+            ## get g(A|Z,W) under shifts and no shift
+
+            gn_exp_estim_z <- indiv_stoch_shift_est_g_exp(
+              exposure = exposure,
+              delta = delta,
+              pi_learner = pi_learner,
+              covars = c(w_names, mediator),
+              av = av,
+              at = at,
+              adaptive_delta = adaptive_delta,
+              hn_trunc_thresh = hn_trunc_thresh
+            )
+
+            e_model <- gn_exp_estim_z$model
+
+            ## get r(Z|W) under shifts and no shift
+
+            zn_exp_estim <- joint_stoch_shift_est_z_exp(
+              exposures = exposure,
+              mediator = mediator,
+              deltas = delta_updated,
+              pi_learner = pi_learner,
+              w_names = w_names,
+              a_names = a_names,
+              z_names = z_names,
+              av = av,
+              at = at
+            )
+
+            r_model <- zn_exp_estim$model
+
+            ## calc ratios for training and validation used for EIF
+
+            g_shift_e_ratio_av <- (gn_exp_estim$av$upshift / gn_exp_estim_z$av$noshift)
+            g_shift_e_ratio_at <- (gn_exp_estim$at$upshift / gn_exp_estim_z$at$noshift)
+
+          ## estimate Q(Y|A,Z,W) under shift and now shift
 
           qn_estim <- est_Q_w_shifted_mediation(
             exposure = exposure,
@@ -550,79 +585,288 @@ SuperNOVA <- function(w,
 
           q_model <- qn_estim$model
 
-          g_shift_e_ratio <- (gn_exp_estim$av$upshift/gn_exp_estim_z$av$noshift)
-          g_shift_e_ratio <- ifelse(g_shift_e_ratio > hn_trunc_thresh, hn_trunc_thresh, g_shift_e_ratio)
+          # g_shift_e_ratio <- ifelse(g_shift_e_ratio > hn_trunc_thresh, hn_trunc_thresh, g_shift_e_ratio)
 
-          d_y <- g_shift_e_ratio * (av$y - qn_estim$a_shifted$noshift)
+          ## calculate dy part of EIF
+          d_y <- g_shift_e_ratio_av * (av$y - qn_estim$av_predictions$noshift)
 
-          d_z_w <- integrate_m_g_trap(data = av,
-                                      w_names = w_names,
-                                      z_names = mediator,
-                                      a_names = exposure,
-                                      q_model = q_model,
-                                      g_model = g_model,
-                                      exposure = exposure,
-                                      delta = delta_updated,
-                                      bins = 10)
+          ## calculate dzw part of EIF by integrating q and g models over a
+          ## this is done where there is no shift in q model and shift in a
+          ## by g_delta - this is done by setting the range for integrating
+          ## for min + delta and max + delta for g.
 
-          g_e_shift_ratio <- (gn_exp_estim$av$noshift / gn_exp_estim_z$av$noshift)
-          g_e_shift_ratio <- ifelse(g_e_shift_ratio > hn_trunc_thresh, hn_trunc_thresh, g_e_shift_ratio)
+          d_z_w <- integrate_m_g(
+            av = av,
+            at = at,
+            covars = c(w_names, exposure, mediator),
+            w_names = w_names,
+            q_model = q_model,
+            g_model = g_model,
+            exposure = exposure,
+            g_delta = delta_updated,
+            m_delta = 0
+          )
 
-          pseudo_outcome <- g_e_shift_ratio * qn_estim$a_shifted$upshift
+          ## phi(a, w) - this is the manual integration of q over z density
+          ## we add delta to the exposure then integrate over z
 
-          av$pseudo_outcome <- pseudo_outcome
+          # av_shifted_copy <- av
+          # av_shifted_copy[exposure] <- av_shifted_copy[exposure] + delta_updated
 
-          d_a_task <- sl3::sl3_Task$new(
-            data = av,
-            covariates = c(exposure, mediator, w_names),
+          # int_psi_delta <- integrate_m_g(
+          #   av = av_shifted_copy,
+          #   at = at,
+          #   covars = c(w_names, exposure, mediator),
+          #   w_names = w_names,
+          #   q_model = q_model,
+          #   g_model = r_model,
+          #   exposure = mediator,
+          #   density_type = density_type,
+          #   g_delta = 0,
+          #   m_delta = 0
+          # )
+
+
+
+          # g_e_shift_ratio <- ifelse(g_e_shift_ratio > hn_trunc_thresh, hn_trunc_thresh, g_e_shift_ratio)
+
+          ## do a double integration to estimate d_a: this is done instead of
+          ## 1. doing a pseudo regression then integrating that over g or
+          ## 2. integrating m(d(a, w), z, w)r(z | w)dν(z) then integrating this
+          ## over g
+
+          d_a_int <- integrate_psi_g(
+                          data = av,
+                          covars = c(w_names, exposure, mediator),
+                          w_names = w_names,
+                          q_model = q_model,
+                          r_model = r_model,
+                          g_model = g_model,
+                          exposure = exposure,
+                          mediator = mediator,
+                          delta = delta_updated)
+
+          ## calculate the g/e no shift ratios needed for pseudo regression
+
+          g_e_shift_ratio_av <- (gn_exp_estim$av$noshift / gn_exp_estim_z$av$noshift)
+          g_e_shift_ratio_at <- (gn_exp_estim$at$noshift / gn_exp_estim_z$at$noshift)
+
+
+          ##  pseudo regression to test against d_a
+          pseudo_regression_at <- g_e_shift_ratio_at * qn_estim$at_predictions$upshift
+          pseudo_regression_av <- g_e_shift_ratio_av * qn_estim$av_predictions$upshift
+
+          at$pseudo_outcome <- pseudo_regression_at
+          av$pseudo_outcome <- pseudo_regression_av
+          # summary(at$pseudo_outcome)
+
+          sl_pseudo_task_at <- sl3::sl3_Task$new(
+            data = at,
             outcome = "pseudo_outcome",
+            covariates = c(exposure, w_names),
+            outcome_type = "continuous"
+          )
+
+          sl_pseudo_task_av <- sl3::sl3_Task$new(
+            data = av,
+            outcome = "pseudo_outcome",
+            covariates = c(exposure, w_names),
             outcome_type = "continuous"
           )
 
           sl <- sl3::Lrnr_sl$new(
             learners = mu_learner,
-            metalearner = sl3::Lrnr_cv_selector$new()
+            metalearner = sl3::Lrnr_nnls$new()
           )
 
-          sl_fit <- sl$train(d_a_task)
-          psi_a_w <- sl_fit$predict()
+          pseudo_model <- sl$train(sl_pseudo_task_at)
+          psi_aw_av <- pseudo_model$predict(sl_pseudo_task_av)
 
-          int_psi_a_w <- integrate_m_g_trap(data = av,
-                                            covars = c(exposure, mediator, w_names),
-                                            q_model = sl_fit,
-                                            g_model = g_model,
-                                            exposure = exposure,
-                                            delta = 0,
-                                            bins = 5)
+          ## integrate phi(a, w) calculated with pseudo regression over g
+          d_a_pseudo <- integrate_psi_aw_g(
+            at = at,
+            av = av,
+            covars = c(exposure, w_names),
+            w_names,
+            pseudo_model,
+            g_model,
+            exposure,
+            delta = delta_updated,
+            psi_aw = psi_aw_av
+          )
 
-          d_a <- psi_a_w - int_psi_a_w
+          ## integrate phi(a, w) calculated with integration over g
+          # d_a_integrated <- integrate_phi_aw_g_int(
+          #   at = at,
+          #   av = av,
+          #   covars = c(exposure, w_names),
+          #   w_names,
+          #   g_model,
+          #   exposure,
+          #   delta = 0,
+          #   psi_aw = int_psi_delta
+          # )
 
-          psi_eif <- d_y + d_z_w + d_a
-          psi <- mean(psi_eif)
-          eif <- psi_eif - psi
-          eif_no_shift <- av$y - qn_estim$a_shifted$noshift
 
-          psi_diff <- mean(av$y - psi_eif)
+          ## calculate psi using integration and pseudo-regression and
+          ## double integration
 
-          variance_est <- var((eif - eif_no_shift) / length(eif))
+          ## sum the nuisance components with each strategy
+          eif_comp_sum_w_pseudo <- d_y + d_z_w + d_a_pseudo
+          eif_comp_sum_w_double_int <- d_y + d_z_w + d_a_int$d_a
+
+          ## subtract off the average to get the EIF for each strategy
+          psi_a_shift_fix_z_pseudo <- mean(eif_comp_sum_w_pseudo)
+          psi_a_shift_fix_z_double_int <- mean(eif_comp_sum_w_double_int)
+
+          a_shift_fix_z_eif_w_pseudo <- eif_comp_sum_w_pseudo - psi_a_shift_fix_z_pseudo
+          a_shift_fix_z_eif_w_double_int <- eif_comp_sum_w_double_int - psi_a_shift_fix_z_double_int
+
+          eif_no_shift <- av$y - qn_estim$av_predictions$noshift
+
+          psi_nde_pseudo <- psi_a_shift_fix_z_pseudo - mean(av$y)
+          psi_nde_double_int <- psi_a_shift_fix_z_double_int - mean(av$y)
+
+          eif_nde_pseudo <- a_shift_fix_z_eif_w_pseudo - eif_no_shift
+          eif_nde_double_int <- a_shift_fix_z_eif_w_double_int - eif_no_shift
+
+          variance_est_nde_pseudo <- var(eif_nde_pseudo) / length(eif_nde_pseudo)
+          variance_est_nde_double_int <- var(eif_nde_double_int) / length(eif_nde_double_int)
           #
-          se_est <- sqrt(variance_est)
-          CI <- calc_CIs(psi_diff, se_est)
-          p.value <- 2 * stats::pnorm(abs(psi / se_est), lower.tail = F)
+          se_est_nde_pseudo <- sqrt(variance_est_nde_pseudo)
+          se_est_nde_double_int <- sqrt(variance_est_nde_double_int)
+
+          CI_nde_pseudo <- calc_CIs(psi_nde_pseudo, se_est_nde_pseudo)
+          CI_nde_double_int <- calc_CIs(psi_nde_double_int, se_est_nde_double_int)
+
+          lower_CI_nde_pseudo <- CI_nde_pseudo[[1]]
+          upper_CI_nde_pseudo <- CI_nde_pseudo[[2]]
+
+          lower_CI_nde_double_int <- CI_nde_double_int[[1]]
+          upper_CI_nde_double_int <- CI_nde_double_int[[2]]
+
+          p_value_nde_pseudo <- 2 * stats::pnorm(abs(psi_a_shift_fix_z_pseudo / se_est_nde_pseudo), lower.tail = F)
+          p_value_nde_double_int <- 2 * stats::pnorm(abs(psi_a_shift_fix_z_double_int / se_est_nde_double_int), lower.tail = F)
+
+          ## estimate the indirect effect
+
+          ind_qn_estim <- indiv_stoch_shift_est_Q(
+            exposure = exposure,
+            delta = delta_updated,
+            mu_learner = mu_learner,
+            covars = c(w_names, exposure, mediator),
+            av = av,
+            at = at
+          )
+
+          Hn <- gn_exp_estim$Hn_av
+
+          tmle_fit <- tmle_exposhift(
+            data_internal = av,
+            delta = delta_updated,
+            Qn_scaled = ind_qn_estim$q_av,
+            Hn = Hn,
+            fluctuation = fluctuation,
+            y = av$y
+          )
+
+          tmle_fit$call <- call
+
+          psi_nie_pseudo <- tmle_fit$psi - psi_a_shift_fix_z_pseudo
+          psi_nie_double_int <- tmle_fit$psi - psi_a_shift_fix_z_double_int
+
+          eif_nie_pseudo <- (tmle_fit$eif - a_shift_fix_z_eif_w_pseudo)
+          eif_nie_double_int <- (tmle_fit$eif - a_shift_fix_z_eif_w_double_int)
+
+          variance_est_nie_pseudo <- var(eif_nie_pseudo) / length(eif_nie_pseudo)
+          variance_est_nie_double_int <- var(eif_nie_double_int) / length(eif_nie_double_int)
+
+          #
+          se_est_nie_pseudo <- sqrt(variance_est_nie_pseudo)
+          se_est_nie_double_int <- sqrt(variance_est_nie_double_int)
+
+          CI_nie_pseudo <- calc_CIs(psi_nie_pseudo, se_est_nie_pseudo)
+          CI_nie_double_int <- calc_CIs(psi_nie_double_int, se_est_nie_double_int)
+
+          lower_CI_nie_pseudo <- CI_nie_pseudo[[1]]
+          upper_CI_nie_pseudo <- CI_nie_pseudo[[2]]
+
+          lower_CI_nie_double_int <- CI_nie_double_int[[1]]
+          upper_CI_nie_double_int <- CI_nie_double_int[[2]]
+
+          p_value_nie_pseudo <- 2 * stats::pnorm(abs(psi_nie_pseudo / se_est_nie_pseudo), lower.tail = F)
+          p_value_nie_double_int <- 2 * stats::pnorm(abs(psi_nie_double_int / se_est_nie_double_int), lower.tail = F)
+
+          nde_results_pseudo <- list(
+            "Parameter" = "NDE-Pseudo-Reg",
+            "Psi" = psi_nde_pseudo,
+            "Variance" = variance_est_nde_pseudo,
+            "SE" = se_est_nde_pseudo,
+            "Lower CI" = lower_CI_nde_pseudo,
+            "Upper CI" = upper_CI_nde_pseudo,
+            "P-Value" = p_value_nde_pseudo
+          )
+
+          nde_results_double_int <- list(
+            "Parameter" = "NDE-Double-Int",
+            "Psi" = psi_nde_double_int,
+            "Variance" = variance_est_nde_double_int,
+            "SE" = se_est_nde_double_int,
+            "Lower CI" = lower_CI_nde_double_int,
+            "Upper CI" = upper_CI_nde_double_int,
+            "P-Value" = p_value_nde_double_int
+          )
+
+          nie_results_pseudo <- list(
+            "Parameter" = "NIE-Pseudo-Reg",
+            "Psi" = psi_nie_pseudo,
+            "Variance" = variance_est_nie_pseudo,
+            "SE" = se_est_nie_pseudo,
+            "Lower CI" = lower_CI_nie_pseudo,
+            "Upper CI" = upper_CI_nie_pseudo,
+            "P-Value" = p_value_nie_pseudo
+          )
+
+          nie_results_double_int <- list(
+            "Parameter" = "NIE-Double-Int",
+            "Psi" = psi_nie_double_int,
+            "Variance" = variance_est_nie_double_int,
+            "SE" = se_est_nie_double_int,
+            "Lower CI" = lower_CI_nie_double_int,
+            "Upper CI" = upper_CI_nie_double_int,
+            "P-Value" = p_value_nie_double_int
+          )
+
+          total_effect <- calc_final_ind_shift_param(
+            tmle_fit,
+            exposure,
+            fold_k
+          )
+
+          total_effect <- total_effect[,1:7]
+          colnames(total_effect) <- c("Parameter", "Psi", "Variance", "SE",
+                                      "Lower CI", "Upper CI", "P-Value")
+
+          total_effect$Parameter <- "Total Effect"
+
+          mediation_in_fold <- rbind(nde_results_pseudo, nde_results_double_int,
+                                     nie_results_pseudo, nie_results_double_int,
+                                     total_effect)
+
+          rownames(mediation_in_fold) <- NULL
 
 
           fold_results_mediation[[
             paste("Fold", fold_k, ":", paste(exposure, mediator, sep = ""))
           ]] <- list(
             "data" = av,
-            "g_model" = g_model,
-            "e_model" = e_model,
-            "psi_aw_model" = sl_fit,
             "delta" = delta_updated,
-            "d_y" = d_y,
-            "d_z_w" = d_z_w,
-            "d_a" = d_a,
-            "eif_no_shift" = eif_no_shift
+            "eif_comp_sum_w_pseudo" = eif_comp_sum_w_pseudo,
+            "eif_comp_sum_w_double_int" = eif_comp_sum_w_double_int,
+            "Qn_scaled" = ind_qn_estim$q_av,
+            "Hn" = Hn,
+            "eif_no_shift" = eif_no_shift,
+            "k_fold_result" = mediation_in_fold
           )
         } else if (sum(stringr::str_count(matches, paste(c(a_names), collapse = "|"))) == 2 &
           sum(stringr::str_count(matches, paste(c(z_names), collapse = "|"))) == 1) {
@@ -876,19 +1120,6 @@ SuperNOVA <- function(w,
   }
 
 
-  if (!is.null(joint_med_shift_results)) {
-    pooled_med_shift_results <- calc_pooled_joint_med_shifts(
-      joint_med_shift_results = joint_med_shift_results,
-      estimator = estimator,
-      fluctuation = fluctuation,
-      a_names = a_names,
-      w_names = w_names,
-      z_names = z_names
-    )
-  } else {
-    pooled_med_shift_results <- NULL
-  }
-
   results_list <- list(
     "Basis Fold Proportions" = basis_prop_in_fold,
     "Effect Mod Results" = pooled_em_shift_results,
@@ -899,3 +1130,4 @@ SuperNOVA <- function(w,
 
   return(results_list)
 }
+

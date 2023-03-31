@@ -21,13 +21,15 @@ create_sls <- function() {
   make_continuous_superlearner <- function() {
     learners <- c(
       sl3::Lrnr_glm$new(),
-      sl3::Lrnr_mean$new(),
       sl3::Lrnr_glmnet$new(alpha = 1),
       sl3::Lrnr_glmnet$new(alpha = 0),
       sl3::Lrnr_glmnet$new(alpha = .5),
       sl3::Lrnr_ranger$new(num.trees = 100),
-      sl3::Lrnr_xgboost$new(),
-      sl3::Lrnr_xgboost$new(nrounds = 50)
+      sl3::Lrnr_ranger$new(num.trees = 500),
+      sl3::Lrnr_xgboost$new(nrounds = 50),
+      sl3::Lrnr_xgboost$new(nrounds = 200),
+      sl3::Lrnr_earth$new(degree = 2),
+      sl3::Lrnr_earth$new(degree = 3)
     )
 
 
@@ -42,6 +44,7 @@ create_sls <- function() {
   }
 
   mean_lrnr <- make_continuous_superlearner()
+
 
   # semiparametric density estimator based on homoscedastic errors (HOSE)
   hose_lrnr <- Lrnr_density_semiparametric$new(mean_learner = mean_lrnr)
@@ -134,7 +137,6 @@ create_sls <- function() {
   # Create default mu estimator ---------------------------
 
   lrnr_glm_basic <- Lrnr_glm$new()
-  lrnr_mean_base <- Lrnr_mean$new()
   lrnr_ridge <- Lrnr_glmnet$new(alpha = 0)
   lrnr_lasso <- Lrnr_glmnet$new(alpha = 1)
   lrnr_ranger_100 <- make_learner(Lrnr_ranger, num.trees = 100)
@@ -146,7 +148,6 @@ create_sls <- function() {
 
   learners <- c(
     lrnr_glm_basic,
-    lrnr_mean_base,
     lrnr_ridge,
     lrnr_lasso,
     lrnr_ranger_100,

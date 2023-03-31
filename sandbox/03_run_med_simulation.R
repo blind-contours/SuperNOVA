@@ -69,11 +69,11 @@ for (sample_size in n_obs) {
                               z = z,
                               y = y,
                               seed = seed,
-                              nde_effects = c(nde_a1, nde_a3, nde_a4),
-                              nie_effects = c(nie_a1, nie_a3, nie_a4),
-                              ate_effects = c(ate_a1, ate_a3, ate_a4),
-                              deltas = list("a_1" = 1, "a_2" = 1, "a_3" = 1, "a_4" = 1),
-                              cv_folds = 2,
+                              nde_effects = c(nde_a1),
+                              nie_effects = c(nie_a1),
+                              ate_effects = c(ate_a1),
+                              deltas = list("a" = 1),
+                              cv_folds = 5,
                               var_sets = NULL
     )
 
@@ -90,5 +90,5 @@ for (sample_size in n_obs) {
 # save results to file
 saveRDS(
   object = sim_results_df,
-  file = here("sandbox/data", paste0("SuperNOVA_", "8_sim", ".rds"))
+  file = here("sandbox/data", paste0("SuperNOVA_", "mediation", ".rds"))
 )

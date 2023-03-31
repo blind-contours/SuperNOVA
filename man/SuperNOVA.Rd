@@ -28,7 +28,7 @@ SuperNOVA(
   parallel_type = "multi_session",
   num_cores = 2,
   seed = seed,
-  hn_trunc_thresh = 50,
+  hn_trunc_thresh = 20,
   adaptive_delta = FALSE
 )
 }

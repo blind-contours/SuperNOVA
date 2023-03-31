@@ -22,6 +22,7 @@
 #' @importFrom data.table as.data.table setnames copy set
 #' @importFrom stringr str_detect
 #' @importFrom assertthat assert_that
+#' @import sl3
 #' @export
 #' @return A \code{data.table} with two columns, containing estimates of the
 #'  outcome mechanism at the natural value of the exposure Q(A, W) and an
@@ -47,12 +48,20 @@ est_Q_w_shifted_mediation <- function(exposure,
   # do this for both AV and AT as AT is used in mediation
 
   av_a_upshifted <- data.table::copy(av)
+  at_a_upshifted <- data.table::copy(at)
 
   data.table::set(av_a_upshifted,
     j = exposure,
     value = shift_additive(
       a = subset(av, select = exposure), delta = delta
     )
+  )
+
+  data.table::set(at_a_upshifted,
+                  j = exposure,
+                  value = shift_additive(
+                    a = subset(at, select = exposure), delta = delta
+                  )
   )
 
   # need a data set with the exposure stochastically shifted DOWNWARDS A-delta
@@ -69,14 +78,20 @@ est_Q_w_shifted_mediation <- function(exposure,
 
 
   # Outcome mechanism
-  sl <- Lrnr_sl$new(
+  sl <- sl3::Lrnr_sl$new(
     learners = mu_learner,
-    metalearner = make_learner(Lrnr_cv_selector)
-
+    metalearner = make_learner(sl3::Lrnr_nnls)
   )
 
   at_task_noshift <- sl3::sl3_Task$new(
     data = at,
+    covariates = covars,
+    outcome = "y",
+    outcome_type = "continuous"
+  )
+
+  at_task_upshift <- sl3::sl3_Task$new(
+    data = at_a_upshifted,
     covariates = covars,
     outcome = "y",
     outcome_type = "continuous"
@@ -119,6 +134,8 @@ est_Q_w_shifted_mediation <- function(exposure,
   av_pred_a_upshift <- sl_fit$predict(av_task_a_upshift)
   av_pred_a_downshift <- sl_fit$predict(av_task_a_downshift)
   av_pred_a_upupshift <- sl_fit$predict(av_task_a_upupshift)
+  at_pred_a_upshift <- sl_fit$predict(at_task_upshift)
+  at_pred_a_noshift <- sl_fit$predict()
 
 
   # create output data frame and return result
@@ -130,5 +147,13 @@ est_Q_w_shifted_mediation <- function(exposure,
   ))
   data.table::setnames(av_a_shifted, c("noshift", "upshift", "upupshift", "downshift"))
 
-  return(list("a_shifted" = av_a_shifted, "model" = sl_fit))
+  # create output data frame and return result
+  at_a_shifted <- data.table::as.data.table(cbind(
+    at_pred_a_noshift,
+    at_pred_a_upshift
+  ))
+  data.table::setnames(at_a_shifted, c("noshift", "upshift"))
+
+
+  return(list("av_predictions" = av_a_shifted, "at_predictions" = at_a_shifted, "model" = sl_fit))
 }

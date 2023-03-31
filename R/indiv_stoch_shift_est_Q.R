@@ -19,6 +19,7 @@
 #' @importFrom data.table as.data.table setnames copy set
 #' @importFrom stringr str_detect
 #' @importFrom assertthat assert_that
+#' @import sl3
 #' @export
 #' @return A \code{data.table} with two columns, containing estimates of the
 #'  outcome mechanism at the natural value of the exposure Q(A, W) and an
@@ -98,7 +99,7 @@ indiv_stoch_shift_est_Q <- function(exposure,
   )
 
   # Outcome mechanism
-  sl <- Lrnr_sl$new(
+  sl <- sl3::Lrnr_sl$new(
     learners = mu_learner,
     metalearner = sl3::Lrnr_nnls$new()
   )

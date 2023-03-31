@@ -24,6 +24,7 @@
 #' @importFrom stats predict
 #' @importFrom haldensify haldensify
 #' @importFrom assertthat assert_that
+#' @import sl3
 #'
 #' @export
 #'

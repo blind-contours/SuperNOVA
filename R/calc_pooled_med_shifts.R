@@ -20,6 +20,7 @@
 #' @param y_name Outcome name
 #' @param fluctuation Type of fluctuation to be used
 #' @importFrom stats var
+#' @importFrom dplyr bind_rows
 #'
 #' @return A \code{list} containing the parameter estimate, estimated variance
 #'  based on the efficient influence function (EIF), the estimate of the EIF
@@ -50,22 +51,13 @@ calc_pooled_med_shifts <- function(med_shift_results,
     if (length(var_set_results) != 0) {
       test <- unlist(var_set_results, recursive = FALSE)
 
-      # Get clever covariate for each shift for each fold ----
+      Hn <- do.call(rbind, test[stringr::str_detect(
+        names(test), "Hn"
+      )])
 
-      Hn_a_shift <- test[stringr::str_detect(names(test), "Hn_a_shift")]
-      Hn_a_shift <- do.call(rbind, Hn_a_shift)
-
-      Hn_a_z_shift <- test[stringr::str_detect(names(test), "Hn_az_shift")]
-      Hn_a_z_shift <- do.call(rbind, Hn_a_z_shift)
-
-      # Get scaled Qn for each shift for each fold ----
-
-      Qn_a_shift <- test[stringr::str_detect(names(test), "Qn_a_shift_scaled")]
-      Qn_a_shift <- do.call(rbind, Qn_a_shift)
-
-      Qn_az_shift <- test[stringr::str_detect(names(test), "Qn_a_z_shift_scaled")]
-      Qn_az_shift <- do.call(rbind, Qn_az_shift)
-
+      Qn_scaled <- do.call(rbind, test[stringr::str_detect(
+        names(test), "Qn_scaled"
+      )])
 
       data <- do.call(rbind, test[stringr::str_detect(
         names(test), "data"
@@ -79,50 +71,134 @@ calc_pooled_med_shifts <- function(med_shift_results,
         names(test), "delta"
       )])
 
-      tmle_fit_a_shift <- tmle_exposhift(
+      deltas <- mean(unlist(deltas))
+
+      tmle_fit <- tmle_exposhift(
         data_internal = data,
-        delta = mean(deltas),
-        Qn_scaled = Qn_a_shift,
-        Hn = Hn_a_shift,
+        Qn_scaled = Qn_scaled,
+        Hn = Hn,
         fluctuation = fluctuation,
-        y = data$y
-      )
-
-      tmle_fit_az_shift <- tmle_exposhift(
-        data_internal = data,
-        delta = mean(deltas),
-        Qn_scaled = Qn_az_shift,
-        Hn = Hn_a_z_shift,
-        fluctuation = fluctuation,
-        y = data$y
-      )
-
-      var_names <- extract_vars_from_basis(
-        var_set, 1,
-        a_names, w_names, z_names
-      )
-
-      exposure <- stringr::str_extract(
-        var_set,
-        paste(c(a_names), collapse = "|")
-      )
-      mediator <- stringr::str_extract(var_set, paste(c(z_names),
-        collapse = "|"
-      ))
-      exposure <- exposure[!is.na(exposure)]
-      mediator <- mediator[!is.na(mediator)]
-
-      mediation_in_fold <- calc_mediation_param(
-        tmle_fit_a_shift = tmle_fit_a_shift,
-        tmle_fit_a_z_shift = tmle_fit_az_shift,
-        exposure,
-        mediator,
         y = data$y,
-        fold_k = "Pooled TMLE",
         delta = mean(deltas)
       )
 
-      results_df <- rbind(k_fold_results, mediation_in_fold)
+      total_effect <- tmle_fit$psi - mean(data$y)
+      total_effect_eif <- tmle_fit$eif
+      var_total_effect <- var(total_effect_eif) / length(total_effect_eif)
+
+      total_effects <- list(
+        "Parameter" = "Total-Pooled-TMLE",
+        "Psi" = total_effect,
+        "Variance" = var_total_effect,
+        "SE" = sqrt(var_total_effect),
+        "Lower CI" = calc_CIs(total_effect, sqrt(var_total_effect))[[1]],
+        "Upper CI" = calc_CIs(total_effect, sqrt(var_total_effect))[[2]],
+        "P-Value" = 2 * stats::pnorm(abs(total_effect / sqrt(var_total_effect)), lower.tail = F)
+      )
+
+      # NDE using pooled pseudo regression
+
+      eif_comp_sum_w_pseudo <- as.vector(unlist(test[stringr::str_detect(names(test), "eif_comp_sum_w_pseudo")]))
+      psi_comp_sum_w_pseudo <- mean(eif_comp_sum_w_pseudo)
+      eif_comp_sum_w_pseudo <- eif_comp_sum_w_pseudo - psi_comp_sum_w_pseudo
+
+      nde_effect_pseudo <- psi_comp_sum_w_pseudo - mean(data$y)
+
+      eif_nde_no_shift <- test[stringr::str_detect(names(test), "eif_no_shift")]
+      eif_nde_no_shift <- as.vector(unlist(eif_nde_no_shift))
+      eif_nde_pseudo <- eif_comp_sum_w_pseudo - eif_nde_no_shift
+      var_nde_pseudo <- var(eif_nde_pseudo) / length(eif_nde_pseudo)
+      se_nde_pseudo <- sqrt(var_nde_pseudo)
+      CI_nde_pseudo <- calc_CIs(nde_effect_pseudo, se_nde_pseudo)
+      p_value_nde_pseudo <- 2 * stats::pnorm(abs(nde_effect_pseudo / se_nde_pseudo), lower.tail = F)
+
+      nde_results_pseudo <- list(
+        "Parameter" = "NDE-Pseudo-Reg",
+        "Psi" = nde_effect_pseudo,
+        "Variance" = var_nde_pseudo,
+        "SE" = se_nde_pseudo,
+        "Lower CI" = CI_nde_pseudo[[1]],
+        "Upper CI" = CI_nde_pseudo[[2]],
+        "P-Value" = p_value_nde_pseudo
+      )
+
+      # NDE using pooled integration
+
+      eif_comp_sum_w_int <- as.vector(unlist(test[stringr::str_detect(names(test), "eif_comp_sum_w_double_int")]))
+      psi_comp_sum_w_int <- mean(eif_comp_sum_w_int)
+      eif_comp_sum_w_int <- eif_comp_sum_w_int - psi_comp_sum_w_int
+
+      nde_effect_int <- psi_comp_sum_w_int - mean(data$y)
+
+      eif_nde_no_shift <- test[stringr::str_detect(names(test), "eif_no_shift")]
+      eif_nde_no_shift <- as.vector(unlist(eif_nde_no_shift))
+      eif_nde_int <- eif_comp_sum_w_int - eif_nde_no_shift
+      var_nde_int <- var(eif_nde_int) / length(eif_nde_int)
+      se_nde_int <- sqrt(var_nde_int)
+      CI_nde_int <- calc_CIs(nde_effect_int, se_nde_int)
+      p_value_nde_int <- 2 * stats::pnorm(abs(nde_effect_int / se_nde_int), lower.tail = F)
+
+      nde_results_int <- list(
+        "Parameter" = "NDE-Integrated",
+        "Psi" = nde_effect_int,
+        "Variance" = var_nde_int,
+        "SE" = se_nde_int,
+        "Lower CI" = CI_nde_int[[1]],
+        "Upper CI" = CI_nde_int[[2]],
+        "P-Value" = p_value_nde_int
+      )
+
+      # NIE using pooled pseudo-regression
+
+      nie_effect_pseudo <- total_effect - nde_effect_pseudo
+      eif_nie_pseudo <- total_effect_eif - eif_nde_pseudo
+      var_nie_pseudo <- var(eif_nie_pseudo) / length(eif_nie_pseudo)
+      se_nie_pseudo <- sqrt(var_nie_pseudo)
+      CI_nie_pseudo <- calc_CIs(nie_effect_pseudo, se_nie_pseudo)
+      p_value_nie_pseudo <- 2 * stats::pnorm(abs(nie_effect_pseudo / se_nie_pseudo), lower.tail = F)
+
+      nie_results_pseudo <- list(
+        "Parameter" = "NIE-Pseudo-Reg",
+        "Psi" = nie_effect_pseudo,
+        "Variance" = var_nie_pseudo,
+        "SE" = se_nie_pseudo,
+        "Lower CI" = CI_nie_pseudo[[1]],
+        "Upper CI" = CI_nie_pseudo[[2]],
+        "P-Value" = p_value_nie_pseudo
+      )
+
+
+      # NIE using pooled integration
+
+      nie_effect_int <- total_effect - nde_effect_int
+      eif_nie_int <- total_effect_eif - eif_nde_int
+      var_nie_int <- var(eif_nie_int) / length(eif_nie_int)
+      se_nie_int <- sqrt(var_nie_int)
+      CI_nie_int <- calc_CIs(nie_effect_int, se_nie_int)
+      p_value_nie_int <- 2 * stats::pnorm(abs(nie_effect_int / se_nie_int), lower.tail = F)
+
+      nie_results_int <- list(
+        "Parameter" = "NIE-Integrated",
+        "Psi" = nie_effect_int,
+        "Variance" = var_nie_int,
+        "SE" = se_nie_int,
+        "Lower CI" = CI_nie_int[[1]],
+        "Upper CI" = CI_nie_int[[2]],
+        "P-Value" = p_value_nie_int
+      )
+
+
+      mediation_pooled <- bind_rows(nde_results_pseudo, nde_results_int,
+                                 nie_results_pseudo, nie_results_int, total_effects)
+      mediation_pooled$id <- "Pooled"
+
+      rownames(mediation_pooled) <- NULL
+
+      k_fold_results <- bind_rows(test[stringr::str_detect(names(test), "k_fold")], .id = "id")
+      k_fold_results$id <- gsub(":.*$", "", k_fold_results$id)
+
+
+      results_df <- bind_rows(k_fold_results, mediation_pooled)
       rownames(results_df) <- NULL
 
       results_list[[var_set]] <- results_df

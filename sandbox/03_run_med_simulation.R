@@ -73,7 +73,7 @@ for (sample_size in n_obs) {
                               nie_effects = c(nie_a1),
                               ate_effects = c(ate_a1),
                               deltas = list("a" = 1),
-                              cv_folds = 5,
+                              cv_folds = 10,
                               var_sets = NULL
     )
 

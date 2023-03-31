@@ -22,4 +22,4 @@
 module load r/4.0.3
 
 ### Run Simulation
-R CMD BATCH --no-save ../NHANES/code/NIEHS_2019_workshop.R mixutres_workshop.Rout
+R CMD BATCH --no-save ../03_run_med_simulation.R supernova_mediation.Rout

@@ -1,12 +1,12 @@
 #!/bin/bash
 # Job name:
-#SBATCH --job-name=prime_mixtures_nhanes
+#SBATCH --job-name=mediation_supernova
 #
 # Partition:
-#SBATCH --partition=savio2
+#SBATCH --partition=savio3
 #
 
-#SBATCH --qos=biostat_savio2_normal
+#SBATCH --qos=biostat_savio3_normal
 #SBATCH --account=co_biostat
 
 # Number of nodes for use case:

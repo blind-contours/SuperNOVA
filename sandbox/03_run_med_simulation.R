@@ -74,7 +74,7 @@ for (sample_size in n_obs) {
                               ate_effects = c(ate_a1),
                               deltas = list("a" = 1),
                               cv_folds = 10,
-                              var_sets = NULL
+                              var_sets = "a-z"
     )
 
     est_out$n_obs <- sample_size

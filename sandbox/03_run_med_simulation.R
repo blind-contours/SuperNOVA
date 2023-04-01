@@ -8,7 +8,7 @@ source(here("sandbox/02_fit_estimators.R"))
 library(SuperNOVA)
 
 # simulation parameters
-n_sim <- 10 # number of simulations
+n_sim <- 5 # number of simulations
 n_obs <- c(250, 500, 1000, 1500, 2000, 2500, 3000, 5000) # sample sizes at root-n scale
 p0_obs <- 100000
 

@@ -20,6 +20,7 @@
 #' @importFrom data.table as.data.table setnames copy set
 #' @importFrom stringr str_detect
 #' @importFrom assertthat assert_that
+#' @import pracma
 #' @export
 #' @return A \code{data.table} with two columns, containing estimates of the
 #'  outcome mechanism at the natural value of the exposure Q(A, W) and an
@@ -127,7 +128,7 @@ integrate_psi_g <- function(data, covars, w_names, q_model, r_model, g_model, ex
     )$value
 
 
-    integral_outer <- pracma::integral2(
+    integral_outer <- integral2(
       function(a, z) integrand_m_g_r(a, z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a),
       xmin = lower_a,
       ymin = lower_z,

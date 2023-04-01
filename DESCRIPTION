@@ -31,7 +31,8 @@ Imports:
     partykit,
     furrr,
     purrr,
-    polspline
+    polspline,
+    pracma
 Suggests: 
     rmarkdown,
     knitr,

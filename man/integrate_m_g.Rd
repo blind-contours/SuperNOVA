@@ -4,11 +4,19 @@
 \alias{integrate_m_g}
 \title{Integrate functions m and g}
 \usage{
-integrate_m_g(data, covars, w_names, q_model, g_model, exposure, delta)
+integrate_m_g(
+  av,
+  at,
+  covars,
+  w_names,
+  q_model,
+  g_model,
+  exposure,
+  g_delta,
+  m_delta
+)
 }
 \arguments{
-\item{data}{A \code{character} vector of exposures to be shifted.}
-
 \item{covars}{The mediator variable}
 
 \item{w_names}{Covariate names}
@@ -19,6 +27,8 @@ integrate_m_g(data, covars, w_names, q_model, g_model, exposure, delta)
 
 \item{exposure}{A \code{numeric} indicating the magnitude of the shift to be
 computed for the exposure \code{A}. This is passed to the internal}
+
+\item{data}{A \code{character} vector of exposures to be shifted.}
 
 \item{delta}{Object containing a set of instantiated learners from the
 \pkg{sl3}, to be used in fitting an ensemble model.}

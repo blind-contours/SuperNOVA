@@ -5,20 +5,18 @@
 \title{Pseudo regression integration}
 \usage{
 integrate_psi_aw_g(
-  data,
+  at,
+  av,
   covars,
   w_names,
   pseudo_model,
   g_model,
   exposure,
   delta,
-  psi_aw,
-  pseudo_reg_backscale
+  psi_aw
 )
 }
 \arguments{
-\item{data}{A \code{character} vector of exposures to be shifted.}
-
 \item{covars}{The mediator variable}
 
 \item{w_names}{Covariate names}
@@ -30,6 +28,8 @@ computed for the exposure \code{A}. This is passed to the internal}
 
 \item{delta}{Object containing a set of instantiated learners from the
 \pkg{sl3}, to be used in fitting an ensemble model.}
+
+\item{data}{A \code{character} vector of exposures to be shifted.}
 
 \item{q_model}{A \code{character} vector covariates to adjust for.}
 }

@@ -9,7 +9,7 @@ library(SuperNOVA)
 
 # simulation parameters
 n_sim <- 1 # number of simulations
-n_obs <- c(250, 500, 1000, 1500, 2000, 2500, 3000, 5000) # sample sizes at root-n scale
+n_obs <- c(1000) # sample sizes at root-n scale
 p0_obs <- 100000
 
 n_core <- 20

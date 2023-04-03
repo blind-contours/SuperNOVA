@@ -118,13 +118,13 @@ integrate_psi_g <- function(data, covars, w_names, q_model, r_model, g_model, ex
   for (i in 1:nrow(data)) {
     row_data <- data[i, ]
 
-    print(i)
-
     integral_inner <- stats::integrate(
       function(z) integrand_m_r(z, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a),
       lower = lower_z,
       upper = upper_z,
-      subdivisions = 300
+      rel.tol = 0.0001,
+      subdivisions = 1000,
+      stop.on.error = FALSE
     )$value
 
 

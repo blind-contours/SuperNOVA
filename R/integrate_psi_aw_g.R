@@ -55,13 +55,13 @@ integrate_psi_aw_g <- function(at, av, covars, w_names, pseudo_model, g_model, e
 
   for (i in 1:nrow(av)) {
     row_data <- av[i, ]
-    print(i)
     integral_result <- stats::integrate(
       function(a) integrand(a, row_data, covars, pseudo_model, g_model, exposure, delta, upper),
       lower = lower,
       upper = upper,
-      rel.tol = 0.001,
-      subdivisions = 300
+      rel.tol = 0.0001,
+      subdivisions = 1000,
+      stop.on.error = FALSE
     )$value
 
     results[i] <- psi_aw[i] - integral_result

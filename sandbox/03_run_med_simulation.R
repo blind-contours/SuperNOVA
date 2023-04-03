@@ -8,9 +8,12 @@ source(here("sandbox/02_fit_estimators.R"))
 library(SuperNOVA)
 
 # simulation parameters
-n_sim <- 5 # number of simulations
+n_sim <- 1 # number of simulations
 n_obs <- c(250, 500, 1000, 1500, 2000, 2500, 3000, 5000) # sample sizes at root-n scale
 p0_obs <- 100000
+
+n_core <- 20
+n_fold <- 20
 
 # Generate simulated data -----------------
 
@@ -73,7 +76,8 @@ for (sample_size in n_obs) {
                               nie_effects = c(nie_a1),
                               ate_effects = c(ate_a1),
                               deltas = list("a" = 1),
-                              cv_folds = 10,
+                              cv_folds = n_fold,
+                              num_cores = n_core,
                               var_sets = "a-z"
     )
 

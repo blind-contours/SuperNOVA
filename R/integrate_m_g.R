@@ -56,7 +56,6 @@ integrate_m_g <- function(av, at, covars, w_names, q_model, g_model, exposure, g
   results <- numeric(nrow(av))
 
   for (i in 1:nrow(av)) {
-    print(i)
     row_data <- av[i, ]
 
     integral_result <- stats::integrate(
@@ -64,7 +63,8 @@ integrate_m_g <- function(av, at, covars, w_names, q_model, g_model, exposure, g
       lower = lower,
       upper = upper,
       rel.tol = 0.0001,
-      subdivisions = 300)$value
+      subdivisions = 1000,
+      stop.on.error = FALSE)$value
 
     results[i] <- integral_result
   }

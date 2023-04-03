@@ -134,6 +134,7 @@ fit_estimators_mediation <- function(w,
                                      ate_effects,
                                      deltas,
                                      cv_folds,
+                                     num_cores,
                                      var_sets){
 
   sim_results <- SuperNOVA(
@@ -151,7 +152,7 @@ fit_estimators_mediation <- function(w,
     parallel = TRUE,
     seed = seed,
     var_sets = var_sets,
-    num_cores = 5
+    num_cores = num_cores
   )
 
   med_shift_results <- sim_results$`Mediation Shift Results`$az

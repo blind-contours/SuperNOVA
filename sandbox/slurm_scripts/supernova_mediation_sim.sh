@@ -16,7 +16,7 @@
 #SBATCH --exclusive
 #
 # Wall clock limit:
-#SBATCH --time 10:00:00
+#SBATCH --time 6:00:00
 #
 ## Command(s) to run (example):
 module load r/4.0.3

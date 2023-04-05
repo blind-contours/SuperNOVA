@@ -123,7 +123,7 @@ integrate_psi_g <- function(data, covars, w_names, q_model, r_model, g_model, ex
       lower = lower_z,
       upper = upper_z,
       rel.tol = 0.0001,
-      subdivisions = 1000,
+      subdivisions = 100,
       stop.on.error = FALSE
     )$value
 

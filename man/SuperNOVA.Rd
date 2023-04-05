@@ -29,7 +29,8 @@ SuperNOVA(
   num_cores = 2,
   seed = seed,
   hn_trunc_thresh = 20,
-  adaptive_delta = FALSE
+  adaptive_delta = FALSE,
+  n_mc_sample = 1000
 )
 }
 \arguments{

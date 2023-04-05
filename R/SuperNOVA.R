@@ -98,7 +98,8 @@ SuperNOVA <- function(w,
                       num_cores = 2,
                       seed = seed,
                       hn_trunc_thresh = 20,
-                      adaptive_delta = FALSE) {
+                      adaptive_delta = FALSE,
+                      n_mc_sample = 1000) {
   # check arguments and set up some objects for programmatic convenience
   call <- match.call(expand.dots = TRUE)
   estimator <- match.arg(estimator)
@@ -595,7 +596,19 @@ SuperNOVA <- function(w,
           ## by g_delta - this is done by setting the range for integrating
           ## for min + delta and max + delta for g.
 
-          d_z_w <- integrate_m_g(
+          # d_z_w <- integrate_m_g(
+          #   av = av,
+          #   at = at,
+          #   covars = c(w_names, exposure, mediator),
+          #   w_names = w_names,
+          #   q_model = q_model,
+          #   g_model = g_model,
+          #   exposure = exposure,
+          #   g_delta = delta_updated,
+          #   m_delta = 0
+          # )
+
+          d_z_w <- integrate_m_g_mc(
             av = av,
             at = at,
             covars = c(w_names, exposure, mediator),
@@ -604,47 +617,34 @@ SuperNOVA <- function(w,
             g_model = g_model,
             exposure = exposure,
             g_delta = delta_updated,
-            m_delta = 0
+            m_delta = 0,
+            n_samples = n_mc_sample
           )
 
-          ## phi(a, w) - this is the manual integration of q over z density
-          ## we add delta to the exposure then integrate over z
+          # d_a_int <- integrate_psi_g(
+          #                 data = av,
+          #                 covars = c(w_names, exposure, mediator),
+          #                 w_names = w_names,
+          #                 q_model = q_model,
+          #                 r_model = r_model,
+          #                 g_model = g_model,
+          #                 exposure = exposure,
+          #                 mediator = mediator,
+          #                 delta = delta_updated)
 
-          # av_shifted_copy <- av
-          # av_shifted_copy[exposure] <- av_shifted_copy[exposure] + delta_updated
-
-          # int_psi_delta <- integrate_m_g(
-          #   av = av_shifted_copy,
-          #   at = at,
-          #   covars = c(w_names, exposure, mediator),
-          #   w_names = w_names,
-          #   q_model = q_model,
-          #   g_model = r_model,
-          #   exposure = mediator,
-          #   density_type = density_type,
-          #   g_delta = 0,
-          #   m_delta = 0
-          # )
-
-
-
-          # g_e_shift_ratio <- ifelse(g_e_shift_ratio > hn_trunc_thresh, hn_trunc_thresh, g_e_shift_ratio)
-
-          ## do a double integration to estimate d_a: this is done instead of
-          ## 1. doing a pseudo regression then integrating that over g or
-          ## 2. integrating m(d(a, w), z, w)r(z | w)dν(z) then integrating this
-          ## over g
-
-          d_a_int <- integrate_psi_g(
-                          data = av,
-                          covars = c(w_names, exposure, mediator),
-                          w_names = w_names,
-                          q_model = q_model,
-                          r_model = r_model,
-                          g_model = g_model,
-                          exposure = exposure,
-                          mediator = mediator,
-                          delta = delta_updated)
+          d_a_int <- integrate_psi_g_mc(
+            av = av,
+            at = at,
+            covars = c(w_names, exposure, mediator),
+            w_names = w_names,
+            q_model = q_model,
+            r_model = r_model,
+            g_model = g_model,
+            exposure = exposure,
+            mediator = mediator,
+            delta = delta_updated,
+            n_samples = n_mc_sample,
+            n_iterations = 2)
 
           ## calculate the g/e no shift ratios needed for pseudo regression
 
@@ -683,7 +683,19 @@ SuperNOVA <- function(w,
           psi_aw_av <- pseudo_model$predict(sl_pseudo_task_av)
 
           ## integrate phi(a, w) calculated with pseudo regression over g
-          d_a_pseudo <- integrate_psi_aw_g(
+          # d_a_pseudo <- integrate_psi_aw_g(
+          #   at = at,
+          #   av = av,
+          #   covars = c(exposure, w_names),
+          #   w_names,
+          #   pseudo_model,
+          #   g_model,
+          #   exposure,
+          #   delta = delta_updated,
+          #   psi_aw = psi_aw_av
+          # )
+
+          d_a_pseudo <- integrate_psi_aw_g_mc(
             at = at,
             av = av,
             covars = c(exposure, w_names),
@@ -692,7 +704,8 @@ SuperNOVA <- function(w,
             g_model,
             exposure,
             delta = delta_updated,
-            psi_aw = psi_aw_av
+            psi_aw = psi_aw_av,
+            n_samples = n_mc_sample
           )
 
           ## integrate phi(a, w) calculated with integration over g
@@ -707,13 +720,13 @@ SuperNOVA <- function(w,
           #   psi_aw = int_psi_delta
           # )
 
-
           ## calculate psi using integration and pseudo-regression and
           ## double integration
 
           ## sum the nuisance components with each strategy
           eif_comp_sum_w_pseudo <- d_y + d_z_w + d_a_pseudo
           eif_comp_sum_w_double_int <- d_y + d_z_w + d_a_int$d_a
+
 
           ## subtract off the average to get the EIF for each strategy
           psi_a_shift_fix_z_pseudo <- mean(eif_comp_sum_w_pseudo)

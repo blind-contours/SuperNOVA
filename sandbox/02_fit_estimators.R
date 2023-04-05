@@ -145,14 +145,14 @@ fit_estimators_mediation <- function(w,
     deltas = deltas,
     estimator = "tmle",
     fluctuation = "standard",
-    n_folds = cv_folds,
+    n_folds = 5,
     family = "continuous",
     quantile_thresh = 0,
     verbose = TRUE,
     parallel = TRUE,
     seed = seed,
     var_sets = var_sets,
-    num_cores = num_cores
+    num_cores = 6
   )
 
   med_shift_results <- sim_results$`Mediation Shift Results`$az

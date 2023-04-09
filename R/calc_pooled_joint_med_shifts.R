@@ -26,13 +26,13 @@
 #'  incorporating inverse probability of censoring weights, and the estimate of
 #'  the EIF without the application of such weights.
 calc_pooled_joint_med_shifts <- function(joint_med_shift_results,
-                                   estimator = c("tmle", "onestep"),
-                                   fluc_mod_out = NULL,
-                                   a_names,
-                                   w_names,
-                                   z_names,
-                                   y_name,
-                                   fluctuation) {
+                                         estimator = c("tmle", "onestep"),
+                                         fluc_mod_out = NULL,
+                                         a_names,
+                                         w_names,
+                                         z_names,
+                                         y_name,
+                                         fluctuation) {
   # set TMLE as default estimator type
   estimator <- match.arg(estimator)
 
@@ -107,7 +107,7 @@ calc_pooled_joint_med_shifts <- function(joint_med_shift_results,
         paste(c(a_names), collapse = "|")
       )
       mediator <- stringr::str_extract(var_set, paste(c(z_names),
-                                                      collapse = "|"
+        collapse = "|"
       ))
       exposure <- exposure[!is.na(exposure)]
       mediator <- mediator[!is.na(mediator)]

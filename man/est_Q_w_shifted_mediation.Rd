@@ -11,7 +11,9 @@ est_Q_w_shifted_mediation(
   mu_learner,
   covars,
   av,
-  at
+  at,
+  upper_bound = upper_bound,
+  lower_bound = lower_bound
 )
 }
 \arguments{

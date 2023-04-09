@@ -74,6 +74,8 @@ fit_basis_estimators <- function(at,
       exposure_drivers <- exposure_drivers[!is.na(exposure_drivers)]
       mediator_exposures[[mediator]] <- unique(unlist(exposure_drivers))
     }
+  }else{
+    mediator_exposures <- NULL
   }
 
   task <- sl3::make_sl3_Task(

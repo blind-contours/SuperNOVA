@@ -35,12 +35,16 @@
 
 indiv_stoch_shift_est_g_exp <- function(exposure,
                                         delta,
-                                        pi_learner,
+                                        g_learner,
                                         covars,
                                         av,
                                         at,
                                         adaptive_delta,
-                                        hn_trunc_thresh) {
+                                        hn_trunc_thresh,
+                                        exposure_quantized,
+                                        lower_bound,
+                                        upper_bound,
+                                        outcome_type) {
   future::plan(future::sequential, gc = TRUE)
 
   # need a data set with the exposure stochastically shifted DOWNWARDS A-delta
@@ -49,7 +53,10 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
   data.table::set(av_downshifted,
     j = exposure,
     value = shift_additive(
-      a = subset(av, select = exposure), delta = -delta
+      a = subset(av, select = exposure),
+      delta = -delta,
+      lower_bound = lower_bound,
+      upper_bound = upper_bound
     )
   )
 
@@ -58,7 +65,10 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
   data.table::set(at_downshifted,
     j = exposure,
     value = shift_additive(
-      a = subset(at, select = exposure), delta = -delta
+      a = subset(at, select = exposure),
+      delta = -delta,
+      lower_bound = lower_bound,
+      upper_bound = upper_bound
     )
   )
 
@@ -67,7 +77,10 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
   data.table::set(av_upshifted,
     j = exposure,
     value = shift_additive(
-      a = subset(av, select = exposure), delta = delta
+      a = subset(av, select = exposure),
+      delta = delta,
+      lower_bound = lower_bound,
+      upper_bound = upper_bound
     )
   )
 
@@ -75,7 +88,10 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
   data.table::set(at_upshifted,
     j = exposure,
     value = shift_additive(
-      a = subset(at, select = exposure), delta = delta
+      a = subset(at, select = exposure),
+      delta = delta,
+      lower_bound = lower_bound,
+      upper_bound = upper_bound
     )
   )
 
@@ -84,7 +100,10 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
   data.table::set(av_upupshifted,
     j = exposure,
     value = shift_additive(
-      a = subset(av, select = exposure), delta = 2 * delta
+      a = subset(av, select = exposure),
+      delta = 2 * delta,
+      lower_bound = lower_bound,
+      upper_bound = upper_bound
     )
   )
 
@@ -92,14 +111,18 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
   data.table::set(at_upupshifted,
     j = exposure,
     value = shift_additive(
-      a = subset(at, select = exposure), delta = 2 * delta
+      a = subset(at, select = exposure),
+      delta = 2 * delta,
+      lower_bound = lower_bound,
+      upper_bound = upper_bound
     )
   )
 
   sl_task <- sl3::sl3_Task$new(
     data = at,
     outcome = exposure,
-    covariates = covars
+    covariates = covars,
+    outcome_type = outcome_type
   )
 
   sl_task_noshift_at <- sl3::sl3_Task$new(
@@ -153,7 +176,7 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
     covariates = covars
   )
 
-  sl_fit <- pi_learner$train(sl_task)
+  sl_fit <- suppressWarnings(suppressMessages(g_learner$train(sl_task)))
 
   # at predictions -----------
   pred_g_exp_noshift_at <- sl_fit$predict(sl_task_noshift_at)
@@ -167,6 +190,23 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
   pred_g_exp_downshifted_av <- sl_fit$predict(sl_task_downshifted_av)
   pred_g_exp_upshifted_av <- sl_fit$predict(sl_task_upshifted_av)
   pred_g_exp_upupshifted_av <- sl_fit$predict(sl_task_upupshifted_av)
+
+  if (exposure_quantized == TRUE) {
+    get_value_from_column <- function(a, row_quantile_predictions, lower_bound = lower_bound, upper_bound = upper_bound) {
+      a <- ifelse(a < lower_bound, lower_bound, a)
+      a <- ifelse(a > upper_bound, upper_bound, a)
+      row_quantile_predictions[[a]]
+    }
+    pred_g_exp_noshift_at <- mapply(get_value_from_column, a = at$a, row_quantile_predictions = unlist(pred_g_exp_noshift_at, recursive = FALSE), lower_bound = lower_bound, upper_bound = upper_bound)
+    pred_g_exp_downshifted_at <- mapply(get_value_from_column, a = at$a - delta, row_quantile_predictions = unlist(pred_g_exp_downshifted_at, recursive = FALSE), lower_bound = lower_bound, upper_bound = upper_bound)
+    pred_g_exp_upshifted_at <- mapply(get_value_from_column, a = at$a + delta, row_quantile_predictions = unlist(pred_g_exp_upshifted_at, recursive = FALSE), lower_bound = lower_bound, upper_bound = upper_bound)
+    pred_g_exp_upupshifted_at <- mapply(get_value_from_column, a = at$a + 2 * delta, row_quantile_predictions = unlist(pred_g_exp_upupshifted_at, recursive = FALSE), lower_bound = lower_bound, upper_bound = upper_bound)
+
+    pred_g_exp_noshift_av <- mapply(get_value_from_column, a = av$a, row_quantile_predictions = unlist(pred_g_exp_noshift_av, recursive = FALSE), lower_bound = lower_bound, upper_bound = upper_bound)
+    pred_g_exp_downshifted_av <- mapply(get_value_from_column, a = av$a - delta, row_quantile_predictions = unlist(pred_g_exp_downshifted_av, recursive = FALSE), lower_bound = lower_bound, upper_bound = upper_bound)
+    pred_g_exp_upshifted_av <- mapply(get_value_from_column, a = av$a + delta, row_quantile_predictions = unlist(pred_g_exp_upshifted_av, recursive = FALSE), lower_bound = lower_bound, upper_bound = upper_bound)
+    pred_g_exp_upupshifted_av <- mapply(get_value_from_column, a = av$a + 2 * delta, row_quantile_predictions = unlist(pred_g_exp_upupshifted_av, recursive = FALSE), lower_bound = lower_bound, upper_bound = upper_bound)
+  }
 
 
   # create output data.tables
@@ -209,7 +249,10 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
         data.table::set(av_downshifted,
           j = exposure,
           value = shift_additive(
-            a = subset(av, select = exposure), delta = -delta_reduced
+            a = subset(av, select = exposure),
+            delta = -delta_reduced,
+            lower_bound = lower_bound,
+            upper_bound = upper_bound
           )
         )
 
@@ -219,7 +262,10 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
         data.table::set(av_downshifted,
           j = exposure,
           value = shift_additive(
-            a = subset(av, select = exposure), delta = -delta_reduced
+            a = subset(av, select = exposure),
+            delta = -delta_reduced,
+            lower_bound = lower_bound,
+            upper_bound = upper_bound
           )
         )
 
@@ -228,7 +274,10 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
         data.table::set(at_downshifted,
           j = exposure,
           value = shift_additive(
-            a = subset(at, select = exposure), delta = -delta_reduced
+            a = subset(at, select = exposure),
+            delta = -delta_reduced,
+            lower_bound = lower_bound,
+            upper_bound = upper_bound
           )
         )
 
@@ -237,7 +286,10 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
         data.table::set(av_upshifted,
           j = exposure,
           value = shift_additive(
-            a = subset(av, select = exposure), delta = delta_reduced
+            a = subset(av, select = exposure),
+            delta = delta_reduced,
+            lower_bound = lower_bound,
+            upper_bound = upper_bound
           )
         )
 
@@ -245,7 +297,10 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
         data.table::set(at_upshifted,
           j = exposure,
           value = shift_additive(
-            a = subset(at, select = exposure), delta = delta_reduced
+            a = subset(at, select = exposure),
+            delta = delta_reduced,
+            lower_bound = lower_bound,
+            upper_bound = upper_bound
           )
         )
 
@@ -254,7 +309,10 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
         data.table::set(av_upupshifted,
           j = exposure,
           value = shift_additive(
-            a = subset(av, select = exposure), delta = 2 * delta_reduced
+            a = subset(av, select = exposure),
+            delta = 2 * delta_reduced,
+            lower_bound = lower_bound,
+            upper_bound = upper_bound
           )
         )
 
@@ -262,7 +320,10 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
         data.table::set(at_upupshifted,
           j = exposure,
           value = shift_additive(
-            a = subset(at, select = exposure), delta = 2 * delta_reduced
+            a = subset(at, select = exposure),
+            delta = 2 * delta_reduced,
+            lower_bound = lower_bound,
+            upper_bound = upper_bound
           )
         )
 

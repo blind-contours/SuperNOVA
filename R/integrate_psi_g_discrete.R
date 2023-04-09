@@ -1,5 +1,5 @@
-#' Integrate Psi G for the Da part of the EIF for stochastic mediation using
-#' monte carlo integration
+#' Integrate Psi G for the Da part of the EIF for stochastic mediation
+#' when A is quartiles
 #'
 #' @details Does the double integration as described in lemma 1
 #'
@@ -26,22 +26,20 @@
 #' @return A \code{data.table} with two columns, containing estimates of the
 #'  outcome mechanism at the natural value of the exposure Q(A, W) and an
 #'  upshift of the exposure Q(A + delta, W)
-integrate_psi_g_mc <- function(av, at, covars, w_names, q_model, r_model, g_model, exposure, mediator, delta, n_samples, n_iterations) {
+
+integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, g_model, exposure, mediator, delta, n_bins, n_samples = 1000) {
   av <- as.data.frame(av)
   at <- as.data.frame(at)
 
   lower_z <- floor(min(min(av[[mediator]]), min(at[[mediator]])))
   upper_z <- ceiling(max(max(av[[mediator]]), max(at[[mediator]])))
 
-  lower_a <- floor(min(min(av[[exposure]]), min(at[[exposure]])))
-  upper_a <- ceiling(max(max(av[[exposure]]), max(at[[exposure]])))
-
   integrand_m_r <- function(sample_z_inner, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a) {
-    row_data <- do.call("rbind", replicate(length(sample_z_inner), row_data, simplify = FALSE))
-    new_data_m <- new_data_r <- row_data
+    row_data_rep <- do.call("rbind", replicate(length(sample_z_inner), row_data, simplify = FALSE))
+    new_data_m <- new_data_r <- row_data_rep
 
     new_data_m[mediator] <- sample_z_inner
-    new_data_m[exposure] <- new_data_m[[exposure]] + delta # ifelse(new_data_m[[exposure]] + delta >= upper_a, upper_a, new_data_m[[exposure]] + delta)
+    new_data_m[exposure] <- ifelse(new_data_m[[exposure]] + delta >= upper_a, upper_a, new_data_m[[exposure]] + delta)
 
     new_data_r[mediator] <- sample_z_inner
 
@@ -65,11 +63,11 @@ integrate_psi_g_mc <- function(av, at, covars, w_names, q_model, r_model, g_mode
   }
 
   integrand_m_g_r_mc <- function(sample_a, sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a) {
-    n_samples <- length(sample_a)
-    row_data <- do.call("rbind", replicate(n_samples, row_data, simplify = FALSE))
-    new_data_m <- new_data_g <- new_data_r <- row_data
+    n_samples <- length(sample_z)
+    row_data_rep <- do.call("rbind", replicate(n_samples, row_data, simplify = FALSE))
+    new_data_m <- new_data_g <- new_data_r <- row_data_rep
 
-    new_data_m[exposure] <- sample_a + delta # ifelse(sample_a + delta >= upper_a, upper_a, sample_a + delta)
+    new_data_m[exposure] <- ifelse(sample_a + delta >= upper_a, upper_a, sample_a + delta)
     new_data_m[mediator] <- sample_z
 
     new_data_g[exposure] <- sample_a
@@ -97,11 +95,12 @@ integrate_psi_g_mc <- function(av, at, covars, w_names, q_model, r_model, g_mode
     g_val <- g_model$predict(task_g)
     r_val <- r_model$predict(task_r)
 
-    output <- m_val * g_val$likelihood * r_val$likelihood
+    g_vals <- unlist(g_val, recursive = FALSE)
+    likelihood <- sapply(g_vals, function(x) x[[sample_a]])
+    output <- m_val * likelihood * r_val$likelihood
 
     return(output)
   }
-
 
   results <- numeric(nrow(av))
   integral_inner_results <- numeric(nrow(av))
@@ -109,30 +108,26 @@ integrate_psi_g_mc <- function(av, at, covars, w_names, q_model, r_model, g_mode
 
   for (i in 1:nrow(av)) {
     row_data <- av[i, ]
-    results_i <- numeric(n_iterations)
-    integral_inner_results_i <- numeric(n_iterations)
-    integral_outer_results_i <- numeric(n_iterations)
+    # integral_inner_results_i <- numeric(n_bins)
+    integral_outer_results_i <- numeric(n_bins)
 
-    for (iteration in 1:n_iterations) {
-      sample_z_inner <- runif(n_samples, lower_z, upper_z)
-      mc_integrands_inner <- integrand_m_r(sample_z_inner, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a)
-      integral_inner <- (upper_z - lower_z) * mean(mc_integrands_inner)
+    sample_z_inner <- runif(n_samples, lower_z, upper_z)
+    mc_integrands_inner <- integrand_m_r(sample_z_inner, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a = n_bins)
+    integral_inner <- (upper_z - lower_z) * mean(mc_integrands_inner)
 
-      sample_a <- runif(n_samples, lower_a, upper_a)
+    for (a_val in 1:n_bins) {
       sample_z_outer <- runif(n_samples, lower_z, upper_z)
+      integrand_val <- integrand_m_g_r_mc(sample_a = a_val, sample_z = sample_z_outer, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_z)
 
-      mc_integrands_outer <- integrand_m_g_r_mc(sample_a, sample_z_outer, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a)
-      average_integrand <- mean(mc_integrands_outer)
-      integral_outer <- (upper_a - lower_a) * (upper_z - lower_z) * average_integrand
+      integral_outer <- (upper_z - lower_z) * mean(integrand_val)
 
-      results_i[iteration] <- integral_inner - integral_outer
-      integral_inner_results_i[iteration] <- integral_inner
-      integral_outer_results_i[iteration] <- integral_outer
+      # integral_inner_results_i[a_val] <- integral_inner
+      integral_outer_results_i[a_val] <- integral_outer
     }
 
-    results[i] <- mean(results_i)
-    integral_inner_results[i] <- mean(integral_inner_results_i)
-    integral_outer_results[i] <- mean(integral_outer_results_i)
+    results[i] <- integral_inner - sum(integral_outer_results_i)
+    integral_inner_results[i] <- integral_inner
+    integral_outer_results[i] <- integral_outer
   }
 
   return(list("d_a" = results, "phi_aw" = integral_inner_results))

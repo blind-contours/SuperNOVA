@@ -39,7 +39,9 @@ joint_stoch_shift_est_g_exp <- function(exposures,
                                         av,
                                         at,
                                         adaptive_delta,
-                                        hn_trunc_thresh) {
+                                        hn_trunc_thresh,
+                                        lower_bound,
+                                        upper_bound) {
   future::plan(future::sequential, gc = TRUE)
 
   results <- list()
@@ -62,19 +64,28 @@ joint_stoch_shift_est_g_exp <- function(exposures,
     av_downshifted <- data.table::copy(av)
 
     data.table::set(av_downshifted, j = exposure, value = shift_additive(
-      a = subset(av, select = exposure), delta = -delta
+      a = subset(av, select = exposure),
+      delta = -delta,
+      lower_bound = lower_bound,
+      upper_bound = upper_bound
     ))
 
     # need a data set with the exposure stochastically shifted UPWARDS A+delta
     av_upshifted <- data.table::copy(av)
     data.table::set(av_upshifted, j = exposure, value = shift_additive(
-      a = subset(av, select = exposure), delta = delta
+      a = subset(av, select = exposure),
+      delta = delta,
+      lower_bound = lower_bound,
+      upper_bound = upper_bound
     ))
 
     # need a data set with the exposure stochastically shifted UPWARDS A+2delta
     av_upupshifted <- data.table::copy(av)
     data.table::set(av_upupshifted, j = exposure, value = shift_additive(
-      a = subset(av, select = exposure), delta = 2 * delta
+      a = subset(av, select = exposure),
+      delta = 2 * delta,
+      lower_bound = lower_bound,
+      upper_bound = upper_bound
     ))
 
     sl_task <- sl3::sl3_Task$new(
@@ -149,7 +160,10 @@ joint_stoch_shift_est_g_exp <- function(exposures,
           data.table::set(av_downshifted,
             j = exposure,
             value = shift_additive(
-              a = subset(av, select = exposure), delta = -delta_reduced
+              a = subset(av, select = exposure),
+              delta = -delta_reduced,
+              lower_bound = lower_bound,
+              upper_bound = upper_bound
             )
           )
 
@@ -165,7 +179,10 @@ joint_stoch_shift_est_g_exp <- function(exposures,
           data.table::set(av_upshifted,
             j = exposure,
             value = shift_additive(
-              a = subset(av, select = exposure), delta = delta_reduced
+              a = subset(av, select = exposure),
+              delta = delta_reduced,
+              lower_bound = lower_bound,
+              upper_bound = upper_bound
             )
           )
 
@@ -180,7 +197,10 @@ joint_stoch_shift_est_g_exp <- function(exposures,
           data.table::set(av_upupshifted,
             j = exposure,
             value = shift_additive(
-              a = subset(av, select = exposure), delta = 2 * delta_reduced
+              a = subset(av, select = exposure),
+              delta = 2 * delta_reduced,
+              lower_bound = lower_bound,
+              upper_bound = upper_bound
             )
           )
 
@@ -188,7 +208,10 @@ joint_stoch_shift_est_g_exp <- function(exposures,
           data.table::set(at_upupshifted,
             j = exposure,
             value = shift_additive(
-              a = subset(at, select = exposure), delta = 2 * delta_reduced
+              a = subset(at, select = exposure),
+              delta = 2 * delta_reduced,
+              lower_bound = lower_bound,
+              upper_bound = upper_bound
             )
           )
 

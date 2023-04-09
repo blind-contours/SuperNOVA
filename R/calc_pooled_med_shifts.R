@@ -188,8 +188,10 @@ calc_pooled_med_shifts <- function(med_shift_results,
       )
 
 
-      mediation_pooled <- bind_rows(nde_results_pseudo, nde_results_int,
-                                 nie_results_pseudo, nie_results_int, total_effects)
+      mediation_pooled <- bind_rows(
+        nde_results_pseudo, nde_results_int,
+        nie_results_pseudo, nie_results_int, total_effects
+      )
       mediation_pooled$id <- "Pooled"
 
       rownames(mediation_pooled) <- NULL

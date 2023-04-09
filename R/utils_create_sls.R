@@ -221,12 +221,39 @@ create_sls <- function() {
 
   tree_stack <- make_learner(Stack, learners)
 
+  ## categorical exposure learners
+  lrnr_glm_multivar <- Lrnr_multivariate$new()
+  lrnr_ridge <- Lrnr_glmnet$new(alpha = 0)
+  lrnr_lasso <- Lrnr_glmnet$new(alpha = 1)
+  lrnr_ranger_100 <- make_learner(Lrnr_ranger, num.trees = 100)
+  lrnr_xgboost_df <- make_learner(Lrnr_xgboost)
+  lrnr_xgboost_50 <- make_learner(Lrnr_xgboost, nrounds = 50)
+  lrnr_xgboost_100 <- make_learner(Lrnr_xgboost, nrounds = 100)
+  lrnr_xgboost_200 <- make_learner(Lrnr_xgboost, nrounds = 200)
+  lrnr_xgboost_300 <- make_learner(Lrnr_xgboost, nrounds = 300)
+  lrnr_polspline <- Lrnr_polspline$new()
+
+  learners <- c(
+    lrnr_ranger_100,
+    lrnr_polspline,
+    lrnr_xgboost_100
+  )
+
+  quant_stack <- make_learner(Stack, learners)
+  discrete_sl_metalrn <- sl3::Lrnr_cv_selector$new(sl3::loss_loglik_multinomial)
+
+  quant_lrnr <- sl3::Lrnr_sl$new(
+    learners = quant_stack,
+    metalearner = discrete_sl_metalrn,
+  )
+
   return(list(
     "pi_learner" = pi_learner,
     "zeta_learner" = zeta_learner,
     "mu_learner" = mu_learner,
     "e_learner" = e_learner,
     "g_learner" = g_learner,
-    "em_learner" = tree_stack
+    "em_learner" = tree_stack,
+    "quant_learner" = quant_lrnr
   ))
 }

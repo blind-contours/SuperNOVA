@@ -37,7 +37,8 @@ integrate_m_g <- function(av, at, covars, w_names, q_model, g_model, exposure, g
     task_m <- sl3::sl3_Task$new(
       data = new_data_m,
       covariates = covars,
-      outcome = "y")
+      outcome = "y"
+    )
 
     task_g <- sl3::sl3_Task$new(
       data = new_data_g,
@@ -64,7 +65,8 @@ integrate_m_g <- function(av, at, covars, w_names, q_model, g_model, exposure, g
       upper = upper,
       rel.tol = 0.0001,
       subdivisions = 100,
-      stop.on.error = FALSE)$value
+      stop.on.error = FALSE
+    )$value
 
     results[i] <- integral_result
   }

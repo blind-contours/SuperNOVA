@@ -29,14 +29,14 @@
 #'  (g(A + 2 delta) | W).
 
 indiv_stoch_shift_e_estimator <- function(exposure,
-                                        mediator,
-                                        delta,
-                                        pi_learner,
-                                        w_names = w_names,
-                                        a_names = a_names,
-                                        z_names = z_names,
-                                        av,
-                                        at) {
+                                          mediator,
+                                          delta,
+                                          pi_learner,
+                                          w_names = w_names,
+                                          a_names = a_names,
+                                          z_names = z_names,
+                                          av,
+                                          at) {
   future::plan(future::sequential, gc = TRUE)
 
   covars <- c(w_names, z_names)

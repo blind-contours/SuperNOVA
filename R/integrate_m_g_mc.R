@@ -31,13 +31,14 @@ integrate_m_g_mc <- function(av, at, covars, w_names, q_model, g_model, exposure
   integrand <- function(sample_a, row_data, covars, q_model, g_model, exposure, g_delta, m_delta, upper) {
     row_data <- do.call("rbind", replicate(length(sample_a), row_data, simplify = FALSE))
     new_data_m <- new_data_g <- row_data
-    new_data_m[exposure] <- sample_a + m_delta #ifelse(sample_a + m_delta >= upper, upper, sample_a + m_delta)
-    new_data_g[exposure] <- sample_a + g_delta #ifelse(sample_a + g_delta >= upper, upper, sample_a + g_delta)
+    new_data_m[exposure] <- sample_a + m_delta # ifelse(sample_a + m_delta >= upper, upper, sample_a + m_delta)
+    new_data_g[exposure] <- sample_a + g_delta # ifelse(sample_a + g_delta >= upper, upper, sample_a + g_delta)
 
     task_m <- sl3::sl3_Task$new(
       data = new_data_m,
       covariates = covars,
-      outcome = "y")
+      outcome = "y"
+    )
 
     task_g <- sl3::sl3_Task$new(
       data = new_data_g,

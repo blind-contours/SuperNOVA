@@ -90,7 +90,7 @@ SuperNOVA <- function(w,
                       em_learner = NULL,
                       zeta_learner = NULL,
                       n_folds,
-                      family = "continuous",
+                      outcome_type = "continuous",
                       quantile_thresh = 0.5,
                       verbose = FALSE,
                       parallel = TRUE,
@@ -99,7 +99,8 @@ SuperNOVA <- function(w,
                       seed = seed,
                       hn_trunc_thresh = 20,
                       adaptive_delta = FALSE,
-                      n_mc_sample = 1000) {
+                      n_mc_sample = 1000,
+                      exposure_quantized = FALSE) {
   # check arguments and set up some objects for programmatic convenience
   call <- match.call(expand.dots = TRUE)
   estimator <- match.arg(estimator)
@@ -129,13 +130,13 @@ SuperNOVA <- function(w,
     a_names <- paste0("a", seq_len(ncol(a)))
     colnames(a) <- a_names
   }
-  for (i in 1:dim(a)[2]) {
-    check_a <- a[i]
-    a_name <- a_names[i]
-    if (length(unique(check_a)) < 20) {
-      a[, a_name] <- a[, a_name] + runif(dim(a)[1], min = -0.05, max = 0.05)
-    }
-  }
+  # for (i in 1:dim(a)[2]) {
+  #   check_a <- a[i]
+  #   a_name <- a_names[i]
+  #   if (length(unique(check_a)) < 20) {
+  #     a[, a_name] <- a[, a_name] + runif(dim(a)[1], min = -0.05, max = 0.05)
+  #   }
+  # }
 
   if (is.null(pi_learner)) {
     sls <- create_sls()
@@ -167,6 +168,13 @@ SuperNOVA <- function(w,
     em_learner <- sls$em_learner
   }
 
+  if (exposure_quantized == TRUE) {
+    sls <- create_sls()
+    quant_learner <- sls$quant_learner
+  }
+
+
+
   if (parallel == TRUE) {
     if (parallel_type == "multi_session") {
       future::plan(future::multisession,
@@ -187,6 +195,7 @@ SuperNOVA <- function(w,
 
   data_internal <- data.table::data.table(w, a, z, y)
   `%notin%` <- Negate(`%in%`)
+
 
   if (family == "binomial") {
     ## create the CV folds
@@ -269,15 +278,29 @@ SuperNOVA <- function(w,
 
           delta <- deltas[[exposure]]
 
+          lower_bound <- min(min(av[[exposure]]), min(at[[exposure]]))
+          upper_bound <- max(max(av[[exposure]]), max(at[[exposure]]))
+
+          if (exposure_quantized == TRUE) {
+            outcome_type <- "categorical"
+          }else{
+            outcome_type <- "continuous"
+          }
+
           ind_gn_exp_estim <- indiv_stoch_shift_est_g_exp(
             exposure = target,
             delta = delta,
-            pi_learner = pi_learner,
+            g_learner = pi_learner,
             covars = w_names,
-            av,
-            at,
+            av = av,
+            at = at,
             adaptive_delta = adaptive_delta,
-            hn_trunc_thresh = hn_trunc_thresh
+            hn_trunc_thresh = hn_trunc_thresh,
+            exposure_quantized = exposure_quantized,
+            lower_bound = lower_bound,
+            upper_bound = upper_bound,
+            outcome_type = outcome_type
+
           )
 
           delta <- ind_gn_exp_estim$delta
@@ -290,7 +313,9 @@ SuperNOVA <- function(w,
             mu_learner = mu_learner,
             covars = covars,
             av = av,
-            at = at
+            at = at,
+            lower_bound = lower_bound,
+            upper_bound = upper_bound
           )
 
           Hn <- ind_gn_exp_estim$Hn_av
@@ -433,7 +458,9 @@ SuperNOVA <- function(w,
             av,
             at,
             adaptive_delta = adaptive_delta,
-            hn_trunc_thresh = hn_trunc_thresh
+            hn_trunc_thresh = hn_trunc_thresh,
+            upper_bound = upper_bound,
+            lower_bound = lower_bound
           )
 
           joint_gn_exp_estims$gn_results[[3]] <- mapply(
@@ -454,7 +481,9 @@ SuperNOVA <- function(w,
             mu_learner = mu_learner,
             covars,
             av,
-            at
+            at,
+            upper_bound,
+            lower_bound
           )
 
           intxn_results_list <- list()
@@ -498,7 +527,6 @@ SuperNOVA <- function(w,
           )
         } else if (sum(stringr::str_count(matches, paste(c(a_names), collapse = "|"))) == 1 &
           sum(stringr::str_count(matches, paste(c(z_names), collapse = "|"))) == 1) {
-
           ## get the exposure and mediator variables
           exposure <- stringr::str_extract(
             matches,
@@ -510,67 +538,81 @@ SuperNOVA <- function(w,
           exposure <- exposure[!is.na(exposure)]
           mediator <- mediator[!is.na(mediator)]
 
-         ## get delta from the list
+          ## get delta from the list
 
           delta <- deltas[[exposure]]
 
-          ## for density estimates user can pass in SL or haldensify
+          lower_bound <- min(min(av[[exposure]]), min(at[[exposure]]))
+          upper_bound <- max(max(av[[exposure]]), max(at[[exposure]]))
 
-            ## get g(A|W) under shifts and no shift
-            gn_exp_estim <- indiv_stoch_shift_est_g_exp(
-              exposure = exposure,
-              delta = delta,
-              pi_learner = pi_learner,
-              covars = w_names,
-              av = av,
-              at = at,
-              adaptive_delta = adaptive_delta,
-              hn_trunc_thresh = hn_trunc_thresh
-            )
 
-            ## extract model for future integration
-            g_model <- gn_exp_estim$model
+          if (exposure_quantized == TRUE) {
+            g_learner <- quant_learner
+          } else {
+            g_learner <- pi_learner
+          }
 
-            ## if delta adapt is true get the new delta, if not true
-            ## delta_updated == delta
+          ## get g(A|W) under shifts and no shift
+          gn_exp_estim <- indiv_stoch_shift_est_g_exp(
+            exposure = exposure,
+            delta = delta,
+            g_learner = g_learner,
+            covars = w_names,
+            av = av,
+            at = at,
+            adaptive_delta = adaptive_delta,
+            hn_trunc_thresh = hn_trunc_thresh,
+            exposure_quantized = exposure_quantized,
+            lower_bound = lower_bound,
+            upper_bound = upper_bound
+          )
 
-            delta_updated <- gn_exp_estim$delta
+          ## extract model for future integration
+          g_model <- gn_exp_estim$model
 
-            ## get g(A|Z,W) under shifts and no shift
+          ## if delta adapt is true get the new delta, if not true
+          ## delta_updated == delta
 
-            gn_exp_estim_z <- indiv_stoch_shift_est_g_exp(
-              exposure = exposure,
-              delta = delta,
-              pi_learner = pi_learner,
-              covars = c(w_names, mediator),
-              av = av,
-              at = at,
-              adaptive_delta = adaptive_delta,
-              hn_trunc_thresh = hn_trunc_thresh
-            )
+          delta_updated <- gn_exp_estim$delta
 
-            e_model <- gn_exp_estim_z$model
+          ## get g(A|Z,W) under shifts and no shift
 
-            ## get r(Z|W) under shifts and no shift
+          gn_exp_estim_z <- indiv_stoch_shift_est_g_exp(
+            exposure = exposure,
+            delta = delta,
+            g_learner = g_learner,
+            covars = c(w_names, mediator),
+            av = av,
+            at = at,
+            adaptive_delta = adaptive_delta,
+            hn_trunc_thresh = hn_trunc_thresh,
+            exposure_quantized = exposure_quantized,
+            lower_bound = lower_bound,
+            upper_bound = upper_bound
+          )
 
-            zn_exp_estim <- joint_stoch_shift_est_z_exp(
-              exposures = exposure,
-              mediator = mediator,
-              deltas = delta_updated,
-              pi_learner = pi_learner,
-              w_names = w_names,
-              a_names = a_names,
-              z_names = z_names,
-              av = av,
-              at = at
-            )
+          e_model <- gn_exp_estim_z$model
 
-            r_model <- zn_exp_estim$model
+          ## get r(Z|W) under shifts and no shift
 
-            ## calc ratios for training and validation used for EIF
+          zn_exp_estim <- joint_stoch_shift_est_z_exp(
+            exposures = exposure,
+            mediator = mediator,
+            deltas = delta_updated,
+            pi_learner = pi_learner,
+            w_names = w_names,
+            a_names = a_names,
+            z_names = z_names,
+            av = av,
+            at = at
+          )
 
-            g_shift_e_ratio_av <- (gn_exp_estim$av$upshift / gn_exp_estim_z$av$noshift)
-            g_shift_e_ratio_at <- (gn_exp_estim$at$upshift / gn_exp_estim_z$at$noshift)
+          r_model <- zn_exp_estim$model
+
+          ## calc ratios for training and validation used for EIF
+
+          g_shift_e_ratio_av <- (gn_exp_estim$av$upshift / gn_exp_estim_z$av$noshift)
+          g_shift_e_ratio_at <- (gn_exp_estim$at$upshift / gn_exp_estim_z$at$noshift)
 
           ## estimate Q(Y|A,Z,W) under shift and now shift
 
@@ -581,7 +623,9 @@ SuperNOVA <- function(w,
             mu_learner = mu_learner,
             covars = c(w_names, exposure, mediator),
             av = av,
-            at = at
+            at = at,
+            upper_bound = upper_bound,
+            lower_bound = lower_bound
           )
 
           q_model <- qn_estim$model
@@ -608,18 +652,35 @@ SuperNOVA <- function(w,
           #   m_delta = 0
           # )
 
-          d_z_w <- integrate_m_g_mc(
-            av = av,
-            at = at,
-            covars = c(w_names, exposure, mediator),
-            w_names = w_names,
-            q_model = q_model,
-            g_model = g_model,
-            exposure = exposure,
-            g_delta = delta_updated,
-            m_delta = 0,
-            n_samples = n_mc_sample
-          )
+          if (exposure_quantized == TRUE) {
+            d_z_w <- integrate_m_g_quant(
+              av = av,
+              at = at,
+              covars = c(w_names, exposure, mediator),
+              w_names = w_names,
+              q_model = q_model,
+              g_model = g_model,
+              exposure = exposure,
+              g_delta = delta_updated,
+              m_delta = 0,
+              n_bins = 4
+            )
+          } else {
+            d_z_w <- integrate_m_g_mc(
+              av = av,
+              at = at,
+              covars = c(w_names, exposure, mediator),
+              w_names = w_names,
+              q_model = q_model,
+              g_model = g_model,
+              exposure = exposure,
+              g_delta = delta_updated,
+              m_delta = 0,
+              n_samples = n_mc_sample
+            )
+          }
+
+
 
           # d_a_int <- integrate_psi_g(
           #                 data = av,
@@ -632,19 +693,37 @@ SuperNOVA <- function(w,
           #                 mediator = mediator,
           #                 delta = delta_updated)
 
-          d_a_int <- integrate_psi_g_mc(
-            av = av,
-            at = at,
-            covars = c(w_names, exposure, mediator),
-            w_names = w_names,
-            q_model = q_model,
-            r_model = r_model,
-            g_model = g_model,
-            exposure = exposure,
-            mediator = mediator,
-            delta = delta_updated,
-            n_samples = n_mc_sample,
-            n_iterations = 2)
+          if (exposure_quantized == TRUE) {
+            d_a_int <- integrate_psi_g_discrete(
+              av = av,
+              at = at,
+              covars = c(w_names, exposure, mediator),
+              w_names = w_names,
+              q_model = q_model,
+              r_model = r_model,
+              g_model = g_model,
+              exposure = exposure,
+              mediator = mediator,
+              delta = delta_updated,
+              n_samples = 1000,
+              n_bins = 4
+            )
+          } else {
+            d_a_int <- integrate_psi_g_mc(
+              av = av,
+              at = at,
+              covars = c(w_names, exposure, mediator),
+              w_names = w_names,
+              q_model = q_model,
+              r_model = r_model,
+              g_model = g_model,
+              exposure = exposure,
+              mediator = mediator,
+              delta = delta_updated,
+              n_samples = n_mc_sample,
+              n_iterations = 2
+            )
+          }
 
           ## calculate the g/e no shift ratios needed for pseudo regression
 
@@ -695,18 +774,35 @@ SuperNOVA <- function(w,
           #   psi_aw = psi_aw_av
           # )
 
-          d_a_pseudo <- integrate_psi_aw_g_mc(
-            at = at,
-            av = av,
-            covars = c(exposure, w_names),
-            w_names,
-            pseudo_model,
-            g_model,
-            exposure,
-            delta = delta_updated,
-            psi_aw = psi_aw_av,
-            n_samples = n_mc_sample
-          )
+          if (exposure_quantized == TRUE) {
+            d_a_pseudo <- integrate_psi_aw_g_quant(
+              at = at,
+              av = av,
+              covars = c(exposure, w_names),
+              w_names,
+              pseudo_model,
+              g_model,
+              exposure,
+              delta = 0,
+              psi_aw = psi_aw_av,
+              n_bins = 4
+            )
+          } else {
+            d_a_pseudo <- integrate_psi_aw_g_mc(
+              at = at,
+              av = av,
+              covars = c(exposure, w_names),
+              w_names,
+              pseudo_model,
+              g_model,
+              exposure,
+              delta = 0,
+              psi_aw = psi_aw_av,
+              n_samples = n_mc_sample
+            )
+          }
+
+
 
           ## integrate phi(a, w) calculated with integration over g
           # d_a_integrated <- integrate_phi_aw_g_int(
@@ -737,8 +833,8 @@ SuperNOVA <- function(w,
 
           eif_no_shift <- av$y - qn_estim$av_predictions$noshift
 
-          psi_nde_pseudo <- psi_a_shift_fix_z_pseudo - mean(av$y)
-          psi_nde_double_int <- psi_a_shift_fix_z_double_int - mean(av$y)
+          psi_nde_pseudo <- psi_a_shift_fix_z_pseudo - mean(data_internal$y)
+          psi_nde_double_int <- psi_a_shift_fix_z_double_int - mean(data_internal$y)
 
           eif_nde_pseudo <- a_shift_fix_z_eif_w_pseudo - eif_no_shift
           eif_nde_double_int <- a_shift_fix_z_eif_w_double_int - eif_no_shift
@@ -769,10 +865,17 @@ SuperNOVA <- function(w,
             mu_learner = mu_learner,
             covars = c(w_names, exposure, mediator),
             av = av,
-            at = at
+            at = at,
+            upper_bound = upper_bound,
+            lower_bound = lower_bound
           )
 
           Hn <- gn_exp_estim$Hn_av
+
+          hn_truncated <- Hn
+
+          hn_truncated$noshift <- ifelse(Hn$noshift > hn_trunc_thresh, hn_trunc_thresh, Hn$noshift)
+          hn_truncated$shift <- ifelse(Hn$shift > hn_trunc_thresh, hn_trunc_thresh, Hn$shift)
 
           tmle_fit <- tmle_exposhift(
             data_internal = av,
@@ -856,15 +959,19 @@ SuperNOVA <- function(w,
             fold_k
           )
 
-          total_effect <- total_effect[,1:7]
-          colnames(total_effect) <- c("Parameter", "Psi", "Variance", "SE",
-                                      "Lower CI", "Upper CI", "P-Value")
+          total_effect <- total_effect[, 1:7]
+          colnames(total_effect) <- c(
+            "Parameter", "Psi", "Variance", "SE",
+            "Lower CI", "Upper CI", "P-Value"
+          )
 
           total_effect$Parameter <- "Total Effect"
 
-          mediation_in_fold <- rbind(nde_results_pseudo, nde_results_double_int,
-                                     nie_results_pseudo, nie_results_double_int,
-                                     total_effect)
+          mediation_in_fold <- rbind(
+            nde_results_pseudo, nde_results_double_int,
+            nie_results_pseudo, nie_results_double_int,
+            total_effect
+          )
 
           rownames(mediation_in_fold) <- NULL
 
@@ -1143,4 +1250,3 @@ SuperNOVA <- function(w,
 
   return(results_list)
 }
-

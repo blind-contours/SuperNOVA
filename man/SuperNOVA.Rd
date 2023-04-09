@@ -21,7 +21,7 @@ SuperNOVA(
   em_learner = NULL,
   zeta_learner = NULL,
   n_folds,
-  family = "continuous",
+  outcome_type = "continuous",
   quantile_thresh = 0.5,
   verbose = FALSE,
   parallel = TRUE,
@@ -30,7 +30,8 @@ SuperNOVA(
   seed = seed,
   hn_trunc_thresh = 20,
   adaptive_delta = FALSE,
-  n_mc_sample = 1000
+  n_mc_sample = 1000,
+  exposure_quantized = FALSE
 )
 }
 \arguments{
@@ -85,8 +86,6 @@ model via \pkg{sl3}}
 
 \item{n_folds}{Number of folds to use in cross-validation}
 
-\item{family}{Outcome type family}
-
 \item{quantile_thresh}{Threshold based on quantiles of the f-statistic used
 to identify "important" basis functions in the data-adaptive procedure}
 
@@ -106,6 +105,8 @@ is "multi_session", other values are multicore and sequential.}
 \item{adaptive_delta}{If TRUE, this reduces the user specified delta until
 the Hn calculated for a shift does not have any observation that is greater
 than hn_trunc_thresh.}
+
+\item{family}{Outcome type family}
 }
 \value{
 S3 object of class \code{SuperNOVA} containing the results of the

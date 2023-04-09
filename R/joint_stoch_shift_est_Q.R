@@ -29,7 +29,9 @@ joint_stoch_shift_est_Q <- function(exposures,
                                     mu_learner,
                                     covars,
                                     av,
-                                    at) {
+                                    at,
+                                    upper_bound,
+                                    lower_bound) {
   future::plan(future::sequential, gc = TRUE)
 
   # scale the outcome for logit transform
@@ -49,19 +51,28 @@ joint_stoch_shift_est_Q <- function(exposures,
     # need a data set with the exposure stochastically shifted DOWNWARDS A-delta
     av_downshifted <- data.table::copy(av)
     data.table::set(av_downshifted, j = exposure, value = shift_additive(
-      a = subset(av, select = exposure), delta = -delta
+      a = subset(av, select = exposure),
+      delta = -delta,
+      upper_bound = upper_bound,
+      lower_bound = lower_bound
     ))
 
     # need a data set with the exposure stochastically shifted UPWARDS A+delta
     av_upshifted <- data.table::copy(av)
     data.table::set(av_upshifted, j = exposure, value = shift_additive(
-      a = subset(av, select = exposure), delta = delta
+      a = subset(av, select = exposure),
+      delta = delta,
+      upper_bound = upper_bound,
+      lower_bound = lower_bound
     ))
 
     # need a data set with the exposure stochastically shifted UPWARDS A+2delta
     av_upupshifted <- data.table::copy(av)
     data.table::set(av_upupshifted, j = exposure, value = shift_additive(
-      a = subset(av, select = exposure), delta = 2 * delta
+      a = subset(av, select = exposure),
+      delta = 2 * delta,
+      upper_bound = upper_bound,
+      lower_bound = lower_bound
     ))
 
     sl <- Lrnr_sl$new(

@@ -34,7 +34,9 @@ est_Q_w_shifted_mediation <- function(exposure,
                                       mu_learner,
                                       covars,
                                       av,
-                                      at) {
+                                      at,
+                                      upper_bound = upper_bound,
+                                      lower_bound = lower_bound) {
   future::plan(future::sequential, gc = TRUE)
 
   # # scale the outcome for logit transform
@@ -53,27 +55,39 @@ est_Q_w_shifted_mediation <- function(exposure,
   data.table::set(av_a_upshifted,
     j = exposure,
     value = shift_additive(
-      a = subset(av, select = exposure), delta = delta
+      a = subset(av, select = exposure),
+      delta = delta,
+      lower_bound = lower_bound,
+      upper_bound = upper_bound
     )
   )
 
   data.table::set(at_a_upshifted,
-                  j = exposure,
-                  value = shift_additive(
-                    a = subset(at, select = exposure), delta = delta
-                  )
+    j = exposure,
+    value = shift_additive(
+      a = subset(at, select = exposure),
+      delta = delta,
+      lower_bound = lower_bound,
+      upper_bound = upper_bound
+    )
   )
 
   # need a data set with the exposure stochastically shifted DOWNWARDS A-delta
   av_a_downshifted <- data.table::copy(av)
   data.table::set(av_a_downshifted, j = exposure, value = shift_additive(
-    a = subset(av, select = exposure), delta = -delta
+    a = subset(av, select = exposure),
+    delta = -delta,
+    lower_bound = lower_bound,
+    upper_bound = upper_bound
   ))
 
   # need a data set with the exposure stochastically shifted UPWARDS A+2delta
   av_a_upupshifted <- data.table::copy(av)
   data.table::set(av_a_upupshifted, j = exposure, value = shift_additive(
-    a = subset(av, select = exposure), delta = 2 * delta
+    a = subset(av, select = exposure),
+    delta = 2 * delta,
+    lower_bound = lower_bound,
+    upper_bound = upper_bound
   ))
 
 

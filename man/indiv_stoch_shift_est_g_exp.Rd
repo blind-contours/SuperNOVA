@@ -8,12 +8,16 @@ Exposure Variable}
 indiv_stoch_shift_est_g_exp(
   exposure,
   delta,
-  pi_learner,
+  g_learner,
   covars,
   av,
   at,
   adaptive_delta,
-  hn_trunc_thresh
+  hn_trunc_thresh,
+  exposure_quantized,
+  lower_bound,
+  upper_bound,
+  outcome_type
 )
 }
 \arguments{
@@ -21,9 +25,6 @@ indiv_stoch_shift_est_g_exp(
 
 \item{delta}{A \code{numeric} value identifying a shift in the observed
 value of the exposure under which observations are to be evaluated.}
-
-\item{pi_learner}{Object containing a set of instantiated learners
-from \pkg{sl3}, to be used in fitting an ensemble model.}
 
 \item{covars}{A \code{character} labeling the covariate variables}
 
@@ -37,6 +38,9 @@ level}
 
 \item{hn_trunc_thresh}{Level of the clever covariate in the adaptive delta
 procedure}
+
+\item{pi_learner}{Object containing a set of instantiated learners
+from \pkg{sl3}, to be used in fitting an ensemble model.}
 }
 \value{
 A \code{data.table} with four columns, containing estimates of the

@@ -4,7 +4,16 @@
 \alias{indiv_stoch_shift_est_Q}
 \title{Estimate the Outcome Mechanism}
 \usage{
-indiv_stoch_shift_est_Q(exposure, delta, mu_learner, covars, av, at)
+indiv_stoch_shift_est_Q(
+  exposure,
+  delta,
+  mu_learner,
+  covars,
+  av,
+  at,
+  lower_bound = lower_bound,
+  upper_bound = upper_bound
+)
 }
 \arguments{
 \item{exposure}{A \code{character} vector of exposures to be shifted.}

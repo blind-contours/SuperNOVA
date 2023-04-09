@@ -50,7 +50,8 @@ integrate_psi_g <- function(data, covars, w_names, q_model, r_model, g_model, ex
     task_m <- sl3::sl3_Task$new(
       data = new_data_m,
       covariates = covars,
-      outcome = "y")
+      outcome = "y"
+    )
 
     task_r <- sl3::sl3_Task$new(
       data = new_data_r,
@@ -74,8 +75,8 @@ integrate_psi_g <- function(data, covars, w_names, q_model, r_model, g_model, ex
     output_matrix <- matrix(0, nrow = rep, ncol = rep)
 
     for (col in seq(ncol(z))) {
-      a_vec <- a[col,]
-      z_vec <- z[col,]
+      a_vec <- a[col, ]
+      z_vec <- z[col, ]
 
       new_data_m[exposure] <- ifelse(a_vec + delta >= upper_a, upper_a, a_vec + delta)
       new_data_m[mediator] <- z_vec
@@ -86,7 +87,8 @@ integrate_psi_g <- function(data, covars, w_names, q_model, r_model, g_model, ex
       task_m <- sl3::sl3_Task$new(
         data = new_data_m,
         covariates = covars,
-        outcome = "y")
+        outcome = "y"
+      )
 
       task_g <- sl3::sl3_Task$new(
         data = new_data_g,
@@ -105,7 +107,7 @@ integrate_psi_g <- function(data, covars, w_names, q_model, r_model, g_model, ex
       r_val <- r_model$predict(task_r)
 
       output <- m_val * g_val$likelihood * r_val$likelihood
-      output_matrix[,col] <- output
+      output_matrix[, col] <- output
     }
 
 
@@ -142,4 +144,3 @@ integrate_psi_g <- function(data, covars, w_names, q_model, r_model, g_model, ex
 
   return(list("d_a" = results, "phi_aw" = integral_inner_results))
 }
-

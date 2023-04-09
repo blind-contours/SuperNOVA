@@ -152,7 +152,8 @@ fit_estimators_mediation <- function(w,
     parallel = TRUE,
     seed = seed,
     var_sets = var_sets,
-    num_cores = 6
+    num_cores = 6,
+    exposure_quantized = TRUE
   )
 
   med_shift_results <- sim_results$`Mediation Shift Results`$az

@@ -4,7 +4,7 @@
 \alias{shift_additive}
 \title{Simple Additive Modified Treatment Policy}
 \usage{
-shift_additive(a, w = NULL, delta)
+shift_additive(a, w = NULL, delta, lower_bound, upper_bound)
 }
 \arguments{
 \item{a}{A \code{numeric} vector of observed treatment values.}

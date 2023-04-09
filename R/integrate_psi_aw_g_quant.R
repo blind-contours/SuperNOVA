@@ -1,4 +1,4 @@
-#' Pseudo regression integration using monte carlo approaches
+#' Pseudo regression integration for quantized
 #'
 #' @details Does the double integration as described in lemma 1
 #'
@@ -20,18 +20,15 @@
 #' @return A \code{data.table} with two columns, containing estimates of the
 #'  outcome mechanism at the natural value of the exposure Q(A, W) and an
 #'  upshift of the exposure Q(A + delta, W).
-
-integrate_psi_aw_g_mc <- function(at, av, covars, w_names, pseudo_model, g_model, exposure, delta, psi_aw, n_samples = 1000) {
+integrate_psi_aw_g_quant <- function(at, av, covars, w_names, pseudo_model, g_model, exposure, delta, psi_aw, n_bins) {
   at <- as.data.frame(at)
   av <- as.data.frame(av)
-  lower <- floor(min(min(av[exposure]), min(at[exposure])))
-  upper <- ceiling(max(max(av[exposure]), max(at[exposure])))
 
-  integrand <- function(a, row_data, covars, pseudo_model, g_model, exposure, delta, upper) {
-    row_data <- do.call("rbind", replicate(length(a), row_data, simplify = FALSE))
+  integrand <- function(bin_a, row_data, covars, pseudo_model, g_model, exposure, delta, upper) {
+    # row_data <- do.call("rbind", replicate(length(a), row_data, simplify = FALSE))
     new_data_m <- new_data_g <- row_data
-    new_data_m[exposure] <- ifelse(a + delta >= upper, upper, a + delta)
-    new_data_g[exposure] <- a
+    new_data_m[exposure] <- ifelse(bin_a + delta >= upper, upper, bin_a + delta)
+    new_data_g[exposure] <- bin_a
 
     task_m <- sl3::sl3_Task$new(
       data = new_data_m,
@@ -47,7 +44,8 @@ integrate_psi_aw_g_mc <- function(at, av, covars, w_names, pseudo_model, g_model
 
     m_val <- pseudo_model$predict(task_m)
     g_val <- g_model$predict(task_g)
-    output <- m_val * g_val$likelihood
+    index <- ifelse(bin_a + delta >= upper, upper, bin_a + delta)
+    output <- m_val * unlist(g_val)[[index]]
     return(output)
   }
 
@@ -55,9 +53,12 @@ integrate_psi_aw_g_mc <- function(at, av, covars, w_names, pseudo_model, g_model
 
   for (i in 1:nrow(av)) {
     row_data <- av[i, ]
-    sample_a <- runif(n_samples, lower, upper)
-    integral_values <- integrand(sample_a, row_data, covars, pseudo_model, g_model, exposure, delta, upper)
-    integral_result <- mean(integral_values) * (upper - lower)
+    integral_values <- sapply(1:n_bins, function(bin_a) {
+      integrand_val <- integrand(bin_a, row_data, covars, pseudo_model, g_model, exposure, delta, upper = n_bins)
+      return(integrand_val)
+    })
+
+    integral_result <- sum(integral_values)
 
     results[i] <- psi_aw[i] - integral_result
   }

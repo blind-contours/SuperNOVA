@@ -36,7 +36,8 @@ integrate_psi_aw_g <- function(at, av, covars, w_names, pseudo_model, g_model, e
     task_m <- sl3::sl3_Task$new(
       data = new_data_m,
       covariates = covars,
-      outcome = "pseudo_outcome")
+      outcome = "pseudo_outcome"
+    )
 
     task_g <- sl3::sl3_Task$new(
       data = new_data_g,

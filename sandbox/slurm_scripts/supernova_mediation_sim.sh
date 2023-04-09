@@ -3,10 +3,10 @@
 #SBATCH --job-name=mediation_supernova
 #
 # Partition:
-#SBATCH --partition=savio_bigmem
+#SBATCH --partition=savio3
 #
 
-#SBATCH --qos=savio_lowprio
+#SBATCH --qos=biostat_savio3_normal
 #SBATCH --account=co_biostat
 
 # Number of nodes for use case:
@@ -16,7 +16,7 @@
 #SBATCH --exclusive
 #
 # Wall clock limit:
-#SBATCH --time 6:00:00
+#SBATCH --time 72:00:00
 #
 ## Command(s) to run (example):
 module load r/4.0.3

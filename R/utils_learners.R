@@ -37,7 +37,7 @@ make_density_superlearner <- function() {
     return(continuous_sl)
   }
 
-  fglm_lrnr <- Lrnr_glm_fast$new()
+  # fglm_lrnr <- Lrnr_glm_fast$new()
   # hal_lrnr <- Lrnr_hal9001$new(max_degree = 2, reduce_basis = sqrt(1 / 1500))
   # haldensify_lrnr <- Lrnr_haldensify$new(
   #   n_bins = c(10, 20),

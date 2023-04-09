@@ -222,7 +222,7 @@ create_sls <- function() {
   tree_stack <- make_learner(Stack, learners)
 
   ## categorical exposure learners
-  lrnr_glm_multivar <- Lrnr_multivariate$new()
+  # lrnr_glm_multivar <- Lrnr_multivariate$new()
   lrnr_ridge <- Lrnr_glmnet$new(alpha = 0)
   lrnr_lasso <- Lrnr_glmnet$new(alpha = 1)
   lrnr_ranger_100 <- make_learner(Lrnr_ranger, num.trees = 100)

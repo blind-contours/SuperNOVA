@@ -185,7 +185,7 @@ NIEH_results <- SuperNOVA(
   estimator = "tmle",
   fluctuation = "standard",
   n_folds = 2,
-  family = "continuous",
+  outcome_type = "continuous",
   quantile_thresh = 0,
   verbose = TRUE,
   parallel = TRUE,

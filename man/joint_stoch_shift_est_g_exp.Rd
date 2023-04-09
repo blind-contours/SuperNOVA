@@ -13,7 +13,9 @@ joint_stoch_shift_est_g_exp(
   av,
   at,
   adaptive_delta,
-  hn_trunc_thresh
+  hn_trunc_thresh,
+  lower_bound,
+  upper_bound
 )
 }
 \arguments{

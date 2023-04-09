@@ -282,9 +282,9 @@ SuperNOVA <- function(w,
           upper_bound <- max(max(av[[exposure]]), max(at[[exposure]]))
 
           if (exposure_quantized == TRUE) {
-            outcome_type <- "categorical"
+            g_type <- "categorical"
           }else{
-            outcome_type <- "continuous"
+            g_type <- "continuous"
           }
 
           ind_gn_exp_estim <- indiv_stoch_shift_est_g_exp(
@@ -299,7 +299,7 @@ SuperNOVA <- function(w,
             exposure_quantized = exposure_quantized,
             lower_bound = lower_bound,
             upper_bound = upper_bound,
-            outcome_type = outcome_type
+            outcome_type = g_type
 
           )
 
@@ -368,7 +368,7 @@ SuperNOVA <- function(w,
           gn_exp_estim <- indiv_stoch_shift_est_g_exp(
             exposure = exposure,
             delta = delta,
-            pi_learner = pi_learner,
+            g_learner = pi_learner,
             covars = covars,
             av = av,
             at = at,
@@ -453,7 +453,7 @@ SuperNOVA <- function(w,
           joint_gn_exp_estims <- joint_stoch_shift_est_g_exp(
             exposures,
             deltas,
-            pi_learner,
+            g_learner = pi_learner,
             covars,
             av,
             at,

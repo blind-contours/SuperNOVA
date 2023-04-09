@@ -548,8 +548,10 @@ SuperNOVA <- function(w,
 
           if (exposure_quantized == TRUE) {
             g_learner <- quant_learner
+            outcome_type <- "categorical"
           } else {
             g_learner <- pi_learner
+            outcome_type <- "continuous"
           }
 
           ## get g(A|W) under shifts and no shift
@@ -564,7 +566,8 @@ SuperNOVA <- function(w,
             hn_trunc_thresh = hn_trunc_thresh,
             exposure_quantized = exposure_quantized,
             lower_bound = lower_bound,
-            upper_bound = upper_bound
+            upper_bound = upper_bound,
+            outcome_type = outcome_type
           )
 
           ## extract model for future integration
@@ -588,7 +591,8 @@ SuperNOVA <- function(w,
             hn_trunc_thresh = hn_trunc_thresh,
             exposure_quantized = exposure_quantized,
             lower_bound = lower_bound,
-            upper_bound = upper_bound
+            upper_bound = upper_bound,
+            outcome_type = outcome_type
           )
 
           e_model <- gn_exp_estim_z$model

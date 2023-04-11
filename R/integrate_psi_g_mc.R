@@ -98,10 +98,9 @@ integrate_psi_g_mc <- function(av, at, covars, w_names, q_model, r_model, g_mode
       )
       g_val <- g_model$predict(task_g)
       g_val <- g_val$likelihood
-
-    }else{
-    g_val <- suppressMessages(predict(g_model, new_A = new_data_g[[exposure]], new_W = new_data_g[w_names] ))
-  }
+    } else {
+      g_val <- suppressMessages(predict(g_model, new_A = new_data_g[[exposure]], new_W = new_data_g[w_names]))
+    }
 
     output <- m_val * g_val * r_val$likelihood
 
@@ -114,6 +113,7 @@ integrate_psi_g_mc <- function(av, at, covars, w_names, q_model, r_model, g_mode
   integral_outer_results <- numeric(nrow(av))
 
   for (i in 1:nrow(av)) {
+    print(i)
     row_data <- av[i, ]
     results_i <- numeric(n_iterations)
     integral_inner_results_i <- numeric(n_iterations)

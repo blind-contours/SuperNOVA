@@ -101,7 +101,9 @@ SuperNOVA <- function(w,
                       adaptive_delta = FALSE,
                       n_mc_sample = 1000,
                       exposure_quantized = FALSE,
-                      density_type = "hal") {
+                      density_type = "hal",
+                      n_bins = 10,
+                      max_degree = 1) {
   # check arguments and set up some objects for programmatic convenience
   call <- match.call(expand.dots = TRUE)
   estimator <- match.arg(estimator)
@@ -284,7 +286,7 @@ SuperNOVA <- function(w,
 
           if (exposure_quantized == TRUE) {
             g_type <- "categorical"
-          }else{
+          } else {
             g_type <- "continuous"
           }
 
@@ -301,7 +303,6 @@ SuperNOVA <- function(w,
             lower_bound = lower_bound,
             upper_bound = upper_bound,
             outcome_type = g_type
-
           )
 
           delta <- ind_gn_exp_estim$delta
@@ -571,7 +572,9 @@ SuperNOVA <- function(w,
             lower_bound = lower_bound,
             upper_bound = upper_bound,
             outcome_type = outcome_type,
-            density_type = density_type
+            density_type = density_type,
+            n_bins = n_bins,
+            max_degree = max_degree
           )
 
           ## extract model for future integration
@@ -597,7 +600,9 @@ SuperNOVA <- function(w,
             lower_bound = lower_bound,
             upper_bound = upper_bound,
             outcome_type = outcome_type,
-            density_type = density_type
+            density_type = density_type,
+            n_bins = n_bins,
+            max_degree = max_degree
           )
 
           e_model <- gn_exp_estim_z$model
@@ -692,19 +697,6 @@ SuperNOVA <- function(w,
             )
           }
 
-
-
-          # d_a_int <- integrate_psi_g(
-          #                 data = av,
-          #                 covars = c(w_names, exposure, mediator),
-          #                 w_names = w_names,
-          #                 q_model = q_model,
-          #                 r_model = r_model,
-          #                 g_model = g_model,
-          #                 exposure = exposure,
-          #                 mediator = mediator,
-          #                 delta = delta_updated)
-
           if (exposure_quantized == TRUE) {
             d_a_int <- integrate_psi_g_discrete(
               av = av,
@@ -778,18 +770,6 @@ SuperNOVA <- function(w,
           pseudo_model <- sl$train(sl_pseudo_task_at)
           psi_aw_av <- pseudo_model$predict(sl_pseudo_task_av)
 
-          ## integrate phi(a, w) calculated with pseudo regression over g
-          # d_a_pseudo <- integrate_psi_aw_g(
-          #   at = at,
-          #   av = av,
-          #   covars = c(exposure, w_names),
-          #   w_names,
-          #   pseudo_model,
-          #   g_model,
-          #   exposure,
-          #   delta = delta_updated,
-          #   psi_aw = psi_aw_av
-          # )
 
           if (exposure_quantized == TRUE) {
             d_a_pseudo <- integrate_psi_aw_g_quant(
@@ -813,9 +793,9 @@ SuperNOVA <- function(w,
               pseudo_model,
               g_model,
               exposure,
-              delta = 0,
               psi_aw = psi_aw_av,
-              n_samples = n_mc_sample
+              n_samples = n_mc_sample,
+              density_type = density_type
             )
           }
 

@@ -21,33 +21,37 @@
 #'  outcome mechanism at the natural value of the exposure Q(A, W) and an
 #'  upshift of the exposure Q(A + delta, W).
 
-integrate_psi_aw_g_mc <- function(at, av, covars, w_names, pseudo_model, g_model, exposure, delta, psi_aw, n_samples = 1000) {
+integrate_psi_aw_g_mc <- function(at, av, covars, w_names, pseudo_model, g_model, exposure, psi_aw, n_samples = 1000, density_type) {
   at <- as.data.frame(at)
   av <- as.data.frame(av)
-  lower <- floor(min(min(av[exposure]), min(at[exposure])))
-  upper <- ceiling(max(max(av[exposure]), max(at[exposure])))
+  lower <- min(min(av[exposure]), min(at[exposure]))
+  upper <- max(max(av[exposure]), max(at[exposure]))
 
-  integrand <- function(a, row_data, covars, pseudo_model, g_model, exposure, delta, upper) {
-    row_data <- do.call("rbind", replicate(length(a), row_data, simplify = FALSE))
+  integrand <- function(sample_a, row_data, covars, pseudo_model, g_model, exposure, upper, density_type) {
+    row_data <- do.call("rbind", replicate(length(sample_a), row_data, simplify = FALSE))
     new_data_m <- new_data_g <- row_data
-    new_data_m[exposure] <- ifelse(a + delta >= upper, upper, a + delta)
-    new_data_g[exposure] <- a
+    new_data_m[exposure] <- sample_a
+    new_data_g[exposure] <- sample_a
 
     task_m <- sl3::sl3_Task$new(
       data = new_data_m,
       covariates = covars,
       outcome = "pseudo_outcome"
     )
-
-    task_g <- sl3::sl3_Task$new(
-      data = new_data_g,
-      covariates = c(w_names),
-      outcome = exposure,
-    )
-
     m_val <- pseudo_model$predict(task_m)
-    g_val <- g_model$predict(task_g)
-    output <- m_val * g_val$likelihood
+
+    if (density_type == "sl") {
+      task_g <- sl3::sl3_Task$new(
+        data = new_data_g,
+        covariates = c(w_names),
+        outcome = exposure,
+      )
+      g_val <- g_model$predict(task_g)
+      g_val <- g_val$likelihood
+    } else {
+      g_val <- suppressMessages(predict(g_model, new_A = new_data_g[[exposure]], new_W = new_data_g[w_names]))
+    }
+    output <- m_val * g_val
     return(output)
   }
 
@@ -56,7 +60,7 @@ integrate_psi_aw_g_mc <- function(at, av, covars, w_names, pseudo_model, g_model
   for (i in 1:nrow(av)) {
     row_data <- av[i, ]
     sample_a <- runif(n_samples, lower, upper)
-    integral_values <- integrand(sample_a, row_data, covars, pseudo_model, g_model, exposure, delta, upper)
+    integral_values <- integrand(sample_a, row_data, covars, pseudo_model, g_model, exposure, upper, density_type)
     integral_result <- mean(integral_values) * (max(sample_a) - min(sample_a))
 
     results[i] <- psi_aw[i] - integral_result

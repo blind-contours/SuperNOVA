@@ -28,8 +28,8 @@ integrate_m_g_mc <- function(av, at, covars, w_names, q_model, g_model, exposure
   integrand <- function(sample_a, row_data, covars, q_model, g_model, exposure, g_delta, m_delta, upper_bound, density_type) {
     row_data <- do.call("rbind", replicate(length(sample_a), row_data, simplify = FALSE))
     new_data_m <- new_data_g <- row_data
-    new_data_m[exposure] <-  ifelse(sample_a + m_delta >= upper_bound, upper_bound, sample_a + m_delta)
-    new_data_g[exposure] <-  ifelse(sample_a + g_delta >= upper_bound, upper_bound, sample_a + g_delta)
+    new_data_m[exposure] <- ifelse(sample_a + m_delta >= upper_bound, upper_bound, sample_a + m_delta)
+    new_data_g[exposure] <- ifelse(sample_a + g_delta >= upper_bound, upper_bound, sample_a + g_delta)
 
     task_m <- sl3::sl3_Task$new(
       data = new_data_m,
@@ -40,7 +40,6 @@ integrate_m_g_mc <- function(av, at, covars, w_names, q_model, g_model, exposure
     m_val <- q_model$predict(task_m)
 
     if (density_type == "sl") {
-
       task_g <- sl3::sl3_Task$new(
         data = new_data_g,
         covariates = c(w_names),
@@ -49,9 +48,8 @@ integrate_m_g_mc <- function(av, at, covars, w_names, q_model, g_model, exposure
 
       g_val <- g_model$predict(task_g)
       output <- m_val * g_val$likelihood
-
-    }else{
-      g_val <- suppressMessages(predict(g_model, new_A = new_data_g[[exposure]], new_W = new_data_g[w_names] ))
+    } else {
+      g_val <- suppressMessages(predict(g_model, new_A = new_data_g[[exposure]], new_W = new_data_g[w_names]))
       output <- m_val * g_val
     }
 

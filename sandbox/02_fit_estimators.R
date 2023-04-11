@@ -145,14 +145,14 @@ fit_estimators_mediation <- function(w,
     deltas = deltas,
     estimator = "tmle",
     fluctuation = "standard",
-    n_folds = 2,
+    n_folds = cv_folds,
     outcome_type = "continuous",
     quantile_thresh = 0,
     verbose = TRUE,
     parallel = TRUE,
     seed = seed,
     var_sets = var_sets,
-    num_cores = 6,
+    num_cores = num_cores,
     exposure_quantized = TRUE
   )
 

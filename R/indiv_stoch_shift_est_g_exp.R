@@ -45,7 +45,9 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
                                         lower_bound,
                                         upper_bound,
                                         outcome_type,
-                                        density_type) {
+                                        density_type,
+                                        n_bins,
+                                        max_degree) {
   future::plan(future::sequential, gc = TRUE)
 
   # need a data set with the exposure stochastically shifted DOWNWARDS A-delta
@@ -209,8 +211,7 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
       pred_g_exp_upshifted_av <- mapply(get_value_from_column, a = av$a + delta, row_quantile_predictions = unlist(pred_g_exp_upshifted_av, recursive = FALSE), lower_bound = lower_bound, upper_bound = upper_bound)
       pred_g_exp_upupshifted_av <- mapply(get_value_from_column, a = av$a + 2 * delta, row_quantile_predictions = unlist(pred_g_exp_upupshifted_av, recursive = FALSE), lower_bound = lower_bound, upper_bound = upper_bound)
     }
-
-  }else{
+  } else {
     at <- as.data.frame(at)
     at_upshifted <- as.data.frame(at_upshifted)
     at_upupshifted <- as.data.frame(at_upupshifted)
@@ -222,11 +223,11 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
     av_downshifted <- as.data.frame(av_downshifted)
 
 
-    g_model <- haldensify(
-      A = at[[exposure]], W = at[w_names], n_bins = 10L, lambda_seq = exp(seq(-1, -10, length = 100)),
+    g_model <- suppressMessages(haldensify(
+      A = at[[exposure]], W = at[w_names], n_bins = n_bins, lambda_seq = exp(seq(-1, -10, length = 100)),
       # the following arguments are passed to hal9001::fit_hal()
-      max_degree = 1
-    )
+      max_degree = max_degree
+    ))
 
     # at predictions -----------
     pred_g_exp_noshift_at <- predict(g_model, new_A = at[[exposure]], new_W = at[w_names])

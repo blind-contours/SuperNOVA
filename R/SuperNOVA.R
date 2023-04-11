@@ -733,7 +733,8 @@ SuperNOVA <- function(w,
               mediator = mediator,
               delta = delta_updated,
               n_samples = n_mc_sample,
-              n_iterations = 1
+              n_iterations = 1,
+              density_type = density_type
             )
           }
 

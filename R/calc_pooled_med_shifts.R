@@ -71,6 +71,11 @@ calc_pooled_med_shifts <- function(med_shift_results,
         names(test), "delta"
       )])
 
+      # dzws <- as.vector(unlist(test[stringr::str_detect(names(test), "dzw")]))
+      # das_int <- as.vector(unlist(test[stringr::str_detect(names(test), "da_int")]))
+      # das_pseudo <- as.vector(unlist(test[stringr::str_detect(names(test), "da_pseudo")]))
+      # dys <- as.vector(unlist(test[stringr::str_detect(names(test), "dy")]))
+
       deltas <- mean(unlist(deltas))
 
       tmle_fit <- tmle_exposhift(
@@ -83,8 +88,10 @@ calc_pooled_med_shifts <- function(med_shift_results,
       )
 
       total_effect <- tmle_fit$psi - mean(data$y)
-      total_effect_eif <- tmle_fit$eif
-      var_total_effect <- var(total_effect_eif) / length(total_effect_eif)
+      total_effect_eif <- tmle_fit$eif - tmle_fit$noshift_eif
+      cov_eif_noshift_eif <- cov(tmle_fit$eif, tmle_fit$noshift_eif)
+
+      var_total_effect <- (var(tmle_fit$eif) + var(tmle_fit$noshift_eif) - 2 * cov_eif_noshift_eif) / length(total_effect_eif)
 
       total_effects <- list(
         "Parameter" = "Total-Pooled-TMLE",
@@ -107,7 +114,13 @@ calc_pooled_med_shifts <- function(med_shift_results,
       eif_nde_no_shift <- test[stringr::str_detect(names(test), "eif_no_shift")]
       eif_nde_no_shift <- as.vector(unlist(eif_nde_no_shift))
       eif_nde_pseudo <- eif_comp_sum_w_pseudo - eif_nde_no_shift
-      var_nde_pseudo <- var(eif_nde_pseudo) / length(eif_nde_pseudo)
+
+      # Calculate covariance term
+      cov_eif_comp_sum_w_pseudo_eif_nde_no_shift <- cov(eif_comp_sum_w_pseudo, eif_nde_no_shift)
+
+      # Update variance calculation with the covariance term
+      var_nde_pseudo <- (var(eif_comp_sum_w_pseudo) + var(eif_nde_no_shift) - 2 * cov_eif_comp_sum_w_pseudo_eif_nde_no_shift) / length(eif_nde_pseudo)
+
       se_nde_pseudo <- sqrt(var_nde_pseudo)
       CI_nde_pseudo <- calc_CIs(nde_effect_pseudo, se_nde_pseudo)
       p_value_nde_pseudo <- 2 * stats::pnorm(abs(nde_effect_pseudo / se_nde_pseudo), lower.tail = F)
@@ -133,7 +146,13 @@ calc_pooled_med_shifts <- function(med_shift_results,
       eif_nde_no_shift <- test[stringr::str_detect(names(test), "eif_no_shift")]
       eif_nde_no_shift <- as.vector(unlist(eif_nde_no_shift))
       eif_nde_int <- eif_comp_sum_w_int - eif_nde_no_shift
-      var_nde_int <- var(eif_nde_int) / length(eif_nde_int)
+
+      # Calculate covariance term
+      cov_eif_comp_sum_w_int_eif_nde_no_shift <- cov(eif_comp_sum_w_int, eif_nde_no_shift)
+
+      # Update variance calculation with the covariance term
+      var_nde_int <- (var(eif_comp_sum_w_int) + var(eif_nde_no_shift) - 2 * cov_eif_comp_sum_w_int_eif_nde_no_shift) / length(eif_nde_int)
+
       se_nde_int <- sqrt(var_nde_int)
       CI_nde_int <- calc_CIs(nde_effect_int, se_nde_int)
       p_value_nde_int <- 2 * stats::pnorm(abs(nde_effect_int / se_nde_int), lower.tail = F)
@@ -148,11 +167,18 @@ calc_pooled_med_shifts <- function(med_shift_results,
         "P-Value" = p_value_nde_int
       )
 
+
       # NIE using pooled pseudo-regression
 
       nie_effect_pseudo <- total_effect - nde_effect_pseudo
       eif_nie_pseudo <- total_effect_eif - eif_nde_pseudo
-      var_nie_pseudo <- var(eif_nie_pseudo) / length(eif_nie_pseudo)
+
+      # Calculate covariance term
+      cov_total_effect_eif_eif_nde_pseudo <- cov(total_effect_eif, eif_nde_pseudo)
+
+      # Update variance calculation with the covariance term
+      var_nie_pseudo <- (var(total_effect_eif) + var(eif_nde_pseudo) - 2 * cov_total_effect_eif_eif_nde_pseudo) / length(eif_nie_pseudo)
+
       se_nie_pseudo <- sqrt(var_nie_pseudo)
       CI_nie_pseudo <- calc_CIs(nie_effect_pseudo, se_nie_pseudo)
       p_value_nie_pseudo <- 2 * stats::pnorm(abs(nie_effect_pseudo / se_nie_pseudo), lower.tail = F)
@@ -168,11 +194,18 @@ calc_pooled_med_shifts <- function(med_shift_results,
       )
 
 
+
       # NIE using pooled integration
 
       nie_effect_int <- total_effect - nde_effect_int
       eif_nie_int <- total_effect_eif - eif_nde_int
-      var_nie_int <- var(eif_nie_int) / length(eif_nie_int)
+
+      # Calculate covariance term
+      cov_total_effect_eif_eif_nde_int <- cov(total_effect_eif, eif_nde_int)
+
+      # Update variance calculation with the covariance term
+      var_nie_int <- (var(total_effect_eif) + var(eif_nde_int) - 2 * cov_total_effect_eif_eif_nde_int) / length(eif_nie_int)
+
       se_nie_int <- sqrt(var_nie_int)
       CI_nie_int <- calc_CIs(nie_effect_int, se_nie_int)
       p_value_nie_int <- 2 * stats::pnorm(abs(nie_effect_int / se_nie_int), lower.tail = F)
@@ -186,6 +219,7 @@ calc_pooled_med_shifts <- function(med_shift_results,
         "Upper CI" = CI_nie_int[[2]],
         "P-Value" = p_value_nie_int
       )
+
 
 
       mediation_pooled <- bind_rows(

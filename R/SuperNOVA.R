@@ -100,7 +100,8 @@ SuperNOVA <- function(w,
                       hn_trunc_thresh = 20,
                       adaptive_delta = FALSE,
                       n_mc_sample = 1000,
-                      exposure_quantized = FALSE) {
+                      exposure_quantized = FALSE,
+                      density_type = "hal") {
   # check arguments and set up some objects for programmatic convenience
   call <- match.call(expand.dots = TRUE)
   estimator <- match.arg(estimator)
@@ -197,7 +198,7 @@ SuperNOVA <- function(w,
   `%notin%` <- Negate(`%in%`)
 
 
-  if (family == "binomial") {
+  if (outcome_type == "binomial") {
     ## create the CV folds
     data_internal$folds <- create_cv_folds(n_folds, data_internal$y)
 
@@ -554,6 +555,8 @@ SuperNOVA <- function(w,
             outcome_type <- "continuous"
           }
 
+
+
           ## get g(A|W) under shifts and no shift
           gn_exp_estim <- indiv_stoch_shift_est_g_exp(
             exposure = exposure,
@@ -567,7 +570,8 @@ SuperNOVA <- function(w,
             exposure_quantized = exposure_quantized,
             lower_bound = lower_bound,
             upper_bound = upper_bound,
-            outcome_type = outcome_type
+            outcome_type = outcome_type,
+            density_type = density_type
           )
 
           ## extract model for future integration
@@ -592,7 +596,8 @@ SuperNOVA <- function(w,
             exposure_quantized = exposure_quantized,
             lower_bound = lower_bound,
             upper_bound = upper_bound,
-            outcome_type = outcome_type
+            outcome_type = outcome_type,
+            density_type = density_type
           )
 
           e_model <- gn_exp_estim_z$model
@@ -680,7 +685,10 @@ SuperNOVA <- function(w,
               exposure = exposure,
               g_delta = delta_updated,
               m_delta = 0,
-              n_samples = n_mc_sample
+              n_samples = n_mc_sample,
+              density_type = density_type,
+              lower_bound = lower_bound,
+              upper_bound = upper_bound
             )
           }
 
@@ -709,7 +717,7 @@ SuperNOVA <- function(w,
               exposure = exposure,
               mediator = mediator,
               delta = delta_updated,
-              n_samples = 1000,
+              n_samples = n_mc_sample,
               n_bins = 4
             )
           } else {
@@ -725,7 +733,7 @@ SuperNOVA <- function(w,
               mediator = mediator,
               delta = delta_updated,
               n_samples = n_mc_sample,
-              n_iterations = 2
+              n_iterations = 1
             )
           }
 
@@ -733,6 +741,10 @@ SuperNOVA <- function(w,
 
           g_e_shift_ratio_av <- (gn_exp_estim$av$noshift / gn_exp_estim_z$av$noshift)
           g_e_shift_ratio_at <- (gn_exp_estim$at$noshift / gn_exp_estim_z$at$noshift)
+
+
+          # g_e_shift_ratio_av <- ifelse(g_e_shift_ratio_av > hn_trunc_thresh, hn_trunc_thresh, g_e_shift_ratio_av)
+          # g_e_shift_ratio_at <- ifelse(g_e_shift_ratio_at > hn_trunc_thresh, hn_trunc_thresh, g_e_shift_ratio_at)
 
 
           ##  pseudo regression to test against d_a
@@ -979,6 +991,9 @@ SuperNOVA <- function(w,
 
           rownames(mediation_in_fold) <- NULL
 
+          eif_comp_sum_w_pseudo <- d_y + d_z_w + d_a_pseudo
+          eif_comp_sum_w_double_int <- d_y + d_z_w + d_a_int$d_a
+
 
           fold_results_mediation[[
             paste("Fold", fold_k, ":", paste(exposure, mediator, sep = ""))
@@ -990,7 +1005,11 @@ SuperNOVA <- function(w,
             "Qn_scaled" = ind_qn_estim$q_av,
             "Hn" = Hn,
             "eif_no_shift" = eif_no_shift,
-            "k_fold_result" = mediation_in_fold
+            "k_fold_result" = mediation_in_fold,
+            "dy" = d_y,
+            "dzw" = d_z_w,
+            "da_pseudo" = d_a_pseudo,
+            "da_int" = d_a_int$d_a
           )
         } else if (sum(stringr::str_count(matches, paste(c(a_names), collapse = "|"))) == 2 &
           sum(stringr::str_count(matches, paste(c(z_names), collapse = "|"))) == 1) {

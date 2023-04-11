@@ -57,7 +57,7 @@ integrate_psi_aw_g_mc <- function(at, av, covars, w_names, pseudo_model, g_model
     row_data <- av[i, ]
     sample_a <- runif(n_samples, lower, upper)
     integral_values <- integrand(sample_a, row_data, covars, pseudo_model, g_model, exposure, delta, upper)
-    integral_result <- mean(integral_values) * (upper - lower)
+    integral_result <- mean(integral_values) * (max(sample_a) - min(sample_a))
 
     results[i] <- psi_aw[i] - integral_result
   }

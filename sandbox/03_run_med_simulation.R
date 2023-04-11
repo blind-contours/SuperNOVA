@@ -8,12 +8,12 @@ source(here("sandbox/02_fit_estimators.R"))
 library(SuperNOVA)
 
 # simulation parameters
-n_sim <- 1 # number of simulations
-n_obs <- c(250, 500, 1000, 1500, 2500, 3000, 5000)
+n_sim <- 5 # number of simulations
+n_obs <- c(250, 500, 1000, 1500, 2500)
 p0_obs <- 100000
 
-n_core <- 20
-n_fold <- 10
+n_core <- 6
+n_fold <- 5
 
 # Generate simulated data -----------------
 
@@ -43,9 +43,9 @@ ate_a1_quant <- full_data$ate_a1_quant
 
 
 covars <- c("w_1", "w_2", "w_3", "w_4", "w_5")
-exposures <- c("a_1_quant")
-mediators <- c("z_1_quant")
-outcome <- "y_quant"
+exposures <- c("a_1")
+mediators <- c("z_1")
+outcome <- "y"
 
 
 # perform simulation across sample sizes

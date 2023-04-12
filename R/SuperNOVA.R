@@ -89,7 +89,7 @@ SuperNOVA <- function(w,
                       e_learner = NULL,
                       em_learner = NULL,
                       zeta_learner = NULL,
-                      n_folds,
+                      n_folds = 2,
                       outcome_type = "continuous",
                       quantile_thresh = 0.5,
                       verbose = FALSE,
@@ -649,23 +649,6 @@ SuperNOVA <- function(w,
           ## calculate dy part of EIF
           d_y <- g_shift_e_ratio_av * (av$y - qn_estim$av_predictions$noshift)
 
-          ## calculate dzw part of EIF by integrating q and g models over a
-          ## this is done where there is no shift in q model and shift in a
-          ## by g_delta - this is done by setting the range for integrating
-          ## for min + delta and max + delta for g.
-
-          # d_z_w <- integrate_m_g(
-          #   av = av,
-          #   at = at,
-          #   covars = c(w_names, exposure, mediator),
-          #   w_names = w_names,
-          #   q_model = q_model,
-          #   g_model = g_model,
-          #   exposure = exposure,
-          #   g_delta = delta_updated,
-          #   m_delta = 0
-          # )
-
           if (exposure_quantized == TRUE) {
             d_z_w <- integrate_m_g_quant(
               av = av,
@@ -735,18 +718,12 @@ SuperNOVA <- function(w,
           g_e_shift_ratio_av <- (gn_exp_estim$av$noshift / gn_exp_estim_z$av$noshift)
           g_e_shift_ratio_at <- (gn_exp_estim$at$noshift / gn_exp_estim_z$at$noshift)
 
-
-          # g_e_shift_ratio_av <- ifelse(g_e_shift_ratio_av > hn_trunc_thresh, hn_trunc_thresh, g_e_shift_ratio_av)
-          # g_e_shift_ratio_at <- ifelse(g_e_shift_ratio_at > hn_trunc_thresh, hn_trunc_thresh, g_e_shift_ratio_at)
-
-
           ##  pseudo regression to test against d_a
           pseudo_regression_at <- g_e_shift_ratio_at * qn_estim$at_predictions$upshift
           pseudo_regression_av <- g_e_shift_ratio_av * qn_estim$av_predictions$upshift
 
           at$pseudo_outcome <- pseudo_regression_at
           av$pseudo_outcome <- pseudo_regression_av
-          # summary(at$pseudo_outcome)
 
           sl_pseudo_task_at <- sl3::sl3_Task$new(
             data = at,
@@ -769,7 +746,6 @@ SuperNOVA <- function(w,
 
           pseudo_model <- sl$train(sl_pseudo_task_at)
           psi_aw_av <- pseudo_model$predict(sl_pseudo_task_av)
-
 
           if (exposure_quantized == TRUE) {
             d_a_pseudo <- integrate_psi_aw_g_quant(
@@ -799,27 +775,9 @@ SuperNOVA <- function(w,
             )
           }
 
-
-
-          ## integrate phi(a, w) calculated with integration over g
-          # d_a_integrated <- integrate_phi_aw_g_int(
-          #   at = at,
-          #   av = av,
-          #   covars = c(exposure, w_names),
-          #   w_names,
-          #   g_model,
-          #   exposure,
-          #   delta = 0,
-          #   psi_aw = int_psi_delta
-          # )
-
-          ## calculate psi using integration and pseudo-regression and
-          ## double integration
-
           ## sum the nuisance components with each strategy
           eif_comp_sum_w_pseudo <- d_y + d_z_w + d_a_pseudo
           eif_comp_sum_w_double_int <- d_y + d_z_w + d_a_int$d_a
-
 
           ## subtract off the average to get the EIF for each strategy
           psi_a_shift_fix_z_pseudo <- mean(eif_comp_sum_w_pseudo)

@@ -11,9 +11,10 @@ library(SuperNOVA)
 n_sim <- 5 # number of simulations
 n_obs <- c(250, 500, 1000, 1500, 2500)
 p0_obs <- 100000
+n_mc_sample <- 100
 
-n_core <- 6
-n_fold <- 5
+n_core <- 20
+n_fold <- 10
 
 # Generate simulated data -----------------
 
@@ -82,7 +83,9 @@ for (sample_size in n_obs) {
                               deltas = list("a" = 1),
                               cv_folds = n_fold,
                               num_cores = n_core,
-                              var_sets = "a-z"
+                              var_sets = "a-z",
+                              exposure_quantized = FALSE,
+                              n_mc_sample = n_mc_sample
     )
 
     est_out$n_obs <- sample_size

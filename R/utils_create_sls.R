@@ -148,10 +148,10 @@ create_sls <- function() {
 
   learners <- c(
     lrnr_glm_basic,
-    lrnr_ridge
+    # lrnr_ridge
     # lrnr_lasso,
     # lrnr_ranger_100,
-    # lrnr_xgboost_df,
+    lrnr_xgboost_df,
     # lrnr_xgboost_50,
     # lrnr_xgboost_100,
     # lrnr_xgboost_200,

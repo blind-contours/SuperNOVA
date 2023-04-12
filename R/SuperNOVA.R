@@ -556,8 +556,6 @@ SuperNOVA <- function(w,
             outcome_type <- "continuous"
           }
 
-
-
           ## get g(A|W) under shifts and no shift
           gn_exp_estim <- indiv_stoch_shift_est_g_exp(
             exposure = exposure,

@@ -163,63 +163,6 @@ create_sls <- function() {
   e_learner <- make_learner(Stack, learners)
   g_learner <- make_learner(Stack, learners)
 
-  lrnr_glmtree_001 <- sl3::Lrnr_glmtree$new(
-    alpha = 0.9,
-    maxdepth = 2,
-    bonferroni = TRUE,
-    minsize = 50
-  )
-
-  lrnr_glmtree_002 <- sl3::Lrnr_glmtree$new(
-    alpha = 0.8,
-    maxdepth = 2,
-    bonferroni = TRUE,
-    minsize = 50
-  )
-
-  lrnr_glmtree_003 <- sl3::Lrnr_glmtree$new(
-    alpha = 0.7,
-    maxdepth = 2,
-    bonferroni = TRUE,
-    minsize = 50
-  )
-
-  lrnr_glmtree_004 <- sl3::Lrnr_glmtree$new(
-    alpha = 0.9,
-    maxdepth = 1,
-    bonferroni = TRUE,
-    minsize = 50
-  )
-
-  lrnr_glmtree_005 <- sl3::Lrnr_glmtree$new(
-    alpha = 0.9,
-    maxdepth = 2,
-    bonferroni = TRUE,
-    minsize = 50
-  )
-
-  lrnr_glmtree_006 <- sl3::Lrnr_glmtree$new(
-    alpha = 0.9,
-    maxdepth = 2,
-    bonferroni = FALSE,
-    minsize = 50
-  )
-
-  lrnr_glmtree_007 <- sl3::Lrnr_glmtree$new(
-    alpha = 0.6,
-    maxdepth = 2,
-    bonferroni = FALSE,
-    minsize = 50
-  )
-
-  learners <- c(
-    lrnr_glmtree_001, lrnr_glmtree_002,
-    lrnr_glmtree_003, lrnr_glmtree_004,
-    lrnr_glmtree_005, lrnr_glmtree_006,
-    lrnr_glmtree_007
-  )
-
-  tree_stack <- make_learner(Stack, learners)
 
   ## categorical exposure learners
   # lrnr_glm_multivar <- Lrnr_multivariate$new()

@@ -21,13 +21,13 @@ create_sls <- function() {
   make_continuous_superlearner <- function() {
     learners <- c(
       sl3::Lrnr_glm$new(),
-      sl3::Lrnr_glmnet$new(alpha = 1),
-      sl3::Lrnr_glmnet$new(alpha = 0),
-      sl3::Lrnr_glmnet$new(alpha = .5),
-      sl3::Lrnr_ranger$new(num.trees = 100),
-      sl3::Lrnr_ranger$new(num.trees = 500),
-      sl3::Lrnr_xgboost$new(nrounds = 50),
-      sl3::Lrnr_xgboost$new(nrounds = 200),
+      # sl3::Lrnr_glmnet$new(alpha = 1),
+      # sl3::Lrnr_glmnet$new(alpha = 0),
+      # sl3::Lrnr_glmnet$new(alpha = .5),
+      # sl3::Lrnr_ranger$new(num.trees = 100),
+      # sl3::Lrnr_ranger$new(num.trees = 500),
+      # sl3::Lrnr_xgboost$new(nrounds = 50),
+      # sl3::Lrnr_xgboost$new(nrounds = 200),
       sl3::Lrnr_earth$new(degree = 2),
       sl3::Lrnr_earth$new(degree = 3)
     )
@@ -138,24 +138,24 @@ create_sls <- function() {
 
   lrnr_glm_basic <- Lrnr_glm$new()
   lrnr_ridge <- Lrnr_glmnet$new(alpha = 0)
-  lrnr_lasso <- Lrnr_glmnet$new(alpha = 1)
-  lrnr_ranger_100 <- make_learner(Lrnr_ranger, num.trees = 100)
-  lrnr_xgboost_df <- make_learner(Lrnr_xgboost)
-  lrnr_xgboost_50 <- make_learner(Lrnr_xgboost, nrounds = 50)
-  lrnr_xgboost_100 <- make_learner(Lrnr_xgboost, nrounds = 100)
-  lrnr_xgboost_200 <- make_learner(Lrnr_xgboost, nrounds = 200)
-  lrnr_xgboost_300 <- make_learner(Lrnr_xgboost, nrounds = 300)
+  # lrnr_lasso <- Lrnr_glmnet$new(alpha = 1)
+  # lrnr_ranger_100 <- make_learner(Lrnr_ranger, num.trees = 100)
+  # lrnr_xgboost_df <- make_learner(Lrnr_xgboost)
+  # lrnr_xgboost_50 <- make_learner(Lrnr_xgboost, nrounds = 50)
+  # lrnr_xgboost_100 <- make_learner(Lrnr_xgboost, nrounds = 100)
+  # lrnr_xgboost_200 <- make_learner(Lrnr_xgboost, nrounds = 200)
+  # lrnr_xgboost_300 <- make_learner(Lrnr_xgboost, nrounds = 300)
 
   learners <- c(
     lrnr_glm_basic,
-    lrnr_ridge,
-    lrnr_lasso,
-    lrnr_ranger_100,
-    lrnr_xgboost_df,
-    lrnr_xgboost_50,
-    lrnr_xgboost_100,
-    lrnr_xgboost_200,
-    lrnr_xgboost_300
+    lrnr_ridge
+    # lrnr_lasso,
+    # lrnr_ranger_100,
+    # lrnr_xgboost_df,
+    # lrnr_xgboost_50,
+    # lrnr_xgboost_100,
+    # lrnr_xgboost_200,
+    # lrnr_xgboost_300
   )
 
 
@@ -196,7 +196,6 @@ create_sls <- function() {
     "mu_learner" = mu_learner,
     "e_learner" = e_learner,
     "g_learner" = g_learner,
-    "em_learner" = tree_stack,
     "quant_learner" = quant_lrnr
   ))
 }

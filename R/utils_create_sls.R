@@ -151,13 +151,12 @@ create_sls <- function() {
     # lrnr_ridge
     # lrnr_lasso,
     # lrnr_ranger_100,
-    lrnr_xgboost_df,
+    lrnr_xgboost_df
     # lrnr_xgboost_50,
     # lrnr_xgboost_100,
     # lrnr_xgboost_200,
     # lrnr_xgboost_300
   )
-
 
   mu_learner <- make_learner(Stack, learners)
   e_learner <- make_learner(Stack, learners)

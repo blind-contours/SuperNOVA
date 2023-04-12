@@ -140,7 +140,7 @@ create_sls <- function() {
   lrnr_ridge <- Lrnr_glmnet$new(alpha = 0)
   # lrnr_lasso <- Lrnr_glmnet$new(alpha = 1)
   # lrnr_ranger_100 <- make_learner(Lrnr_ranger, num.trees = 100)
-  # lrnr_xgboost_df <- make_learner(Lrnr_xgboost)
+  lrnr_xgboost_df <- make_learner(Lrnr_xgboost)
   # lrnr_xgboost_50 <- make_learner(Lrnr_xgboost, nrounds = 50)
   # lrnr_xgboost_100 <- make_learner(Lrnr_xgboost, nrounds = 100)
   # lrnr_xgboost_200 <- make_learner(Lrnr_xgboost, nrounds = 200)

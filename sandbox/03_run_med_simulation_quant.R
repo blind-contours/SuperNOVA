@@ -9,7 +9,7 @@ library(SuperNOVA)
 
 # simulation parameters
 n_sim <- 5 # number of simulations
-n_obs <- c(250, 500, 1000, 1500, 2500)
+n_obs <- c(500, 1000, 1500, 2500)
 p0_obs <- 100000
 n_mc_sample <- 100
 

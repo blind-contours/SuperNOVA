@@ -30,19 +30,6 @@ nde_a1_quant <- full_data$nde_a1_quant
 nie_a1_quant <- full_data$nie_a1_quant
 ate_a1_quant <- full_data$ate_a1_quant
 
-# nde_a3 <- full_data$nde_a3
-# nie_a3 <- full_data$nie_a3
-# ate_a3 <- full_data$ate_a3
-#
-# nde_a4 <- full_data$nde_a4
-# nie_a4 <- full_data$nie_a4
-# ate_a4 <- full_data$ate_a4
-#
-# nde_a34 <- full_data$nde_a3a4
-# nie_a34 <- full_data$nie_a3a4
-# ate_a34 <- full_data$ate_a34
-
-
 covars <- c("w_1", "w_2", "w_3", "w_4", "w_5")
 exposures <- c("a_1")
 mediators <- c("z_1")
@@ -77,9 +64,9 @@ for (sample_size in n_obs) {
                               z = z,
                               y = y,
                               seed = seed,
-                              nde_effects = c(nde_a1_quant),
-                              nie_effects = c(nie_a1_quant),
-                              ate_effects = c(ate_a1_quant),
+                              nde_effects = c(nde_a1),
+                              nie_effects = c(nie_a1),
+                              ate_effects = c(ate_a1),
                               deltas = list("a" = 1),
                               cv_folds = n_fold,
                               num_cores = n_core,

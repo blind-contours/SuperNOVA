@@ -113,7 +113,6 @@ integrate_psi_g_mc <- function(av, at, covars, w_names, q_model, r_model, g_mode
   integral_outer_results <- numeric(nrow(av))
 
   for (i in 1:nrow(av)) {
-    print(i)
     row_data <- av[i, ]
     results_i <- numeric(n_iterations)
     integral_inner_results_i <- numeric(n_iterations)

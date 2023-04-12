@@ -5,7 +5,7 @@ library(dplyr)
 library(magrittr)
 library(stringr)
 source(here("sandbox/02_fit_estimators.R"))
-library(SuperNOVA)
+load_all()
 
 # simulation parameters
 n_sim <- 5 # number of simulations

@@ -137,7 +137,8 @@ fit_estimators_mediation <- function(w,
                                      num_cores,
                                      var_sets,
                                      exposure_quantized,
-                                     n_mc_sample){
+                                     n_mc_sample,
+                                     density_type){
 
   sim_results <- SuperNOVA(
     w = w,
@@ -156,8 +157,8 @@ fit_estimators_mediation <- function(w,
     var_sets = var_sets,
     num_cores = num_cores,
     exposure_quantized = exposure_quantized,
-    density_type = "hal",
-    n_mc_sample = n_mc_sample
+    density_type = density_type,
+    n_mc_sample = n_mc_sample,
   )
 
   med_shift_results <- sim_results$`Mediation Shift Results`$az

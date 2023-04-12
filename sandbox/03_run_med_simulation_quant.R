@@ -72,7 +72,8 @@ for (sample_size in n_obs) {
       num_cores = n_core,
       var_sets = "a-z",
       exposure_quantized = TRUE,
-      n_mc_sample = n_mc_sample
+      n_mc_sample = n_mc_sample,
+      density_type = "sl"
     )
 
     est_out$n_obs <- sample_size

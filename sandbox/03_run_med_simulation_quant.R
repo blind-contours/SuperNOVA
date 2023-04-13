@@ -11,7 +11,7 @@ load_all()
 n_sim <- 5 # number of simulations
 n_obs <- c(500, 1000, 1500, 2500)
 p0_obs <- 100000
-n_mc_sample <- 100
+n_mc_sample <- 1000
 
 n_core <- 20
 n_fold <- 10
@@ -34,7 +34,6 @@ covars <- c("w_1", "w_2", "w_3", "w_4", "w_5")
 exposures <- c("a_1_quant")
 mediators <- c("z_1_quant")
 outcome <- "y_quant"
-
 
 # perform simulation across sample sizes
 sim_results_df <- data.frame()
@@ -64,9 +63,9 @@ for (sample_size in n_obs) {
       z = z,
       y = y,
       seed = seed,
-      nde_effects = c(nde_a1),
-      nie_effects = c(nie_a1),
-      ate_effects = c(ate_a1),
+      nde_effects = c(nde_a1_quant),
+      nie_effects = c(nie_a1_quant),
+      ate_effects = c(ate_a1_quant),
       deltas = list("a" = 1),
       cv_folds = n_fold,
       num_cores = n_core,

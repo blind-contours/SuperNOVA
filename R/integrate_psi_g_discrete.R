@@ -31,10 +31,10 @@ integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, 
   av <- as.data.frame(av)
   at <- as.data.frame(at)
 
-  lower_z <- min(min(av[[mediator]]), min(at[[mediator]]))
-  upper_z <- max(max(av[[mediator]]), max(at[[mediator]]))
+  # lower_z <- min(min(av[[mediator]]), min(at[[mediator]]))
+  # upper_z <- max(max(av[[mediator]]), max(at[[mediator]]))
 
-  sample_z <- runif(n_samples, lower_z, upper_z)
+  sample_z <- av$z
 
   integrand_m_r <- function(sample_z_inner, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a) {
     row_data_rep <- do.call("rbind", replicate(length(sample_z_inner), row_data, simplify = FALSE))
@@ -114,13 +114,13 @@ integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, 
     integral_outer_results_i <- numeric(n_bins)
 
     mc_integrands_inner <- integrand_m_r(sample_z_inner = sample_z, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a = n_bins)
-    integral_inner <- (upper_z - lower_z) * mean(mc_integrands_inner)
+    integral_inner <- (max(sample_z) - min(sample_z)) * mean(mc_integrands_inner)
 
     for (a_val in 1:n_bins) {
       # sample_z_outer <- runif(n_samples, lower_z, upper_z)
-      integrand_val <- integrand_m_g_r_mc(sample_a = a_val, sample_z = sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_z)
+      integrand_val <- integrand_m_g_r_mc(sample_a = a_val, sample_z = sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a = n_bins)
 
-      integral_outer <- (upper_z - lower_z) * mean(integrand_val)
+      integral_outer <- (max(sample_z) - min(sample_z)) * mean(integrand_val)
 
       # integral_inner_results_i[a_val] <- integral_inner
       integral_outer_results_i[a_val] <- integral_outer

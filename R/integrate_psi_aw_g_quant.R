@@ -24,7 +24,7 @@ integrate_psi_aw_g_quant <- function(at, av, covars, w_names, pseudo_model, g_mo
   at <- as.data.frame(at)
   av <- as.data.frame(av)
 
-  integrand <- function(bin_a, row_data, covars, pseudo_model, g_model, exposure, delta, upper) {
+  integrand <- function(bin_a, row_data, covars, pseudo_model, g_model, exposure, delta, upper, av) {
     # row_data <- do.call("rbind", replicate(length(a), row_data, simplify = FALSE))
     new_data_m <- new_data_g <- row_data
     new_data_m[exposure] <- ifelse(bin_a + delta >= upper, upper, bin_a + delta)
@@ -33,7 +33,7 @@ integrate_psi_aw_g_quant <- function(at, av, covars, w_names, pseudo_model, g_mo
     task_m <- sl3::sl3_Task$new(
       data = new_data_m,
       covariates = covars,
-      outcome = "pseudo_outcome"
+      outcome = "pseudo_outcome_scaled"
     )
 
     task_g <- sl3::sl3_Task$new(
@@ -42,10 +42,13 @@ integrate_psi_aw_g_quant <- function(at, av, covars, w_names, pseudo_model, g_mo
       outcome = exposure,
     )
 
-    m_val <- pseudo_model$predict(task_m)
+    m_val <- scale_to_original(pseudo_model$predict(task_m)[[1]], min_orig = min(av$pseudo_outcome), max_orig = max(av$pseudo_outcome))
     g_val <- g_model$predict(task_g)
     index <- ifelse(bin_a + delta >= upper, upper, bin_a + delta)
-    output <- m_val * unlist(g_val)[[index]]
+    g_val <- unlist(g_val)[[index]]
+    # g_val <- ifelse(g_val <= 1/sqrt(nrow(av)), 1/sqrt(nrow(av)), g_val)
+
+    output <- m_val * g_val
     return(output)
   }
 
@@ -54,7 +57,7 @@ integrate_psi_aw_g_quant <- function(at, av, covars, w_names, pseudo_model, g_mo
   for (i in 1:nrow(av)) {
     row_data <- av[i, ]
     integral_values <- sapply(1:n_bins, function(bin_a) {
-      integrand_val <- integrand(bin_a, row_data, covars, pseudo_model, g_model, exposure, delta, upper = n_bins)
+      integrand_val <- integrand(bin_a, row_data, covars, pseudo_model, g_model, exposure, delta, upper = n_bins, av)
       return(integrand_val)
     })
 

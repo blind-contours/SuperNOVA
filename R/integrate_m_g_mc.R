@@ -57,11 +57,11 @@ integrate_m_g_mc <- function(av, at, covars, w_names, q_model, g_model, exposure
   }
 
   results <- numeric(nrow(av))
+  sample_a <- runif(n_samples, lower_bound, upper_bound)
 
   for (i in 1:nrow(av)) {
     row_data <- av[i, ]
 
-    sample_a <- runif(n_samples, lower_bound, upper_bound)
     mc_integrands <- integrand(sample_a, row_data, covars, q_model, g_model, exposure, g_delta, m_delta, upper_bound, density_type)
 
     integral_result <- (max(sample_a) - min(sample_a)) * mean(mc_integrands)

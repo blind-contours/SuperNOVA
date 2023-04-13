@@ -716,34 +716,43 @@ SuperNOVA <- function(w,
           g_e_shift_ratio_av <- (gn_exp_estim$av$noshift / gn_exp_estim_z$av$noshift)
           g_e_shift_ratio_at <- (gn_exp_estim$at$noshift / gn_exp_estim_z$at$noshift)
 
+          g_e_shift_ratio_av <- ifelse(g_e_shift_ratio_av >= hn_trunc_thresh, hn_trunc_thresh, g_e_shift_ratio_av)
+          g_e_shift_ratio_av <- ifelse(g_e_shift_ratio_at >= hn_trunc_thresh, hn_trunc_thresh, g_e_shift_ratio_at)
+
           ##  pseudo regression to test against d_a
           pseudo_regression_at <- g_e_shift_ratio_at * qn_estim$at_predictions$upshift
           pseudo_regression_av <- g_e_shift_ratio_av * qn_estim$av_predictions$upshift
+
+
+          at$pseudo_outcome_scaled <- scale_to_unit(pseudo_regression_at)
+          av$pseudo_outcome_scaled <- scale_to_unit(pseudo_regression_av)
 
           at$pseudo_outcome <- pseudo_regression_at
           av$pseudo_outcome <- pseudo_regression_av
 
           sl_pseudo_task_at <- sl3::sl3_Task$new(
             data = at,
-            outcome = "pseudo_outcome",
+            outcome = "pseudo_outcome_scaled",
             covariates = c(exposure, w_names),
-            outcome_type = "continuous"
+            outcome_type = "quasibinomial"
           )
 
           sl_pseudo_task_av <- sl3::sl3_Task$new(
             data = av,
-            outcome = "pseudo_outcome",
+            outcome = "pseudo_outcome_scaled",
             covariates = c(exposure, w_names),
-            outcome_type = "continuous"
+            outcome_type = "quasibinomial"
           )
 
           sl <- sl3::Lrnr_sl$new(
             learners = mu_learner,
-            metalearner = sl3::Lrnr_nnls$new()
+            metalearner = sl3::Lrnr_cv_selector$new(sl3::loss_loglik_binomial)
           )
 
           pseudo_model <- sl$train(sl_pseudo_task_at)
           psi_aw_av <- pseudo_model$predict(sl_pseudo_task_av)
+
+          psi_aw_av <- scale_to_original(psi_aw_av, max_orig = max(av$pseudo_outcome), min_orig = min(av$pseudo_outcome))
 
           if (exposure_quantized == TRUE) {
             d_a_pseudo <- integrate_psi_aw_g_quant(

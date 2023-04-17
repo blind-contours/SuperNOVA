@@ -17,7 +17,8 @@ integrate_psi_g_discrete(
   mediator,
   delta,
   n_bins,
-  n_samples = 1000
+  n_samples = 1000,
+  method = "MC"
 )
 }
 \arguments{

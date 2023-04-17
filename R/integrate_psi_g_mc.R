@@ -26,7 +26,7 @@
 #' @return A \code{data.table} with two columns, containing estimates of the
 #'  outcome mechanism at the natural value of the exposure Q(A, W) and an
 #'  upshift of the exposure Q(A + delta, W)
-integrate_psi_g_mc <- function(av, at, covars, w_names, q_model, r_model, g_model, exposure, mediator, delta, n_samples, n_iterations, density_type) {
+integrate_psi_g <- function(av, at, covars, w_names, q_model, r_model, g_model, exposure, mediator, delta, n_samples, density_type, integration_method) {
   av <- as.data.frame(av)
   at <- as.data.frame(at)
 
@@ -114,31 +114,47 @@ integrate_psi_g_mc <- function(av, at, covars, w_names, q_model, r_model, g_mode
 
   for (i in 1:nrow(av)) {
     row_data <- av[i, ]
-    results_i <- numeric(n_iterations)
-    integral_inner_results_i <- numeric(n_iterations)
-    integral_outer_results_i <- numeric(n_iterations)
 
-    for (iteration in 1:n_iterations) {
-      sample_z_inner <- runif(n_samples, lower_z, upper_z)
-      mc_integrands_inner <- integrand_m_r(sample_z_inner, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a)
-      integral_inner <- (max(sample_z_inner) - min(sample_z_inner)) * mean(mc_integrands_inner)
+    sample_z_inner <- runif(n_samples, lower_z, upper_z)
+    if (integration_method == "MC") {
+      integrands_inner <- integrand_m_r(sample_z_inner, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a)
+      integral_inner <- (max(sample_z_inner) - min(sample_z_inner)) * mean(integrands_inner)
+    }else if (integration_method == "AQ") {
+        integral_inner <- stats::integrate(
+          function(z) integrand_m_r(sample_z_inner, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a),
+          lower = lower_z,
+          upper = upper_z,
+          rel.tol = 0.001,
+          subdivisions = 100,
+          stop.on.error = FALSE
+        )$value
+    }
+
 
       sample_a <- runif(n_samples, lower_a, upper_a)
       sample_z_outer <- runif(n_samples, lower_z, upper_z)
 
-      mc_integrands_outer <- integrand_m_g_r_mc(sample_a, sample_z_outer, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a)
-      average_integrand <- mean(mc_integrands_outer)
-      integral_outer <- (max(sample_a) - min(sample_a)) * (max(sample_z_outer) - min(sample_z_outer)) * average_integrand
+      if (integration_method == "MC") {
 
-      results_i[iteration] <- integral_inner - integral_outer
-      integral_inner_results_i[iteration] <- integral_inner
-      integral_outer_results_i[iteration] <- integral_outer
-    }
+        mc_integrands_outer <- integrand_m_g_r_mc(sample_a, sample_z_outer, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a)
+        average_integrand <- mean(mc_integrands_outer)
+        integral_outer <- (max(sample_a) - min(sample_a)) * (max(sample_z_outer) - min(sample_z_outer)) * average_integrand
+      }else if (integration_method == "AQ") {
+        integral_outer <- pracma::integral2(
+          function(a, z) integrand_m_g_r(sample_a, sample_z_outer, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a),
+          xmin = lower_a,
+          ymin = lower_z,
+          xmax = upper_a,
+          ymax = upper_z,
+          reltol = 0.001
+        )$Q
+      }
 
-    results[i] <- mean(results_i)
-    integral_inner_results[i] <- mean(integral_inner_results_i)
-    integral_outer_results[i] <- mean(integral_outer_results_i)
+
+    results[i] <- integral_inner - integral_outer
+    integral_inner_results[i] <-integral_inner
+    integral_outer_results[i] <- integral_outer
   }
 
-  return(list("d_a" = results, "phi_aw" = integral_inner_results))
+  return(list("d_a" = results, "phi_aw" = integral_inner_results, "phi_aw_g" = integral_outer_results))
 }

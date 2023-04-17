@@ -21,7 +21,7 @@
 #'  outcome mechanism at the natural value of the exposure Q(A, W) and an
 #'  upshift of the exposure Q(A + delta, W).
 #'
-integrate_m_g_mc <- function(av, at, covars, w_names, q_model, g_model, exposure, g_delta, m_delta, n_samples, density_type, lower_bound, upper_bound) {
+integrate_q_g <- function(av, at, covars, w_names, q_model, g_model, exposure, g_delta, m_delta, n_samples, density_type, lower_bound, upper_bound, integration_method = "MC") {
   at <- as.data.frame(at)
   av <- as.data.frame(av)
 
@@ -57,15 +57,29 @@ integrate_m_g_mc <- function(av, at, covars, w_names, q_model, g_model, exposure
   }
 
   results <- numeric(nrow(av))
-  sample_a <- runif(n_samples, lower_bound, upper_bound)
 
-  for (i in 1:nrow(av)) {
-    row_data <- av[i, ]
+  if (integration_method == "MC") {
+    sample_a <- runif(n_samples, lower_bound, upper_bound)
 
-    mc_integrands <- integrand(sample_a, row_data, covars, q_model, g_model, exposure, g_delta, m_delta, upper_bound, density_type)
+    for (i in 1:nrow(av)) {
+      row_data <- av[i, ]
 
-    integral_result <- (max(sample_a) - min(sample_a)) * mean(mc_integrands)
-    results[i] <- integral_result
+      mc_integrands <- integrand(sample_a, row_data, covars, q_model, g_model, exposure, g_delta, m_delta, upper_bound, density_type)
+
+      integral_result <- (max(sample_a) - min(sample_a)) * mean(mc_integrands)
+      results[i] <- integral_result
+    }
+  } else if (integration_method == "AQ") {
+    for (i in 1:nrow(av)) {
+      row_data <- av[i, ]
+
+      aq_integrands <- function(a) {
+        integrand(a, row_data, covars, q_model, g_model, exposure, g_delta, m_delta, upper_bound, density_type)
+      }
+
+      integral_result <- integrate(aq_integrands, lower = lower_bound, upper = upper_bound, rel.tol = 0.001)
+      results[i] <- integral_result$value
+    }
   }
 
   return(results)

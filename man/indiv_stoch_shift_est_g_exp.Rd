@@ -17,7 +17,10 @@ indiv_stoch_shift_est_g_exp(
   exposure_quantized,
   lower_bound,
   upper_bound,
-  outcome_type
+  outcome_type,
+  density_type,
+  n_bins,
+  max_degree
 )
 }
 \arguments{

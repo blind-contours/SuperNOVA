@@ -1,24 +1,51 @@
-#' Estimate the Exposure Mechanism via Generalized Propensity Score for One
-#' Exposure Variable
+#' Estimate the Exposure Mechanism via Generalized Propensity Score for One Exposure Variable
 #'
-#' @details Compute the propensity score (exposure mechanism) for the observed
-#'  data, including the shift. This gives the propensity score for the observed
-#'  data (at the observed A) the counterfactual shifted exposure levels (at
-#'  {A - delta}, {A + delta}, and {A + 2 * delta}).
+#' @details This function computes the generalized propensity score (GPS) for the observed
+#' data with one exposure variable, considering different shift levels. It estimates the GPS at
+#' the observed data (at the observed A), and at the counterfactual shifted exposure levels
+#' (at {A - delta}, {A + delta}, and {A + 2 * delta}).
 #'
-#' @param exposure A \code{character} labeling the exposure variable.
-#' @param covars A \code{character} labeling the covariate variables
-#' @param delta A \code{numeric} value identifying a shift in the observed
-#'  value of the exposure under which observations are to be evaluated.
-#' @param pi_learner Object containing a set of instantiated learners
-#'  from \pkg{sl3}, to be used in fitting an ensemble model.
-#' @param av A \code{dataframe} of validation data specific to the fold
-#' @param at A \code{dataframe} of training data specific to the fold
-#' @param adaptive_delta Whether or not to adaptively adjust delta based on
-#' positivity (estimated from the clever covariate) meeting the hn_trunc_thresh
-#' level
-#' @param hn_trunc_thresh Level of the clever covariate in the adaptive delta
-#' procedure
+#' @param exposure A \code{character} representing the label of the exposure variable. This
+#' variable should be a column name in the input data.
+#' @param covars A \code{character} vector representing the labels of the covariate variables.
+#' These variables should be column names in the input data and serve as control variables in
+#' the GPS estimation.
+#' @param delta A \code{numeric} value specifying the shift in the observed value of the
+#' exposure for evaluating counterfactual observations. Positive values will result in upward
+#' shifts, while negative values will result in downward shifts.
+#' @param pi_learner An object containing a set of instantiated learners from the \pkg{sl3}
+#' package, to be used in fitting an ensemble model for GPS estimation. Learners should be
+#' chosen based on the structure of the data and the relationships between exposure, covariates,
+#' and outcome.
+#' @param av A \code{dataframe} containing validation data specific to the fold. This data is
+#' used to evaluate the performance of the GPS model during cross-validation.
+#' @param at A \code{dataframe} containing training data specific to the fold. This data is
+#' used to fit the GPS model during cross-validation.
+#' @param adaptive_delta A \code{logical} indicating whether to adaptively adjust delta based on
+#' positivity (estimated from the clever covariate) meeting the hn_trunc_thresh level. If
+#' \code{TRUE}, the function will adjust delta to ensure sufficient overlap in the GPS
+#' distributions.
+#' @param hn_trunc_thresh A \code{numeric} value specifying the level of the clever covariate
+#' in the adaptive delta procedure. It represents the minimum proportion of observations in each
+#' exposure group to be included when adjusting delta.
+#' @param exposure_quantized A \code{logical} indicating whether the exposure variable has been
+#' discretized. If \code{TRUE}, multinomial learners will be used instead of density learners
+#' for the GPS estimation.
+#' @param lower_bound A \code{numeric} value specifying the lower bound of the exposure variable
+#' to prevent shifting past this limit during the GPS estimation.
+#' @param upper_bound A \code{numeric} value specifying the upper bound of the exposure variable
+#' to prevent shifting past this limit during the GPS estimation.
+#' @param outcome_type A \code{character} specifying whether the outcome is 'categorical' or
+#' 'continuous' based on the discretization of the exposure variable. This information is used
+#' to determine the appropriate learner type for the GPS model.
+#' @param density_type A \code{character} specifying the type of density estimator to use for
+#' GPS estimation. Possible options are 'SL' (Super Learner) or 'HAL' (Highly Adaptive Lasso).
+#' @param n_bins A \code{numeric} value specifying the number of bins to be used if the exposure
+#' variable is discretized. This parameter is only applicable when exposure_quantized is \code{TRUE}.
+#' @param max_degree A \code{numeric} value specifying the maximum degree of
+#' interactions to be used in the Highly Adaptive Lasso (HAL) if HAL is chosen as the
+#' density estimator. Higher values will result in a more flexible GPS model, but may
+#' increase the risk of overfitting.
 #'
 #' @importFrom data.table as.data.table setnames set copy
 #' @importFrom stats predict
@@ -29,9 +56,11 @@
 #' @export
 #'
 #' @return A \code{data.table} with four columns, containing estimates of the
-#'  generalized propensity score at a downshift (g(A - delta | W)), no shift
-#'  (g(A | W)), an upshift (g(A + delta) | W), and an upshift of magnitude two
-#'  (g(A + 2 delta) | W).
+#' generalized propensity score at a downshift (g(A - delta | W)), no shift
+#' (g(A | W)), an upshift (g(A + delta) | W), and an upshift of magnitude two
+#' (g(A + 2 * delta) | W).
+
+
 
 indiv_stoch_shift_est_g_exp <- function(exposure,
                                         delta,
@@ -50,76 +79,31 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
                                         max_degree) {
   future::plan(future::sequential, gc = TRUE)
 
-  # need a data set with the exposure stochastically shifted DOWNWARDS A-delta
-  av_downshifted <- data.table::copy(av)
-
-  data.table::set(av_downshifted,
-    j = exposure,
-    value = shift_additive(
-      a = subset(av, select = exposure),
-      delta = -delta,
-      lower_bound = lower_bound,
-      upper_bound = upper_bound
+  # Function to create shifted data
+  create_shifted_data <- function(data, exposure, delta, lower_bound, upper_bound) {
+    shifted_data <- data.table::copy(data)
+    data.table::set(shifted_data,
+                    j = exposure,
+                    value = shift_additive(
+                      a = subset(data, select = exposure),
+                      delta = delta,
+                      lower_bound = lower_bound,
+                      upper_bound = upper_bound
+                    )
     )
-  )
+    return(shifted_data)
+  }
 
-  at_downshifted <- data.table::copy(at)
+  # Creating shifted data
+  av_downshifted <- create_shifted_data(av, exposure, -delta, lower_bound, upper_bound)
+  at_downshifted <- create_shifted_data(at, exposure, -delta, lower_bound, upper_bound)
 
-  data.table::set(at_downshifted,
-    j = exposure,
-    value = shift_additive(
-      a = subset(at, select = exposure),
-      delta = -delta,
-      lower_bound = lower_bound,
-      upper_bound = upper_bound
-    )
-  )
+  av_upshifted <- create_shifted_data(av, exposure, delta, lower_bound, upper_bound)
+  at_upshifted <- create_shifted_data(at, exposure, delta, lower_bound, upper_bound)
 
-  # need a data set with the exposure stochastically shifted UPWARDS A+delta
-  av_upshifted <- data.table::copy(av)
-  data.table::set(av_upshifted,
-    j = exposure,
-    value = shift_additive(
-      a = subset(av, select = exposure),
-      delta = delta,
-      lower_bound = lower_bound,
-      upper_bound = upper_bound
-    )
-  )
+  av_upupshifted <- create_shifted_data(av, exposure, 2 * delta, lower_bound, upper_bound)
+  at_upupshifted <- create_shifted_data(at, exposure, 2 * delta, lower_bound, upper_bound)
 
-  at_upshifted <- data.table::copy(at)
-  data.table::set(at_upshifted,
-    j = exposure,
-    value = shift_additive(
-      a = subset(at, select = exposure),
-      delta = delta,
-      lower_bound = lower_bound,
-      upper_bound = upper_bound
-    )
-  )
-
-  # need a data set with the exposure stochastically shifted UPWARDS A+2delta
-  av_upupshifted <- data.table::copy(av)
-  data.table::set(av_upupshifted,
-    j = exposure,
-    value = shift_additive(
-      a = subset(av, select = exposure),
-      delta = 2 * delta,
-      lower_bound = lower_bound,
-      upper_bound = upper_bound
-    )
-  )
-
-  at_upupshifted <- data.table::copy(at)
-  data.table::set(at_upupshifted,
-    j = exposure,
-    value = shift_additive(
-      a = subset(at, select = exposure),
-      delta = 2 * delta,
-      lower_bound = lower_bound,
-      upper_bound = upper_bound
-    )
-  )
 
   if (density_type == "sl") {
     sl_task <- sl3::sl3_Task$new(

@@ -28,9 +28,11 @@
 #'  the EIF without the application of such weights.
 eif <- function(y,
                 qn,
+                qn_unscaled,
                 hn,
                 estimator = c("tmle", "onestep"),
-                fluc_mod_out = NULL) {
+                fluc_mod_out = NULL,
+                data) {
   # set TMLE as default estimator type
   estimator <- match.arg(estimator)
 
@@ -39,8 +41,8 @@ eif <- function(y,
     qn_shift <- fluc_mod_out$qn_shift_star
     qn_noshift <- fluc_mod_out$qn_noshift_star
   } else if (estimator == "onestep") {
-    qn_shift <- qn$upshift
-    qn_noshift <- qn$noshift
+    qn_shift <- qn_unscaled$upshift
+    qn_noshift <- qn_unscaled$noshift
   }
 
   psi <- mean(qn_shift)

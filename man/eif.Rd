@@ -4,7 +4,15 @@
 \alias{eif}
 \title{Compute the Shift Parameter Estimate and the Efficient Influence Function}
 \usage{
-eif(y, qn, hn, estimator = c("tmle", "onestep"), fluc_mod_out = NULL)
+eif(
+  y,
+  qn,
+  qn_unscaled,
+  hn,
+  estimator = c("tmle", "onestep"),
+  fluc_mod_out = NULL,
+  data
+)
 }
 \arguments{
 \item{y}{A \code{numeric} vector of the observed outcomes.}

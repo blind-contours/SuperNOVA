@@ -9,10 +9,12 @@ tmle_exposhift(
   data_internal,
   delta,
   Qn_scaled,
+  Qn_unscaled,
   Hn,
   fluctuation = c("standard", "weighted"),
   eif_reg_type = c("hal", "glm"),
-  y
+  y,
+  estimator = "tmle"
 )
 }
 \arguments{

@@ -27,7 +27,7 @@
 #'  incorporating inverse probability of censoring weights, and the estimate of
 #'  the EIF without the application of such weights.
 calc_pooled_med_shifts <- function(med_shift_results,
-                                   estimator = c("tmle", "onestep"),
+                                   estimator = c("onestep"),
                                    fluc_mod_out = NULL,
                                    a_names,
                                    w_names,
@@ -35,7 +35,7 @@ calc_pooled_med_shifts <- function(med_shift_results,
                                    y_name,
                                    fluctuation) {
   # set TMLE as default estimator type
-  estimator <- match.arg(estimator)
+  # estimator <- match.arg(estimator)
 
   names <- names(med_shift_results)
   names <- gsub("^.+?:", "", names)
@@ -57,6 +57,10 @@ calc_pooled_med_shifts <- function(med_shift_results,
 
       Qn_scaled <- do.call(rbind, test[stringr::str_detect(
         names(test), "Qn_scaled"
+      )])
+
+      Qn_unscaled <- do.call(rbind, test[stringr::str_detect(
+        names(test), "Qn_unscaled"
       )])
 
       data <- do.call(rbind, test[stringr::str_detect(
@@ -81,10 +85,12 @@ calc_pooled_med_shifts <- function(med_shift_results,
       tmle_fit <- tmle_exposhift(
         data_internal = data,
         Qn_scaled = Qn_scaled,
+        Qn_unscaled = Qn_unscaled,
         Hn = Hn,
         fluctuation = fluctuation,
         y = data$y,
-        delta = mean(deltas)
+        delta = mean(deltas),
+        estimator = "onestep"
       )
 
       total_effect <- tmle_fit$psi - mean(data$y)
@@ -192,8 +198,6 @@ calc_pooled_med_shifts <- function(med_shift_results,
         "Upper CI" = CI_nie_pseudo[[2]],
         "P-Value" = p_value_nie_pseudo
       )
-
-
 
       # NIE using pooled integration
 

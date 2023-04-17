@@ -138,7 +138,8 @@ fit_estimators_mediation <- function(w,
                                      var_sets,
                                      exposure_quantized,
                                      n_mc_sample,
-                                     density_type){
+                                     density_type,
+                                     integration_method = "MC"){
 
   sim_results <- SuperNOVA(
     w = w,
@@ -159,6 +160,7 @@ fit_estimators_mediation <- function(w,
     exposure_quantized = exposure_quantized,
     density_type = density_type,
     n_mc_sample = n_mc_sample,
+    integration_method = integration_method
   )
 
   med_shift_results <- sim_results$`Mediation Shift Results`$az
@@ -177,6 +179,13 @@ fit_estimators_mediation <- function(w,
 
   integrated_nde_bias <- integrated_nde$Psi - nde_effects
   integrated_nie_bias <- integrated_nie$Psi - nie_effects
+
+  ate_bias <- pooled_total$Psi - ate_effects
+
+  ate_cov <- ifelse(
+    (pooled_total$`Lower CI` <= ate_effects &
+       ate_effects <= pooled_total$`Upper CI`), 1, 0
+  )
 
   pseudo_reg_nde_cov <- ifelse(
     (pseudo_reg_nde$`Lower CI` <= nde_effects &
@@ -198,25 +207,30 @@ fit_estimators_mediation <- function(w,
        nie_effects <= integrated_nie$`Upper CI`), 1, 0
   )
 
+
+
   bias_results <- list(
     "pseudo_reg_nde_bias" = pseudo_reg_nde_bias,
     "pseudo_reg_nie_bias" = pseudo_reg_nie_bias,
     "integrated_nde_bias" = integrated_nde_bias,
-    "integrated_nie_bias" = integrated_nie_bias
+    "integrated_nie_bias" = integrated_nie_bias,
+    "ate_bias" = ate_bias
   )
 
   coverage_results <- list(
     "pseudo_reg_nde_cov" = pseudo_reg_nde_cov,
     "pseudo_reg_nie_cov" = pseudo_reg_nie_cov,
     "integrated_nde_cov" = integrated_nde_cov,
-    "integrated_nie_cov" = integrated_nie_cov
+    "integrated_nie_cov" = integrated_nie_cov,
+    "ate_cov" = ate_cov
   )
 
   estimate_results <- list(
     "pseudo_reg_nde_est" = pseudo_reg_nde$Psi,
     "pseudo_reg_nie_est" = pseudo_reg_nie$Psi,
     "integrated_nde_est" = integrated_nde$Psi,
-    "integrated_nie_est" = integrated_nie$Psi
+    "integrated_nie_est" = integrated_nie$Psi,
+    "ate_est" = pooled_total$Psi
   )
 
   # bundle estimators in list

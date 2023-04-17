@@ -20,7 +20,7 @@ SuperNOVA(
   e_learner = NULL,
   em_learner = NULL,
   zeta_learner = NULL,
-  n_folds,
+  n_folds = 2,
   outcome_type = "continuous",
   quantile_thresh = 0.5,
   verbose = FALSE,
@@ -28,10 +28,14 @@ SuperNOVA(
   parallel_type = "multi_session",
   num_cores = 2,
   seed = seed,
-  hn_trunc_thresh = 20,
+  hn_trunc_thresh = 10,
   adaptive_delta = FALSE,
   n_mc_sample = 1000,
-  exposure_quantized = FALSE
+  exposure_quantized = FALSE,
+  density_type = "hal",
+  n_bins = 10,
+  max_degree = 1,
+  integration_method = "MC"
 )
 }
 \arguments{

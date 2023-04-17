@@ -13,7 +13,8 @@ integrate_psi_aw_g(
   g_model,
   exposure,
   delta,
-  psi_aw
+  psi_aw,
+  integration_method = "AQ"
 )
 }
 \arguments{

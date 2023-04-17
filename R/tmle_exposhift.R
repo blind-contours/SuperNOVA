@@ -41,10 +41,13 @@
 tmle_exposhift <- function(data_internal,
                            delta,
                            Qn_scaled,
+                           Qn_unscaled,
                            Hn,
                            fluctuation = c("standard", "weighted"),
                            eif_reg_type = c("hal", "glm"),
-                           y) {
+                           y,
+                           estimator = "tmle"
+                           ) {
   # initialize counter
   n_steps <- 0
 
@@ -60,9 +63,11 @@ tmle_exposhift <- function(data_internal,
   tmle_eif_out <- eif(
     y = y,
     qn = Qn_scaled,
+    qn_unscaled = Qn_unscaled,
     hn = Hn,
-    estimator = "tmle",
-    fluc_mod_out = fitted_fluc_mod
+    estimator = estimator,
+    fluc_mod_out = fitted_fluc_mod,
+    data
   )
 
   # create output object
@@ -76,7 +81,7 @@ tmle_exposhift <- function(data_internal,
       eif = list(tmle_eif_out[["eif"]]),
       .iter_res = NULL,
       n_iter = n_steps,
-      estimator = "tmle",
+      estimator = estimator,
       .outcome = list(data_internal$y),
       .delta = list(delta),
       qn_shift_star = list(fitted_fluc_mod$qn_shift_star),

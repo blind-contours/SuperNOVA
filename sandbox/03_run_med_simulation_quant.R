@@ -54,51 +54,6 @@ for (sample_size in n_obs) {
     z <- data_sim[, mediators]
     y <- data_sim[, outcome]
 
-    est_out_aq <- fit_estimators_mediation(
-      w = w,
-      a = a,
-      z = z,
-      y = y,
-      seed = seed,
-      nde_effects = c(nde_a1_quant),
-      nie_effects = c(nie_a1_quant),
-      ate_effects = c(ate_a1_quant),
-      deltas = list("a" = 1),
-      cv_folds = n_fold,
-      num_cores = n_core,
-      var_sets = "a-z",
-      exposure_quantized = TRUE,
-      mediator_quantized = TRUE,
-      n_mc_sample = n_mc_sample,
-      density_type = "sl",
-      integration_method = "AQ"
-    )
-
-    est_out_aq$integration_method <- "AQ"
-    est_out_aq$n_obs <- sample_size
-
-    est_out_mc <- fit_estimators_mediation(
-      w = w,
-      a = a,
-      z = z,
-      y = y,
-      seed = seed,
-      nde_effects = c(nde_a1_quant),
-      nie_effects = c(nie_a1_quant),
-      ate_effects = c(ate_a1_quant),
-      deltas = list("a" = 1),
-      cv_folds = n_fold,
-      num_cores = n_core,
-      var_sets = "a-z",
-      exposure_quantized = TRUE,
-      n_mc_sample = n_mc_sample,
-      density_type = "sl",
-      integration_method = "MC"
-    )
-
-    est_out_mc$integration_method <- "MC"
-    est_out_mc$n_obs <- sample_size
-
     est_out_discrete_m <- fit_estimators_mediation(
       w = w,
       a = a,
@@ -119,12 +74,9 @@ for (sample_size in n_obs) {
       integration_method = "MC"
     )
 
-    est_out_discrete_m$integration_method <- "None"
     est_out_discrete_m$n_obs <- sample_size
 
-    est_out <- rbind(est_out_mc, est_out_aq, est_out_discrete_m)
-
-    results[[this_iter]] <- est_out
+    results[[this_iter]] <- est_out_discrete_m
   }
   # concatenate iterations
   results_out <- bind_rows(results, .id = "sim_iter")

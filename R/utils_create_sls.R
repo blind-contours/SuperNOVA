@@ -174,11 +174,15 @@ create_sls <- function() {
   lrnr_xgboost_200 <- make_learner(Lrnr_xgboost, nrounds = 200)
   lrnr_xgboost_300 <- make_learner(Lrnr_xgboost, nrounds = 300)
   lrnr_polspline <- Lrnr_polspline$new()
+  lrnr_nnet <- Lrnr_nnet$new()
 
   learners <- c(
+    lrnr_glm_basic,
     lrnr_ranger_100,
     lrnr_polspline,
-    lrnr_xgboost_100
+    lrnr_xgboost_100,
+    lrnr_lasso,
+    lrnr_nnet
   )
 
   quant_stack <- make_learner(Stack, learners)

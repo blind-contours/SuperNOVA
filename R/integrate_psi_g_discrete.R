@@ -27,7 +27,7 @@
 #'  outcome mechanism at the natural value of the exposure Q(A, W) and an
 #'  upshift of the exposure Q(A + delta, W)
 
-integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, g_model, exposure, mediator, delta, n_bins, n_samples = 1000, method = "MC") {
+integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, g_model, exposure, mediator, delta, n_bins, n_samples = 1000, method = "MC", mediator_quantized) {
   av <- as.data.frame(av)
   at <- as.data.frame(at)
 
@@ -36,7 +36,7 @@ integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, 
 
   sample_z <-  runif(n_samples, min = lower_z, max = upper_z)
 
-  integrand_m_r <- function(sample_z_inner, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a, scale_data) {
+  integrand_m_r <- function(sample_z_inner, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a, scale_data, mediator_quantized) {
     row_data_rep <- do.call("rbind", replicate(length(sample_z_inner), row_data, simplify = FALSE))
     new_data_m <- new_data_r <- row_data_rep
 
@@ -58,11 +58,16 @@ integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, 
     )
 
     m_val <- q_model$predict(task_m)
-    r_val <- r_model$predict(task_r)$likelihood
 
-    # r_val <- ifelse(r_val <= 1/sqrt(nrow(scale_data)), 1/sqrt(nrow(scale_data)), r_val)
-
-    output <- m_val * r_val
+    if (mediator_quantized) {
+      r_val <- r_model$predict(task_r)
+      r_vals <- unlist(r_val, recursive = FALSE)
+      likelihood_r <- sapply(r_vals, function(x) x[[sample_z_inner]])
+      output <- m_val * likelihood_r
+    } else {
+      r_val <- r_model$predict(task_r)$likelihood
+      output <- m_val * r_val
+    }
     return(output)
   }
 
@@ -97,12 +102,21 @@ integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, 
 
     m_val <- q_model$predict(task_m)
     g_val <- g_model$predict(task_g)
-    r_val <- r_model$predict(task_r)$likelihood
+
     # r_val <- ifelse(r_val <= 1/sqrt(nrow(scale_data)), 1/sqrt(nrow(scale_data)), r_val)
 
     g_vals <- unlist(g_val, recursive = FALSE)
     likelihood <- sapply(g_vals, function(x) x[[sample_a]])
-    output <- m_val * likelihood * r_val
+
+    if (mediator_quantized) {
+      r_val <- r_model$predict(task_r)
+      r_vals <- unlist(r_val, recursive = FALSE)
+      likelihood_r <- sapply(r_vals, function(x) x[[sample_z]])
+      output <- m_val * likelihood * likelihood_r
+    } else {
+      r_val <- r_model$predict(task_r)$likelihood
+      output <- m_val * likelihood * r_val
+    }
 
     return(output)
   }
@@ -113,30 +127,18 @@ integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, 
 
   for (i in 1:nrow(av)) {
     row_data <- av[i, ]
-    integral_outer_results_i <- numeric(n_bins)
 
-    if (method == "MC") {
-      mc_integrands_inner <- integrand_m_r(sample_z_inner = sample_z, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av)
-      integral_inner <- (max(sample_z) - min(sample_z)) * mean(mc_integrands_inner)
-
+    if (mediator_quantized) {
+      integral_inner <- sum(sapply(1:n_bins, function(z_val) {
+        integrand_m_r(z_val, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av, mediator_quantized)
+      }))
     } else {
-      integral_inner <- stats::integrate(
-        function(sample_z_inner) integrand_m_r(sample_z_inner, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av),
-        lower = min(sample_z),
-        upper = max(sample_z),
-        rel.tol = 0.001,
-        subdivisions = 100,
-        stop.on.error = FALSE
-      )$value
-    }
-
-    for (a_val in 1:n_bins) {
       if (method == "MC") {
-        integrand_val <- integrand_m_g_r_mc(sample_a = a_val, sample_z = sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av)
-        integral_outer <- (max(sample_z) - min(sample_z)) * mean(integrand_val)
+        mc_integrands_inner <- integrand_m_r(sample_z_inner = sample_z, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av)
+        integral_inner <- (max(sample_z) - min(sample_z)) * mean(mc_integrands_inner)
       } else {
-        integral_outer <- stats::integrate(
-          function(sample_z) integrand_m_g_r_mc(sample_a = a_val, sample_z = sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av),
+        integral_inner <- stats::integrate(
+          function(sample_z_inner) integrand_m_r(sample_z_inner, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av),
           lower = min(sample_z),
           upper = max(sample_z),
           rel.tol = 0.001,
@@ -144,14 +146,39 @@ integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, 
           stop.on.error = FALSE
         )$value
       }
+    }
+
+    integral_outer_results_i <- numeric(n_bins)
+    for (a_val in 1:n_bins) {
+      if (mediator_quantized) {
+        integral_outer <- sum(sapply(1:n_bins, function(z_val) {
+          integrand_m_g_r_mc(sample_a = a_val, z_val, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av)
+        }))
+      } else {
+        if (method == "MC") {
+          integrand_val <- integrand_m_g_r_mc(sample_a = a_val, sample_z = sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av)
+          integral_outer <- (max(sample_z) - min(sample_z)) * mean(integrand_val)
+        } else {
+          integral_outer <- stats::integrate(
+            function(sample_z) integrand_m_g_r_mc(sample_a = a_val, sample_z = sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av),
+            lower = min(sample_z),
+            upper = max(sample_z),
+            rel.tol = 0.001,
+            subdivisions = 100,
+            stop.on.error = FALSE
+          )$value
+        }
+      }
 
       integral_outer_results_i[a_val] <- integral_outer
-
     }
+
     results[i] <- integral_inner - sum(integral_outer_results_i)
     integral_inner_results[i] <- integral_inner
     integral_outer_results[i] <- integral_outer
-      }
+  }
+
 
   return(list("d_a" = results, "phi_aw" = integral_inner_results))
 }
+

@@ -5,6 +5,7 @@ library(dplyr)
 library(magrittr)
 library(stringr)
 source(here("sandbox/02_fit_estimators.R"))
+source(here("sandbox/simulate_discrete_data.R"))
 load_all()
 
 # simulation parameters
@@ -18,19 +19,15 @@ n_fold <- 4
 
 # Generate simulated data -----------------
 
-full_data <- simulate_mediation_data(n_obs = 100000,
+full_data <- simulate_discrete_mediation_data(n_obs = 100000,
                                      delta = 1)
 p0_data <- full_data$data
-
-nde_a1 <- full_data$nde_a1
-nie_a1 <- full_data$nie_a1
-ate_a1 <- full_data$ate_a1
 
 nde_a1_quant <- full_data$nde_a1_quant
 nie_a1_quant <- full_data$nie_a1_quant
 ate_a1_quant <- full_data$ate_a1_quant
 
-covars <- c("w_1", "w_2", "w_3", "w_4", "w_5")
+covars <- c("w_1", "w_2")
 exposures <- c("a_1_quant")
 mediators <- c("z_1_quant")
 outcome <- "y_quant"
@@ -71,9 +68,10 @@ for (sample_size in n_obs) {
       num_cores = n_core,
       var_sets = "a-z",
       exposure_quantized = TRUE,
+      mediator_quantized = TRUE,
       n_mc_sample = n_mc_sample,
       density_type = "sl",
-      integration_method = "MC"
+      integration_method = "AQ"
     )
 
     est_out_aq$integration_method <- "AQ"
@@ -101,7 +99,30 @@ for (sample_size in n_obs) {
     est_out_mc$integration_method <- "MC"
     est_out_mc$n_obs <- sample_size
 
-    est_out <- rbind(est_out_mc, est_out_aq)
+    est_out_discrete_m <- fit_estimators_mediation(
+      w = w,
+      a = a,
+      z = z,
+      y = y,
+      seed = seed,
+      nde_effects = c(nde_a1_quant),
+      nie_effects = c(nie_a1_quant),
+      ate_effects = c(ate_a1_quant),
+      deltas = list("a" = 1),
+      cv_folds = n_fold,
+      num_cores = n_core,
+      var_sets = "a-z",
+      exposure_quantized = TRUE,
+      mediator_quantized = TRUE,
+      n_mc_sample = n_mc_sample,
+      density_type = "sl",
+      integration_method = "MC"
+    )
+
+    est_out_discrete_m$integration_method <- "None"
+    est_out_discrete_m$n_obs <- sample_size
+
+    est_out <- rbind(est_out_mc, est_out_aq, est_out_discrete_m)
 
     results[[this_iter]] <- est_out
   }

@@ -101,6 +101,7 @@ SuperNOVA <- function(w,
                       adaptive_delta = FALSE,
                       n_mc_sample = 1000,
                       exposure_quantized = FALSE,
+                      mediator_quantized = FALSE,
                       density_type = "hal",
                       n_bins = 10,
                       max_degree = 1,
@@ -555,6 +556,14 @@ SuperNOVA <- function(w,
             outcome_type <- "continuous"
           }
 
+          if (mediator_quantized == TRUE) {
+            med_learner <- quant_learner
+            outcome_type <- "categorical"
+          } else {
+            med_learner <- pi_learner
+            outcome_type <- "continuous"
+          }
+
           ## get g(A|W) under shifts and no shift
           gn_exp_estim <- indiv_stoch_shift_est_g_exp(
             exposure = exposure,
@@ -606,6 +615,26 @@ SuperNOVA <- function(w,
 
           ## get r(Z|W) under shifts and no shift
 
+          if (mediator_quantized == TRUE) {
+            zn_exp_estim <- indiv_stoch_shift_est_g_exp(
+              exposure = mediator,
+              delta = delta,
+              g_learner = g_learner,
+              covars = w_names,
+              av = av,
+              at = at,
+              adaptive_delta = adaptive_delta,
+              hn_trunc_thresh = hn_trunc_thresh,
+              exposure_quantized = mediator_quantized,
+              lower_bound = lower_bound,
+              upper_bound = upper_bound,
+              outcome_type = outcome_type,
+              density_type = density_type,
+              n_bins = n_bins,
+              max_degree = max_degree
+            )
+          }else{
+
           zn_exp_estim <- joint_stoch_shift_est_z_exp(
             exposures = exposure,
             mediator = mediator,
@@ -617,6 +646,7 @@ SuperNOVA <- function(w,
             av = av,
             at = at
           )
+          }
 
           r_model <- zn_exp_estim$model
 
@@ -704,7 +734,8 @@ SuperNOVA <- function(w,
               delta = delta_updated,
               n_samples = n_mc_sample,
               n_bins = 4,
-              method = integration_method
+              method = integration_method,
+              mediator_quantized = mediator_quantized
             )
           } else {
             d_a_int <- integrate_psi_g(

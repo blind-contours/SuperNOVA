@@ -1,19 +1,22 @@
 #' Estimate the Outcome Mechanism
 #'
-#' @details Compute the outcome regression for the observed data, including
-#'  with the shift imposed by the intervention. This returns the outcome
-#'  regression for the observed data (at A) and under the counterfactual shift
-#'  shift (at A + delta).
+#' @description
+#' Compute the outcome regression for the observed data, taking into account
+#' the shift imposed by the intervention. This function returns the outcome
+#' regression for the observed data (at A) and under the counterfactual shift
+#' (at A + delta).
 #'
-#' @param exposure A \code{character} vector of exposures to be shifted.
-#' @param covars A \code{character} vector covariates to adjust for.
-#' @param delta A \code{numeric} indicating the magnitude of the shift to be
-#'  computed for the exposure \code{A}. This is passed to the internal
-#'  \code{\link{shift_additive}} and is currently limited to additive shifts.
-#' @param mu_learner Object containing a set of instantiated learners from the
-#'  \pkg{sl3}, to be used in fitting an ensemble model.
-#' @param av A \code{dataframe} of validation data specific to the fold
-#' @param at A \code{dataframe} of training data specific to the fold
+#' @param exposure A character vector representing the exposures to be shifted.
+#' @param delta A numeric value indicating the magnitude of the shift to be
+#'   computed for the exposure 'A'. This is passed to the internal
+#'   'shift_additive' function and is currently limited to additive shifts.
+#' @param mu_learner An object containing a set of instantiated learners from the
+#'   'sl3' package, to be used in fitting an ensemble model.
+#' @param covars A character vector of covariates to adjust for.
+#' @param av A dataframe containing the validation data specific to the fold.
+#' @param at A dataframe containing the training data specific to the fold.
+#' @param lower_bound A numeric value representing the lower bound for the shifted exposure (optional).
+#' @param upper_bound A numeric value representing the upper bound for the shifted exposure (optional).
 #'
 #' @importFrom stats glm as.formula predict
 #' @importFrom data.table as.data.table setnames copy set
@@ -21,10 +24,45 @@
 #' @importFrom assertthat assert_that
 #' @import sl3
 #' @export
-#' @return A \code{data.table} with two columns, containing estimates of the
-#'  outcome mechanism at the natural value of the exposure Q(A, W) and an
-#'  upshift of the exposure Q(A + delta, W).
-
+#'
+#' @return A data.table with two columns, containing estimates of the
+#'   outcome mechanism at the natural value of the exposure Q(A, W) and an
+#'   upshift of the exposure Q(A + delta, W).
+#'
+#' @examples
+#' \dontrun{
+#' # Load required libraries
+#' library(SuperNOVA)
+#' library(sl3)
+#'
+#' # Create example data
+#' set.seed(123)
+#' n <- 100
+#' W <- rnorm(n)
+#' A <- rnorm(n, mean = W)
+#' Y <- rnorm(n, mean = A + W)
+#' data <- data.frame(W = W, A = A, Y = Y)
+#'
+#' # Split the data into training and validation sets
+#' train_idx <- sample(seq_len(n), size = floor(0.8 * n), replace = FALSE)
+#' at <- data[train_idx, ]
+#' av <- data[-train_idx, ]
+#'
+#' # Define learners from the sl3 package
+#' mu_learner <- Lrnr_sl("Lrnr_glm_fast")
+#' covars <- c("W")
+#'
+#' # Run the indiv_stoch_shift_est_Q function
+#' results <- indiv_stoch_shift_est_Q(
+#'   exposure = "A",
+#'   delta = 1,
+#'   mu_learner = mu_learner,
+#'   covars = covars,
+#'   av = av,
+#'   at = at
+#' )
+#' }
+#'
 indiv_stoch_shift_est_Q <- function(exposure,
                                     delta,
                                     mu_learner,

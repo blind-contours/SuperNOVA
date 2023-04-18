@@ -2,8 +2,7 @@
 % Please edit documentation in R/tmle_exposhift.R
 \name{tmle_exposhift}
 \alias{tmle_exposhift}
-\title{Targeted Minimum Loss Estimate of Counterfactual Mean of Stochastic Shift
-Intervention}
+\title{Targeted Minimum Loss Estimate of Counterfactual Mean under Stochastic Shift Intervention}
 \usage{
 tmle_exposhift(
   data_internal,
@@ -19,7 +18,7 @@ tmle_exposhift(
 }
 \arguments{
 \item{data_internal}{A \code{data.table} constructed internally by a call to
-expo_shift. This contains most of the data for computing the
+\code{expo_shift}. This contains most of the data required for computing the
 targeted minimum loss (TML) estimator.}
 
 \item{delta}{A \code{numeric} value indicating the shift in the treatment to
@@ -27,13 +26,17 @@ be used in defining the target parameter. This is defined with respect to
 the scale of the treatment (A).}
 
 \item{Qn_scaled}{An object providing the value of the outcome evaluated after
-imposing a shift in the treatment. This object is passed in after being
+imposing min max scaling. This object is passed in after being
+constructed by a call to the internal function for Q estimation.}
+
+\item{Qn_unscaled}{An object providing the value of the outcome evaluated at the
+natural value of the treatment that is not scaled. This object is passed in after being
 constructed by a call to the internal function for Q estimation.}
 
 \item{Hn}{An object providing values of the auxiliary ("clever")
 covariate, constructed from the treatment mechanism and required for
-targeted minimum loss-based estimation. This object object should be passed
-in after being constructed by a call to clever covariate construction.}
+targeted minimum loss-based estimation. This object should be passed
+in after being constructed by a call to the clever covariate construction function.}
 
 \item{fluctuation}{The method to be used in the submodel fluctuation step
 (targeting step) to compute the TML estimator. The choices are "standard"
@@ -48,17 +51,20 @@ Set this to \code{"glm"} to instead use a simple linear regression model.
 In this step, the efficient influence function (EIF) is regressed against
 covariates contributing to the censoring mechanism (i.e., EIF ~ V | C = 1).}
 
-\item{y}{Outcome variable}
+\item{y}{Outcome variable name as a \code{character} string.}
+
+\item{estimator}{A \code{character} string specifying the estimator to be used.
+Currently, only "tmle" is supported.}
 }
 \value{
-S3 object of class \code{txshift} containing the results of the
+An S3 object of class \code{txshift} containing the results of the
 procedure to compute a TML estimate of the treatment shift parameter.
 }
 \description{
-Targeted Minimum Loss Estimate of Counterfactual Mean of Stochastic Shift
-Intervention
+Targeted Minimum Loss Estimate of Counterfactual Mean under Stochastic Shift Intervention
 }
 \details{
-Invokes the procedure to construct a targeted minimum loss estimate
-(TMLE) of the counterfactual mean under a modified treatment policy.
+This function implements the procedure to construct a targeted minimum loss estimate
+(TMLE) of the counterfactual mean under a modified treatment policy that incorporates a
+stochastic shift intervention.
 }

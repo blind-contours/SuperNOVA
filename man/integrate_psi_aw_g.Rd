@@ -14,6 +14,8 @@ integrate_psi_aw_g(
   exposure,
   delta,
   psi_aw,
+  n_samples,
+  density_type,
   integration_method = "AQ"
 )
 }

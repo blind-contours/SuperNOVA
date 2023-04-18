@@ -26,10 +26,8 @@
 #'  outcome mechanism at the natural value of the exposure Q(A, W) and an
 #'  upshift of the exposure Q(A + delta, W).
 
-integrate_psi_g <- function(data, covars, w_names, q_model, r_model, g_model, exposure, mediator, delta) {
+integrate_psi_g <- function(data, covars, w_names, q_model, r_model, g_model, exposure, mediator, delta, integration_method, n_samples) {
   data <- as.data.frame(data)
-  # data[[exposure]] <- round(data[[exposure]])
-  # data[[mediator]] <- round(data[[mediator]])
 
   lower_z <- min(data[[mediator]])
   upper_z <- max(data[[mediator]])
@@ -120,27 +118,39 @@ integrate_psi_g <- function(data, covars, w_names, q_model, r_model, g_model, ex
   for (i in 1:nrow(data)) {
     row_data <- data[i, ]
 
-    integral_inner <- stats::integrate(
-      function(z) integrand_m_r(z, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a),
-      lower = lower_z,
-      upper = upper_z,
-      rel.tol = 0.0001,
-      subdivisions = 100,
-      stop.on.error = FALSE
-    )$value
+    if (integration_method == "MC") {
+      sample_z <- runif(n_samples, lower_z, upper_z)
+      sample_a <- runif(n_samples, lower_a, upper_a)
+
+      mc_integrands_inner <- integrand_m_r(sample_z, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a)
+      integral_inner <- (max(sample_z) - min(sample_z)) * mean(mc_integrands_inner)
+
+      mc_integrands_outer <- integrand_m_g_r(sample_a, sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a)
+      integral_outer <- (max(sample_a) - min(sample_a)) * (max(sample_z) - min(sample_z)) * mean(mc_integrands_outer)
+    } else {
+      integral_inner <- stats::integrate(
+        function(z) integrand_m_r(z, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a),
+        lower = lower_z,
+        upper = upper_z,
+        rel.tol = 0.001,
+        subdivisions = 100,
+        stop.on.error = FALSE
+      )$value
 
 
-    integral_outer <- integral2(
-      function(a, z) integrand_m_g_r(a, z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a),
-      xmin = lower_a,
-      ymin = lower_z,
-      xmax = upper_a,
-      ymax = upper_z,
-    )$Q
-
-    results[i] <- integral_inner - integral_outer
-    integral_inner_results[i] <- integral_inner
+      integral_outer <- integral2(
+        function(a, z) integrand_m_g_r(a, z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a),
+        xmin = lower_a,
+        ymin = lower_z,
+        xmax = upper_a,
+        ymax = upper_z,
+      )$Q
+    }
   }
+
+  results[i] <- integral_inner - integral_outer
+  integral_inner_results[i] <- integral_inner
+
 
   return(list("d_a" = results, "phi_aw" = integral_inner_results))
 }

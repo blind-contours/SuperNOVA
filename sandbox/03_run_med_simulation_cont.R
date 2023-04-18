@@ -26,10 +26,6 @@ nde_a1 <- full_data$nde_a1
 nie_a1 <- full_data$nie_a1
 ate_a1 <- full_data$ate_a1
 
-nde_a1_quant <- full_data$nde_a1_quant
-nie_a1_quant <- full_data$nie_a1_quant
-ate_a1_quant <- full_data$ate_a1_quant
-
 covars <- c("w_1", "w_2", "w_3", "w_4", "w_5")
 exposures <- c("a_1")
 mediators <- c("z_1")
@@ -73,7 +69,7 @@ for (sample_size in n_obs) {
       exposure_quantized = TRUE,
       n_mc_sample = n_mc_sample,
       density_type = "sl",
-      integration_method = "MC"
+      integration_method = "AQ"
     )
 
     est_out_aq$integration_method <- "AQ"
@@ -92,7 +88,8 @@ for (sample_size in n_obs) {
       cv_folds = n_fold,
       num_cores = n_core,
       var_sets = "a-z",
-      exposure_quantized = TRUE,
+      exposure_quantized = FALSE,
+      mediator_quantized = FALSE,
       n_mc_sample = n_mc_sample,
       density_type = "sl",
       integration_method = "MC"

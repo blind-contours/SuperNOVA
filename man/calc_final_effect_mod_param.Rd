@@ -16,23 +16,23 @@ calc_final_effect_mod_param(
 )
 }
 \arguments{
-\item{tmle_fit_av}{TMLE results for the validation fold}
+\item{tmle_fit_av}{TMLE results for the validation fold.}
 
-\item{tmle_fit_at}{TMLE results for the training fold}
+\item{tmle_fit_at}{TMLE results for the training fold.}
 
-\item{exposure}{The exposure identified}
+\item{exposure}{The identified exposure variable as a \code{character} string.}
 
-\item{at}{Training data}
+\item{at}{Training dataset.}
 
-\item{av}{Validation data}
+\item{av}{Validation dataset.}
 
-\item{effect_m_name}{The effect modifier}
+\item{effect_m_name}{The name of the effect modifier variable as a \code{character} string.}
 
-\item{fold_k}{The fold the effect modification was found}
+\item{fold_k}{The fold in which the effect modification was found.}
 
-\item{em_learner}{The Super Learner of decision trees}
+\item{em_learner}{A list of learners for the Super Learner, specifically for decision trees.}
 }
 \description{
-Use a decision tree estimator to regress the eif of an exposure
-on to a covariate - both of these have been data adaptively determined.
+This function uses a decision tree estimator to regress the efficient influence function (EIF)
+of an exposure onto a covariate. Both the exposure and the covariate have been determined through data-adaptive methods.
 }

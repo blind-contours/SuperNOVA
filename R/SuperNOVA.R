@@ -204,10 +204,8 @@ SuperNOVA <- function(w,
     ## create the CV folds
     data_internal$folds <- create_cv_folds(n_folds, data_internal$y)
 
-    outcome_type <- "binomial"
   } else {
     data_internal$folds <- create_cv_folds(n_folds, data_internal$y)
-    outcome_type <- "continous"
   }
 
   if (is.null(var_sets)) {
@@ -223,7 +221,7 @@ SuperNOVA <- function(w,
           z_names = z_names,
           w_names = w_names,
           outcome = "y",
-          family = family,
+          outcome_type = outcome_type,
           quantile_thresh = quantile_thresh,
           zeta_learner = zeta_learner,
           fold = fold_k,
@@ -302,7 +300,10 @@ SuperNOVA <- function(w,
             exposure_quantized = exposure_quantized,
             lower_bound = lower_bound,
             upper_bound = upper_bound,
-            outcome_type = g_type
+            outcome_type = g_type,
+            density_type = density_type,
+            n_bins = n_bins,
+            max_degree = max_degree
           )
 
           delta <- ind_gn_exp_estim$delta
@@ -326,6 +327,7 @@ SuperNOVA <- function(w,
             data_internal = av,
             delta = delta,
             Qn_scaled = ind_qn_estim$q_av,
+            Qn_unscaled = scale_to_original(ind_qn_estim$q_av, min_orig = min(av$y), max_orig = max(av$y)),
             Hn = Hn,
             fluctuation = fluctuation,
             y = av$y
@@ -375,7 +377,14 @@ SuperNOVA <- function(w,
             av = av,
             at = at,
             adaptive_delta = adaptive_delta,
-            hn_trunc_thresh = hn_trunc_thresh
+            hn_trunc_thresh = hn_trunc_thresh,
+            exposure_quantized = exposure_quantized,
+            lower_bound = lower_bound,
+            upper_bound = upper_bound,
+            outcome_type = outcome_type,
+            density_type = density_type,
+            n_bins = n_bins,
+            max_degree = max_degree
           )
 
           delta <- gn_exp_estim$delta
@@ -388,7 +397,9 @@ SuperNOVA <- function(w,
             mu_learner = mu_learner,
             covars = covars,
             av = av,
-            at = at
+            at = at,
+            lower_bound = lower_bound,
+            upper_bound = upper_bound
           )
 
           Hn_av <- gn_exp_estim$Hn_av
@@ -398,6 +409,7 @@ SuperNOVA <- function(w,
             data_internal = av,
             delta = delta,
             Qn_scaled = qn_estim$q_av,
+            Qn_unscaled = scale_to_original(ind_qn_estim$q_av, min_orig = min(av$y), max_orig = max(av$y)),
             Hn = Hn_av,
             fluctuation = fluctuation,
             y = av$y
@@ -407,6 +419,7 @@ SuperNOVA <- function(w,
             data_internal = at,
             delta = delta,
             Qn_scaled = qn_estim$q_at,
+            Qn_unscaled = scale_to_original(ind_qn_estim$q_at, min_orig = min(at$y), max_orig = max(at$y)),
             Hn = Hn_at,
             fluctuation = fluctuation,
             y = at$y
@@ -697,8 +710,8 @@ SuperNOVA <- function(w,
               q_model = q_model,
               g_model = g_model,
               exposure = exposure,
-              g_delta = delta_updated,
-              m_delta = 0,
+              g_delta = 0,
+              m_delta = delta_updated,
               n_bins = 4
             )
           } else {
@@ -710,8 +723,8 @@ SuperNOVA <- function(w,
               q_model = q_model,
               g_model = g_model,
               exposure = exposure,
-              g_delta = delta_updated,
-              m_delta = 0,
+              g_delta = 0,
+              m_delta = delta_updated,
               n_samples = n_mc_sample,
               density_type = density_type,
               lower_bound = lower_bound,
@@ -750,9 +763,8 @@ SuperNOVA <- function(w,
               mediator = mediator,
               delta = delta_updated,
               n_samples = n_mc_sample,
-              n_iterations = 1,
               density_type = density_type,
-              integration_method
+              integration_method = integration_method
             )
           }
 
@@ -769,24 +781,24 @@ SuperNOVA <- function(w,
           pseudo_regression_av <- g_e_shift_ratio_av * qn_estim$av_predictions$upshift
 
 
-          at$pseudo_outcome_scaled <- scale_to_unit(pseudo_regression_at)
-          av$pseudo_outcome_scaled <- scale_to_unit(pseudo_regression_av)
+          # at$pseudo_outcome_scaled <- scale_to_unit(pseudo_regression_at)
+          # av$pseudo_outcome_scaled <- scale_to_unit(pseudo_regression_av)
 
           at$pseudo_outcome <- pseudo_regression_at
           av$pseudo_outcome <- pseudo_regression_av
 
           sl_pseudo_task_at <- sl3::sl3_Task$new(
             data = at,
-            outcome = "pseudo_outcome_scaled",
+            outcome = "pseudo_outcome",
             covariates = c(exposure, w_names),
-            outcome_type = "quasibinomial"
+            outcome_type = "continuous"
           )
 
           sl_pseudo_task_av <- sl3::sl3_Task$new(
             data = av,
-            outcome = "pseudo_outcome_scaled",
+            outcome = "pseudo_outcome",
             covariates = c(exposure, w_names),
-            outcome_type = "quasibinomial"
+            outcome_type = "continuous"
           )
 
           sl <- sl3::Lrnr_sl$new(
@@ -798,7 +810,7 @@ SuperNOVA <- function(w,
           psi_aw_av <- pseudo_model$predict(sl_pseudo_task_av)
           psi_aw_at <- pseudo_model$predict(sl_pseudo_task_at)
 
-          psi_aw_av <- scale_to_original(psi_aw_av, max_orig = max(av$pseudo_outcome), min_orig = min(av$pseudo_outcome))
+          # psi_aw_av <- scale_to_original(psi_aw_av, max_orig = max(av$pseudo_outcome), min_orig = min(av$pseudo_outcome))
 
           if (exposure_quantized == TRUE) {
             d_a_pseudo <- integrate_psi_aw_g_quant(
@@ -825,7 +837,8 @@ SuperNOVA <- function(w,
               psi_aw = psi_aw_av,
               n_samples = n_mc_sample,
               density_type = density_type,
-              integration_method = integration_method
+              integration_method = integration_method,
+              delta = 0
             )
           }
 

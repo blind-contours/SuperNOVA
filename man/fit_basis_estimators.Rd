@@ -2,9 +2,7 @@
 % Please edit documentation in R/fit_basis_estimators.R
 \name{fit_basis_estimators}
 \alias{fit_basis_estimators}
-\title{Fit the zeta learner, a highly flexible estimator using splines
-or basis functions in order to identify variable sets for the shift
-interventions.}
+\title{Fit the Zeta Learner: A Highly Flexible Estimator Using Splines or Basis Functions}
 \usage{
 fit_basis_estimators(
   at,
@@ -12,7 +10,7 @@ fit_basis_estimators(
   z_names,
   w_names,
   outcome,
-  family,
+  outcome_type,
   quantile_thresh,
   zeta_learner,
   fold,
@@ -22,39 +20,37 @@ fit_basis_estimators(
 \arguments{
 \item{at}{Training dataframe}
 
+\item{a_names}{Names of treatment variables}
+
+\item{z_names}{Names of mediator  variables}
+
+\item{w_names}{Names of baseline covariate variables}
+
 \item{outcome}{Variable name for the outcome}
 
-\item{family}{Family of outcome variable}
+\item{outcome_type}{Type of the outcome variable (e.g., "continuous", "binary")}
 
-\item{quantile_thresh}{Quantile level to set the f-statistic in determining
+\item{quantile_thresh}{Quantile level to set the F-statistic threshold for determining
 basis functions for estimation}
 
-\item{zeta_learner}{Stack of algorithms made in SL 3 used in ensemble machine
+\item{zeta_learner}{Stack of algorithms made in SL3 used in ensemble machine
 learning to fit Y|A,W}
 
 \item{fold}{Current fold in the cross-validation}
 
 \item{seed}{Seed number for consistent results}
-
-\item{covars}{Covariates to be used as predictors in the Super Learner}
 }
 \value{
 A list of results from fitting the best b-spline model to the data
 this list includes the selected learner model, the name of the learner,
-the anova fit on the model matrix of the basis functions, the basis used,
+the ANOVA fit on the model matrix of the basis functions, the basis used,
 and the residual metrics
 }
 \description{
-Fit the zeta learner, a highly flexible estimator using splines
-or basis functions in order to identify variable sets for the shift
-interventions.
-}
-\details{
-Finds the best fitting flexible estimator using a discrete
-Super Learner. This function non-parametrically does variable importance
-of variable sets, such as identificaiton of two mixture components or
-mixture components and baseline covariates which explain the outcome given
-an ANOVA like decomposition. We use an F-statistic to threshold the
-importance of variable sets and treat these variable sets as the data-
+Identifies variable sets for shift interventions by fitting a flexible estimator
+using a discrete Super Learner. This function non-parametrically performs variable importance
+of variable sets, such as identifying two mixture components or mixture components and baseline
+covariates that explain the outcome given an ANOVA-like decomposition. An F-statistic is used
+to threshold the importance of variable sets, and these variable sets are treated as the data-
 adaptive parameter.
 }

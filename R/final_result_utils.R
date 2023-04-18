@@ -34,22 +34,24 @@ calc_final_ind_shift_param <- function(tmle_fit, exposure, fold_k) {
   return(results)
 }
 
-#' @title Calculates the Effect Modification Shift Parameter
-#' @description Use a decision tree estimator to regress the eif of an exposure
-#' on to a covariate - both of these have been data adaptively determined.
-#' @param tmle_fit_av TMLE results for the validation fold
-#' @param tmle_fit_at TMLE results for the training fold
-#' @param exposure The exposure identified
-#' @param at Training data
-#' @param av Validation data
-#' @param effect_m_name The effect modifier
-#' @param fold_k The fold the effect modification was found
-#' @param em_learner The Super Learner of decision trees
+#' Calculates the Effect Modification Shift Parameter
+#'
+#' @description This function uses a decision tree estimator to regress the efficient influence function (EIF)
+#'  of an exposure onto a covariate. Both the exposure and the covariate have been determined through data-adaptive methods.
+#'
+#' @param tmle_fit_av TMLE results for the validation fold.
+#' @param tmle_fit_at TMLE results for the training fold.
+#' @param exposure The identified exposure variable as a \code{character} string.
+#' @param at Training dataset.
+#' @param av Validation dataset.
+#' @param effect_m_name The name of the effect modifier variable as a \code{character} string.
+#' @param fold_k The fold in which the effect modification was found.
+#' @param em_learner A list of learners for the Super Learner, specifically for decision trees.
 #' @importFrom partykit glmtree
 #' @importFrom stats median
 #' @importFrom dplyr mutate
-
 #' @export
+#'
 
 calc_final_effect_mod_param <- function(tmle_fit_av,
                                         tmle_fit_at,

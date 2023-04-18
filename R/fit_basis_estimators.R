@@ -1,22 +1,21 @@
-#' @title Fit the zeta learner, a highly flexible estimator using splines
-#' or basis functions in order to identify variable sets for the shift
-#' interventions.
+#' @title Fit the Zeta Learner: A Highly Flexible Estimator Using Splines or Basis Functions
 #'
-#' @details Finds the best fitting flexible estimator using a discrete
-#' Super Learner. This function non-parametrically does variable importance
-#' of variable sets, such as identificaiton of two mixture components or
-#' mixture components and baseline covariates which explain the outcome given
-#' an ANOVA like decomposition. We use an F-statistic to threshold the
-#' importance of variable sets and treat these variable sets as the data-
+#' @description Identifies variable sets for shift interventions by fitting a flexible estimator
+#' using a discrete Super Learner. This function non-parametrically performs variable importance
+#' of variable sets, such as identifying two mixture components or mixture components and baseline
+#' covariates that explain the outcome given an ANOVA-like decomposition. An F-statistic is used
+#' to threshold the importance of variable sets, and these variable sets are treated as the data-
 #' adaptive parameter.
 #'
 #' @param at Training dataframe
-#' @param covars Covariates to be used as predictors in the Super Learner
+#' @param a_names Names of treatment variables
+#' @param z_names Names of mediator  variables
+#' @param w_names Names of baseline covariate variables
 #' @param outcome Variable name for the outcome
-#' @param family Family of outcome variable
-#' @param quantile_thresh Quantile level to set the f-statistic in determining
+#' @param outcome_type Type of the outcome variable (e.g., "continuous", "binary")
+#' @param quantile_thresh Quantile level to set the F-statistic threshold for determining
 #' basis functions for estimation
-#' @param zeta_learner Stack of algorithms made in SL 3 used in ensemble machine
+#' @param zeta_learner Stack of algorithms made in SL3 used in ensemble machine
 #' learning to fit Y|A,W
 #' @param fold Current fold in the cross-validation
 #' @param seed Seed number for consistent results
@@ -30,17 +29,17 @@
 #' @importFrom stringr str_extract_all
 #' @return A list of results from fitting the best b-spline model to the data
 #' this list includes the selected learner model, the name of the learner,
-#' the anova fit on the model matrix of the basis functions, the basis used,
+#' the ANOVA fit on the model matrix of the basis functions, the basis used,
 #' and the residual metrics
-
 #' @export
+
 
 fit_basis_estimators <- function(at,
                                  a_names,
                                  z_names,
                                  w_names,
                                  outcome,
-                                 family,
+                                 outcome_type,
                                  quantile_thresh,
                                  zeta_learner,
                                  fold,
@@ -57,7 +56,7 @@ fit_basis_estimators <- function(at,
         data = at,
         covariates = c(a_names, w_names),
         outcome = mediator,
-        outcome_type = family
+        outcome_type = outcome_type
       )
 
       discrete_sl_metalrn <- sl3::Lrnr_cv_selector$new(sl3::loss_squared_error)
@@ -82,7 +81,7 @@ fit_basis_estimators <- function(at,
     data = at,
     covariates = c(a_names, z_names, w_names),
     outcome = outcome,
-    outcome_type = family
+    outcome_type = outcome_type
   )
 
   discrete_sl_metalrn <- sl3::Lrnr_cv_selector$new(sl3::loss_squared_error)

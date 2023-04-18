@@ -8,13 +8,13 @@ source(here("sandbox/02_fit_estimators.R"))
 load_all()
 
 # simulation parameters
-n_sim <- 2 # number of simulations
+n_sim <- 5 # number of simulations
 n_obs <- c(250, 500, 1000, 1500, 2500, 3000)
 p0_obs <- 100000
 n_mc_sample <- 1000
 
-n_core <- 5
-n_fold <- 4
+n_core <- 20
+n_fold <- 10
 
 # Generate simulated data -----------------
 
@@ -66,7 +66,8 @@ for (sample_size in n_obs) {
       cv_folds = n_fold,
       num_cores = n_core,
       var_sets = "a-z",
-      exposure_quantized = TRUE,
+      exposure_quantized = FALSE,
+      mediator_quantized = FALSE,
       n_mc_sample = n_mc_sample,
       density_type = "sl",
       integration_method = "AQ"

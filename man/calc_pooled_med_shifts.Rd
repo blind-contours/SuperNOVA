@@ -7,7 +7,7 @@ Specific Results}
 \usage{
 calc_pooled_med_shifts(
   med_shift_results,
-  estimator = c("tmle", "onestep"),
+  estimator = c("onestep"),
   fluc_mod_out = NULL,
   a_names,
   w_names,

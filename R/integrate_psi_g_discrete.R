@@ -71,7 +71,7 @@ integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, 
     return(output)
   }
 
-  integrand_m_g_r_mc <- function(sample_a, sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a, scale_data) {
+  integrand_m_g_r_mc <- function(sample_a, sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a, scale_data, mediator_quantized) {
     n_samples <- length(sample_z)
     row_data_rep <- do.call("rbind", replicate(n_samples, row_data, simplify = FALSE))
     new_data_m <- new_data_g <- new_data_r <- row_data_rep
@@ -134,11 +134,11 @@ integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, 
       }))
     } else {
       if (method == "MC") {
-        mc_integrands_inner <- integrand_m_r(sample_z_inner = sample_z, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av)
+        mc_integrands_inner <- integrand_m_r(sample_z_inner = sample_z, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av, mediator_quantized)
         integral_inner <- (max(sample_z) - min(sample_z)) * mean(mc_integrands_inner)
       } else {
         integral_inner <- stats::integrate(
-          function(sample_z_inner) integrand_m_r(sample_z_inner, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av),
+          function(sample_z_inner) integrand_m_r(sample_z_inner, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av, mediator_quantized),
           lower = min(sample_z),
           upper = max(sample_z),
           rel.tol = 0.001,
@@ -152,15 +152,15 @@ integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, 
     for (a_val in 1:n_bins) {
       if (mediator_quantized) {
         integral_outer <- sum(sapply(1:n_bins, function(z_val) {
-          integrand_m_g_r_mc(sample_a = a_val, z_val, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av)
+          integrand_m_g_r_mc(sample_a = a_val, z_val, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av, mediator_quantized)
         }))
       } else {
         if (method == "MC") {
-          integrand_val <- integrand_m_g_r_mc(sample_a = a_val, sample_z = sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av)
+          integrand_val <- integrand_m_g_r_mc(sample_a = a_val, sample_z = sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av, mediator_quantized)
           integral_outer <- (max(sample_z) - min(sample_z)) * mean(integrand_val)
         } else {
           integral_outer <- stats::integrate(
-            function(sample_z) integrand_m_g_r_mc(sample_a = a_val, sample_z = sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av),
+            function(sample_z) integrand_m_g_r_mc(sample_a = a_val, sample_z = sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av, mediator_quantized),
             lower = min(sample_z),
             upper = max(sample_z),
             rel.tol = 0.001,

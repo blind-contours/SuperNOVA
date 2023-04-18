@@ -2,8 +2,7 @@
 % Please edit documentation in R/indiv_stoch_shift_est_g_exp.R
 \name{indiv_stoch_shift_est_g_exp}
 \alias{indiv_stoch_shift_est_g_exp}
-\title{Estimate the Exposure Mechanism via Generalized Propensity Score for One
-Exposure Variable}
+\title{Estimate the Exposure Mechanism via Generalized Propensity Score for One Exposure Variable}
 \usage{
 indiv_stoch_shift_est_g_exp(
   exposure,
@@ -24,40 +23,74 @@ indiv_stoch_shift_est_g_exp(
 )
 }
 \arguments{
-\item{exposure}{A \code{character} labeling the exposure variable.}
+\item{exposure}{A \code{character} representing the label of the exposure variable. This
+variable should be a column name in the input data.}
 
-\item{delta}{A \code{numeric} value identifying a shift in the observed
-value of the exposure under which observations are to be evaluated.}
+\item{delta}{A \code{numeric} value specifying the shift in the observed value of the
+exposure for evaluating counterfactual observations. Positive values will result in upward
+shifts, while negative values will result in downward shifts.}
 
-\item{covars}{A \code{character} labeling the covariate variables}
+\item{covars}{A \code{character} vector representing the labels of the covariate variables.
+These variables should be column names in the input data and serve as control variables in
+the GPS estimation.}
 
-\item{av}{A \code{dataframe} of validation data specific to the fold}
+\item{av}{A \code{dataframe} containing validation data specific to the fold. This data is
+used to evaluate the performance of the GPS model during cross-validation.}
 
-\item{at}{A \code{dataframe} of training data specific to the fold}
+\item{at}{A \code{dataframe} containing training data specific to the fold. This data is
+used to fit the GPS model during cross-validation.}
 
-\item{adaptive_delta}{Whether or not to adaptively adjust delta based on
-positivity (estimated from the clever covariate) meeting the hn_trunc_thresh
-level}
+\item{adaptive_delta}{A \code{logical} indicating whether to adaptively adjust delta based on
+positivity (estimated from the clever covariate) meeting the hn_trunc_thresh level. If
+\code{TRUE}, the function will adjust delta to ensure sufficient overlap in the GPS
+distributions.}
 
-\item{hn_trunc_thresh}{Level of the clever covariate in the adaptive delta
-procedure}
+\item{hn_trunc_thresh}{A \code{numeric} value specifying the level of the clever covariate
+in the adaptive delta procedure. It represents the minimum proportion of observations in each
+exposure group to be included when adjusting delta.}
 
-\item{pi_learner}{Object containing a set of instantiated learners
-from \pkg{sl3}, to be used in fitting an ensemble model.}
+\item{exposure_quantized}{A \code{logical} indicating whether the exposure variable has been
+discretized. If \code{TRUE}, multinomial learners will be used instead of density learners
+for the GPS estimation.}
+
+\item{lower_bound}{A \code{numeric} value specifying the lower bound of the exposure variable
+to prevent shifting past this limit during the GPS estimation.}
+
+\item{upper_bound}{A \code{numeric} value specifying the upper bound of the exposure variable
+to prevent shifting past this limit during the GPS estimation.}
+
+\item{outcome_type}{A \code{character} specifying whether the outcome is 'categorical' or
+'continuous' based on the discretization of the exposure variable. This information is used
+to determine the appropriate learner type for the GPS model.}
+
+\item{density_type}{A \code{character} specifying the type of density estimator to use for
+GPS estimation. Possible options are 'SL' (Super Learner) or 'HAL' (Highly Adaptive Lasso).}
+
+\item{n_bins}{A \code{numeric} value specifying the number of bins to be used if the exposure
+variable is discretized. This parameter is only applicable when exposure_quantized is \code{TRUE}.}
+
+\item{max_degree}{A \code{numeric} value specifying the maximum degree of
+interactions to be used in the Highly Adaptive Lasso (HAL) if HAL is chosen as the
+density estimator. Higher values will result in a more flexible GPS model, but may
+increase the risk of overfitting.}
+
+\item{pi_learner}{An object containing a set of instantiated learners from the \pkg{sl3}
+package, to be used in fitting an ensemble model for GPS estimation. Learners should be
+chosen based on the structure of the data and the relationships between exposure, covariates,
+and outcome.}
 }
 \value{
 A \code{data.table} with four columns, containing estimates of the
 generalized propensity score at a downshift (g(A - delta | W)), no shift
 (g(A | W)), an upshift (g(A + delta) | W), and an upshift of magnitude two
-(g(A + 2 delta) | W).
+(g(A + 2 * delta) | W).
 }
 \description{
-Estimate the Exposure Mechanism via Generalized Propensity Score for One
-Exposure Variable
+Estimate the Exposure Mechanism via Generalized Propensity Score for One Exposure Variable
 }
 \details{
-Compute the propensity score (exposure mechanism) for the observed
-data, including the shift. This gives the propensity score for the observed
-data (at the observed A) the counterfactual shifted exposure levels (at
-{A - delta}, {A + delta}, and {A + 2 * delta}).
+This function computes the generalized propensity score (GPS) for the observed
+data with one exposure variable, considering different shift levels. It estimates the GPS at
+the observed data (at the observed A), and at the counterfactual shifted exposure levels
+(at {A - delta}, {A + delta}, and {A + 2 * delta}).
 }

@@ -32,6 +32,7 @@ SuperNOVA(
   adaptive_delta = FALSE,
   n_mc_sample = 1000,
   exposure_quantized = FALSE,
+  mediator_quantized = FALSE,
   density_type = "hal",
   n_bins = 10,
   max_degree = 1,

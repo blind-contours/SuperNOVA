@@ -16,7 +16,6 @@ integrate_psi_g(
   mediator,
   delta,
   n_samples,
-  n_iterations,
   density_type,
   integration_method
 )
@@ -33,7 +32,6 @@ integrate_psi_g(
   mediator,
   delta,
   n_samples,
-  n_iterations,
   density_type,
   integration_method
 )

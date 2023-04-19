@@ -53,29 +53,6 @@ for (sample_size in n_obs) {
     z <- data_sim[, mediators]
     y <- data_sim[, outcome]
 
-    est_out_aq <- fit_estimators_mediation(
-      w = w,
-      a = a,
-      z = z,
-      y = y,
-      seed = seed,
-      nde_effects = c(nde_a1),
-      nie_effects = c(nie_a1),
-      ate_effects = c(ate_a1),
-      deltas = list("a" = 1),
-      cv_folds = n_fold,
-      num_cores = n_core,
-      var_sets = "a-z",
-      exposure_quantized = FALSE,
-      mediator_quantized = FALSE,
-      n_mc_sample = n_mc_sample,
-      density_type = "sl",
-      integration_method = "AQ"
-    )
-
-    est_out_aq$integration_method <- "AQ"
-    est_out_aq$n_obs <- sample_size
-
     est_out_mc <- fit_estimators_mediation(
       w = w,
       a = a,
@@ -99,9 +76,7 @@ for (sample_size in n_obs) {
     est_out_mc$integration_method <- "MC"
     est_out_mc$n_obs <- sample_size
 
-    est_out <- rbind(est_out_mc, est_out_aq)
-
-    results[[this_iter]] <- est_out
+    results[[this_iter]] <- est_out_mc
   }
   # concatenate iterations
   results_out <- bind_rows(results, .id = "sim_iter")
@@ -112,5 +87,5 @@ for (sample_size in n_obs) {
 # save results to file
 saveRDS(
   object = sim_results_df,
-  file = here("sandbox/data", paste0("SuperNOVA_", "mediation_cont", ".rds"))
+  file = here("sandbox/data", paste0("SuperNOVA_", "mediation_cont_mc", ".rds"))
 )

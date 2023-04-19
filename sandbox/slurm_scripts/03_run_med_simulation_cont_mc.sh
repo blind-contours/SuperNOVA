@@ -22,4 +22,4 @@
 module load r/4.0.3
 
 ### Run Simulation
-R CMD BATCH --no-save ../03_run_med_simulation_cont.R supernova_mediation_cont.Rout
+R CMD BATCH --no-save ../03_run_med_simulation_cont_mc.R supernova_mediation_cont_mc.Rout

@@ -102,7 +102,7 @@ SuperNOVA <- function(w,
                       n_mc_sample = 1000,
                       exposure_quantized = FALSE,
                       mediator_quantized = FALSE,
-                      density_type = "hal",
+                      density_type = "SL",
                       n_bins = 10,
                       max_degree = 1,
                       integration_method = "MC") {
@@ -648,16 +648,22 @@ SuperNOVA <- function(w,
             )
           }else{
 
-          zn_exp_estim <- joint_stoch_shift_est_z_exp(
-            exposures = exposure,
-            mediator = mediator,
-            deltas = delta_updated,
-            pi_learner = pi_learner,
-            w_names = w_names,
-            a_names = a_names,
-            z_names = z_names,
+          zn_exp_estim <- indiv_stoch_shift_est_g_exp(
+            exposure = mediator,
+            delta = delta,
+            g_learner = g_learner,
+            covars = w_names,
             av = av,
-            at = at
+            at = at,
+            adaptive_delta = adaptive_delta,
+            hn_trunc_thresh = hn_trunc_thresh,
+            exposure_quantized = mediator_quantized,
+            lower_bound = min(av[[mediator]]),
+            upper_bound = max(av[[mediator]]),
+            outcome_type = outcome_type,
+            density_type = density_type,
+            n_bins = n_bins,
+            max_degree = max_degree
           )
           }
 

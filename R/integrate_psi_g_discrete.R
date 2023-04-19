@@ -34,7 +34,7 @@ integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, 
   lower_z <- min(min(av[[mediator]]), min(at[[mediator]]))
   upper_z <- max(max(av[[mediator]]), max(at[[mediator]]))
 
-  sample_z <-  runif(n_samples, min = lower_z, max = upper_z)
+  sample_z <- runif(n_samples, min = lower_z, max = upper_z)
 
   integrand_m_r <- function(sample_z_inner, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a, scale_data, mediator_quantized) {
     row_data_rep <- do.call("rbind", replicate(length(sample_z_inner), row_data, simplify = FALSE))
@@ -181,4 +181,3 @@ integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, 
 
   return(list("d_a" = results, "phi_aw" = integral_inner_results))
 }
-

@@ -83,13 +83,13 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
   create_shifted_data <- function(data, exposure, delta, lower_bound, upper_bound) {
     shifted_data <- data.table::copy(data)
     data.table::set(shifted_data,
-                    j = exposure,
-                    value = shift_additive(
-                      a = subset(data, select = exposure),
-                      delta = delta,
-                      lower_bound = lower_bound,
-                      upper_bound = upper_bound
-                    )
+      j = exposure,
+      value = shift_additive(
+        a = subset(data, select = exposure),
+        delta = delta,
+        lower_bound = lower_bound,
+        upper_bound = upper_bound
+      )
     )
     return(shifted_data)
   }

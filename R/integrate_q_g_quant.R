@@ -48,7 +48,7 @@ integrate_m_g_quant <- function(av, at, covars, w_names, q_model, g_model, expos
 
     index <- ifelse(bin_a + g_delta > upper, upper, bin_a + g_delta)
     g_val <- unlist(g_val)[[index]]
-    g_val <- ifelse(g_val <= 1/sqrt(nrow(av)), 1/sqrt(nrow(av)), g_val)
+    g_val <- ifelse(g_val <= 1 / sqrt(nrow(av)), 1 / sqrt(nrow(av)), g_val)
 
     output <- m_val * g_val # Use the probability corresponding to the current bin_a
     return(output)

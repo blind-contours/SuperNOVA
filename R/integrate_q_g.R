@@ -77,7 +77,7 @@ integrate_q_g <- function(av, at, covars, w_names, q_model, g_model, exposure, g
         integrand(a, row_data, covars, q_model, g_model, exposure, g_delta, m_delta, upper_bound, density_type)
       }
 
-      integral_result <- integrate(aq_integrands, lower = lower_bound, upper = upper_bound, rel.tol = 0.001)
+      integral_result <- integrate(aq_integrands, lower = lower_bound, upper = upper_bound, rel.tol = 0.001)$value
       results[i] <- integral_result$value
     }
   }

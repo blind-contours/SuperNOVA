@@ -203,7 +203,6 @@ SuperNOVA <- function(w,
   if (outcome_type == "binomial") {
     ## create the CV folds
     data_internal$folds <- create_cv_folds(n_folds, data_internal$y)
-
   } else {
     data_internal$folds <- create_cv_folds(n_folds, data_internal$y)
   }
@@ -646,25 +645,24 @@ SuperNOVA <- function(w,
               n_bins = n_bins,
               max_degree = max_degree
             )
-          }else{
-
-          zn_exp_estim <- indiv_stoch_shift_est_g_exp(
-            exposure = mediator,
-            delta = delta,
-            g_learner = g_learner,
-            covars = w_names,
-            av = av,
-            at = at,
-            adaptive_delta = adaptive_delta,
-            hn_trunc_thresh = hn_trunc_thresh,
-            exposure_quantized = mediator_quantized,
-            lower_bound = min(av[[mediator]]),
-            upper_bound = max(av[[mediator]]),
-            outcome_type = outcome_type,
-            density_type = density_type,
-            n_bins = n_bins,
-            max_degree = max_degree
-          )
+          } else {
+            zn_exp_estim <- indiv_stoch_shift_est_g_exp(
+              exposure = mediator,
+              delta = delta,
+              g_learner = g_learner,
+              covars = w_names,
+              av = av,
+              at = at,
+              adaptive_delta = adaptive_delta,
+              hn_trunc_thresh = hn_trunc_thresh,
+              exposure_quantized = mediator_quantized,
+              lower_bound = min(av[[mediator]]),
+              upper_bound = max(av[[mediator]]),
+              outcome_type = outcome_type,
+              density_type = density_type,
+              n_bins = n_bins,
+              max_degree = max_degree
+            )
           }
 
           r_model <- zn_exp_estim$model
@@ -996,7 +994,7 @@ SuperNOVA <- function(w,
             "Variance" = variance_est_nie_pseudo,
             "SE" = se_est_nie_pseudo,
             "Lower CI" = CI_nie_pseudo[1],
-            "Upper CI" =  CI_nie_pseudo[2],
+            "Upper CI" = CI_nie_pseudo[2],
             "P-Value" = p_value_nie_pseudo
           )
 

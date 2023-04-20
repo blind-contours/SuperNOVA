@@ -3,10 +3,10 @@
 #SBATCH --job-name=1q_mediation_supernova
 #
 # Partition:
-#SBATCH --partition=savio3
+#SBATCH --partition=savio2
 #
 
-#SBATCH --qos=biostat_savio3_normal
+#SBATCH --qos=biostat_savio2_normal
 #SBATCH --account=co_biostat
 
 # Number of nodes for use case:

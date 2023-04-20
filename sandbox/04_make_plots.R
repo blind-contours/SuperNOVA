@@ -6,7 +6,7 @@ library(cividis)
 library(hrbrthemes)
 
 sim_results_1 <- readRDS(
-  here("sandbox/data/SuperNOVA_mediation.rds")
+  here("sandbox/data/SuperNOVA_mediation_cont_mc.rds")
 )
 
 # sim_results_2 <- readRDS(
@@ -79,7 +79,7 @@ sim_statistics <- sim_results %>%
 sim_statistics_long <- sim_statistics %>%
   gather(statistic, value, -c(n_obs))
 
-n_obs <- c(500, 1000, 1500, 2500)
+n_obs <- c(250, 500, 1000, 1500, 2500, 3000)
 inverse_sqrt <- 1 /sqrt(n_obs)
 comp_condition <- "1/sqrt(n)"
 ref_group <- bind_cols(n_obs, comp_condition, inverse_sqrt)
@@ -140,12 +140,18 @@ make_sim_statistics_plot <- function(sim_statistics_long, stats, title) {
 }
 
 # NDE bias plot
-nde_stats <- c("mean_nde_bias_pseudo", "mean_nie_bias_pseudo", "1/sqrt(n)")
-nde_bias_plot <- make_sim_statistics_plot(sim_statistics_long, nde_stats, "Pseudo Regressions")
+pseudo_stats <- c("mean_nde_bias_pseudo", "mean_nie_bias_pseudo", "1/sqrt(n)")
+pseudo_bias_plot <- make_sim_statistics_plot(sim_statistics_long, pseudo_stats, "Pseudo Regressions")
 
 # NIE bias plot
-nie_stats <- c("mean_nie_bias_pseudo", "mean_nie_bias_int", "1/sqrt(n)")
-nie_bias_plot <- make_sim_statistics_plot(sim_statistics_long, nie_stats, "NIE Bias")
+integration_stats <- c("mean_nde_bias_int", "mean_nie_bias_int", "1/sqrt(n)")
+nie_bias_plot <- make_sim_statistics_plot(sim_statistics_long, integration_stats, "NIE Bias")
+
+
+# Integration CI plot
+int_cov_stats <- c("nde_int_CI_coverage", "nie_int_CI_coverage", "1/sqrt(n)")
+int_cov_plot <- make_sim_statistics_plot(sim_statistics_long, int_cov_stats, "Coverage with Integration")
+
 
 # Save the plots to files
 ggsave(

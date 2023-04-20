@@ -25,61 +25,32 @@ integrate_q_g <- function(av, at, covars, w_names, q_model, g_model, exposure, g
   at <- as.data.frame(at)
   av <- as.data.frame(av)
 
-  integrand <- function(sample_a, row_data, covars, q_model, g_model, exposure, g_delta, m_delta, upper_bound, density_type) {
-    row_data <- do.call("rbind", replicate(length(sample_a), row_data, simplify = FALSE))
-    new_data_m <- new_data_g <- row_data
-    new_data_m[exposure] <- ifelse(sample_a + m_delta >= upper_bound, upper_bound, sample_a + m_delta)
-    new_data_g[exposure] <- ifelse(sample_a + g_delta >= upper_bound, upper_bound, sample_a + g_delta)
-
-    task_m <- sl3::sl3_Task$new(
-      data = new_data_m,
-      covariates = covars,
-      outcome = "y"
-    )
-
-    m_val <- q_model$predict(task_m)
-
-    if (density_type == "sl") {
-      task_g <- sl3::sl3_Task$new(
-        data = new_data_g,
-        covariates = c(w_names),
-        outcome = exposure,
-      )
-
-      g_val <- g_model$predict(task_g)
-      output <- m_val * g_val$likelihood
-    } else {
-      g_val <- suppressMessages(predict(g_model, new_A = new_data_g[[exposure]], new_W = new_data_g[w_names]))
-      output <- m_val * g_val
-    }
-
-    return(output)
-  }
-
-  results <- numeric(nrow(av))
-
   if (integration_method == "MC") {
     sample_a <- runif(n_samples, lower_bound, upper_bound)
 
-    for (i in 1:nrow(av)) {
+    results <- sapply(1:nrow(av), function(i) {
       row_data <- av[i, ]
 
-      mc_integrands <- integrand(sample_a, row_data, covars, q_model, g_model, exposure, g_delta, m_delta, upper_bound, density_type)
+      mc_integrands <- integrand_q_g(sample_a, row_data, covars, q_model, g_model, exposure, g_delta, m_delta, upper_bound, density_type)
 
       integral_result <- (max(sample_a) - min(sample_a)) * mean(mc_integrands)
-      results[i] <- integral_result
-    }
+      return(integral_result)
+    })
   } else if (integration_method == "AQ") {
-    for (i in 1:nrow(av)) {
+    results <- sapply(1:nrow(av), function(i) {
       row_data <- av[i, ]
 
-      aq_integrands <- function(a) {
-        integrand(a, row_data, covars, q_model, g_model, exposure, g_delta, m_delta, upper_bound, density_type)
-      }
+      integral_result <- stats::integrate(
+        function(sample_a) integrand_q_g(sample_a, row_data, covars, q_model, g_model, exposure, g_delta, m_delta, upper_bound, density_type),
+        lower = lower_bound,
+        upper = upper_bound,
+        rel.tol = 0.001,
+        subdivisions = 300,
+        stop.on.error = FALSE
+      )$value
 
-      integral_result <- integrate(aq_integrands, lower = lower_bound, upper = upper_bound, rel.tol = 0.001)$value
-      results[i] <- integral_result$value
-    }
+      return(integral_result)
+    })
   }
 
   return(results)

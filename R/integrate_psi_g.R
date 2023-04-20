@@ -35,172 +35,33 @@ integrate_psi_g <- function(at, av, covars, w_names, q_model, r_model, g_model, 
   lower_a <- min(av[[exposure]])
   upper_a <- max(av[[exposure]])
 
-
-  integrand_m_r <- function(z, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a, density_type) {
-    row_data <- do.call("rbind", replicate(length(z), row_data, simplify = FALSE))
-    new_data_m <- new_data_r <- row_data
-
-    new_data_m[mediator] <- z
-    new_data_m[exposure] <- ifelse(new_data_m[[exposure]] + delta >= upper_a, upper_a, new_data_m[[exposure]] + delta)
-
-    new_data_r[mediator] <- z
-
-    task_m <- sl3::sl3_Task$new(
-      data = new_data_m,
-      covariates = covars,
-      outcome = "y"
-    )
-
-    m_val <- q_model$predict(task_m)
-
-    if (density_type == "sl") {
-      task_r <- sl3::sl3_Task$new(
-        data = new_data_r,
-        covariates = c(w_names),
-        outcome = mediator,
-      )
-
-      r_val <- r_model$predict(task_r)
-      output <- m_val * r_val$likelihood
-    } else {
-      r_val <- suppressMessages(predict(r_model, new_A = new_data_r[[mediator]], new_W = new_data_r[w_names]))
-      output <- m_val * r_val
-    }
-
-    return(output)
-  }
-
-
-  integrand_m_g_r <- function(a, z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a, density_type) {
-    rep <- dim(z)[2]
-    row_data <- do.call("rbind", replicate(rep, row_data, simplify = FALSE))
-    new_data_m <- new_data_g <- new_data_r <- row_data
-
-    output_matrix <- matrix(0, nrow = rep, ncol = rep)
-
-    for (col in seq(ncol(z))) {
-      a_vec <- a[col, ]
-      z_vec <- z[col, ]
-
-      new_data_m[exposure] <- ifelse(a_vec + delta >= upper_a, upper_a, a_vec + delta)
-      new_data_m[mediator] <- z_vec
-
-      new_data_g[exposure] <- a_vec
-      new_data_r[mediator] <- z_vec
-
-      task_m <- sl3::sl3_Task$new(
-        data = new_data_m,
-        covariates = covars,
-        outcome = "y"
-      )
-
-      m_val <- q_model$predict(task_m)
-
-      if (density_type == "sl") {
-        task_g <- sl3::sl3_Task$new(
-          data = new_data_g,
-          covariates = c(w_names),
-          outcome = exposure,
-        )
-
-        task_r <- sl3::sl3_Task$new(
-          data = new_data_r,
-          covariates = c(w_names),
-          outcome = mediator,
-        )
-
-        g_val <- g_model$predict(task_g)
-        r_val <- r_model$predict(task_r)
-
-        output <- m_val * g_val$likelihood * r_val$likelihood
-      } else {
-        r_val <- suppressMessages(predict(r_model, new_A = new_data_g[[exposure]], new_W = new_data_r[w_names]))
-        g_val <- suppressMessages(predict(g_model, new_A = new_data_r[[mediator]], new_W = new_data_r[w_names]))
-        output <- m_val * g_val * r_val
-      }
-
-
-      output_matrix[, col] <- output
-    }
-
-
-    return(output_matrix)
-  }
-
-  mc_integrand_m_g_r <- function(sample_a, sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a, density_type) {
-    rep <- length(sample_z)
-    row_data <- do.call("rbind", replicate(rep, row_data, simplify = FALSE))
-    new_data_m <- new_data_g <- new_data_r <- row_data
-
-    new_data_m[exposure] <- ifelse(sample_a + delta >= upper_a, upper_a, sample_a + delta)
-    new_data_m[mediator] <- sample_z
-
-    new_data_g[exposure] <- sample_a
-    new_data_r[mediator] <- sample_z
-
-    task_m <- sl3::sl3_Task$new(
-      data = new_data_m,
-      covariates = covars,
-      outcome = "y"
-    )
-    m_val <- q_model$predict(task_m)
-
-    if (density_type == "sl") {
-      task_g <- sl3::sl3_Task$new(
-        data = new_data_g,
-        covariates = c(w_names),
-        outcome = exposure,
-      )
-
-      task_r <- sl3::sl3_Task$new(
-        data = new_data_r,
-        covariates = c(w_names),
-        outcome = mediator,
-      )
-
-
-      g_val <- g_model$predict(task_g)
-      r_val <- r_model$predict(task_r)
-
-      output <- m_val * g_val$likelihood * r_val$likelihood
-    } else {
-      r_val <- suppressMessages(predict(r_model, new_A = new_data_g[[exposure]], new_W = new_data_r[w_names]))
-      g_val <- suppressMessages(predict(g_model, new_A = new_data_r[[mediator]], new_W = new_data_r[w_names]))
-      output <- m_val * g_val * r_val
-    }
-
-    return(output)
-  }
-
-
   results <- numeric(nrow(av))
   integral_inner_results <- numeric(nrow(av))
 
-  for (i in 1:nrow(data)) {
+  for (i in 1:nrow(av)) {
     row_data <- av[i, ]
 
     if (integration_method == "MC") {
       sample_z <- runif(n_samples, lower_z, upper_z)
       sample_a <- runif(n_samples, lower_a, upper_a)
 
-      mc_integrands_inner <- integrand_m_r(sample_z, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a, density_type)
+      mc_integrands_inner <- integrand_q_r(sample_z, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a, density_type)
       integral_inner <- (max(sample_z) - min(sample_z)) * mean(mc_integrands_inner)
 
-      mc_integrands_outer <- mc_integrand_m_g_r(sample_a, sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a, density_type)
+      mc_integrands_outer <- mc_integrand_q_g_r(sample_a, sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a, density_type)
       integral_outer <- (max(sample_a) - min(sample_a)) * (max(sample_z) - min(sample_z)) * mean(mc_integrands_outer)
     } else {
       integral_inner <- stats::integrate(
-        function(z) integrand_m_r(z, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a, density_type),
+        function(z) integrand_q_r(z, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a, density_type),
         lower = lower_z,
         upper = upper_z,
         rel.tol = 0.001,
-        subdivisions = 100,
+        subdivisions = 300,
         stop.on.error = FALSE
       )$value
 
-
       integral_outer <- integral2(
-        function(a, z) integrand_m_g_r(a, z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a, density_type),
+        function(a, z) quad_integrand_q_g_r(a, z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a, density_type),
         xmin = lower_a,
         ymin = lower_z,
         xmax = upper_a,

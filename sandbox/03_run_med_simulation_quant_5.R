@@ -9,17 +9,17 @@ source(here("sandbox/simulate_discrete_data.R"))
 load_all()
 
 # simulation parameters
-n_sim <- 5 # number of simulations
+n_sim <- 10 # number of simulations
 n_obs <- c(250, 500, 1000, 1500, 2500, 3000)
 p0_obs <- 100000
-n_mc_sample <- 1000
+n_mc_sample <- 2000
 
 n_core <- 20
 n_fold <- 10
 
 # Generate simulated data -----------------
 
-full_data <- simulate_discrete_mediation_data(n_obs = 100000,
+full_data <- simulate_mediation_data(n_obs = 100000,
                                      delta = 1)
 p0_data <- full_data$data
 
@@ -68,7 +68,7 @@ for (sample_size in n_obs) {
       num_cores = n_core,
       var_sets = "a-z",
       exposure_quantized = TRUE,
-      mediator_quantized = TRUE,
+      mediator_quantized = FALSE,
       n_mc_sample = n_mc_sample,
       density_type = "sl",
       integration_method = "MC"
@@ -87,5 +87,5 @@ for (sample_size in n_obs) {
 # save results to file
 saveRDS(
   object = sim_results_df,
-  file = here("sandbox/data", paste0("SuperNOVA_", "mediation_quant", ".rds"))
+  file = here("sandbox/data", paste0("SuperNOVA_", "mediation_quant_5", ".rds"))
 )

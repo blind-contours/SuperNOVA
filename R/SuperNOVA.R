@@ -102,7 +102,7 @@ SuperNOVA <- function(w,
                       n_mc_sample = 1000,
                       exposure_quantized = FALSE,
                       mediator_quantized = FALSE,
-                      density_type = "SL",
+                      density_type = "sl",
                       n_bins = 10,
                       max_degree = 1,
                       integration_method = "MC") {
@@ -135,13 +135,6 @@ SuperNOVA <- function(w,
     a_names <- paste0("a", seq_len(ncol(a)))
     colnames(a) <- a_names
   }
-  # for (i in 1:dim(a)[2]) {
-  #   check_a <- a[i]
-  #   a_name <- a_names[i]
-  #   if (length(unique(check_a)) < 20) {
-  #     a[, a_name] <- a[, a_name] + runif(dim(a)[1], min = -0.05, max = 0.05)
-  #   }
-  # }
 
   if (is.null(pi_learner)) {
     sls <- create_sls()
@@ -561,26 +554,26 @@ SuperNOVA <- function(w,
 
 
           if (exposure_quantized == TRUE) {
-            g_learner <- quant_learner
-            outcome_type <- "categorical"
+            exp_learner <- quant_learner
+            exposure_type <- "categorical"
           } else {
-            g_learner <- pi_learner
-            outcome_type <- "continuous"
+            exp_learner <- pi_learner
+            exposure_type <- "continuous"
           }
 
           if (mediator_quantized == TRUE) {
             med_learner <- quant_learner
-            outcome_type <- "categorical"
+            med_type <- "categorical"
           } else {
             med_learner <- pi_learner
-            outcome_type <- "continuous"
+            med_type <- "continuous"
           }
 
           ## get g(A|W) under shifts and no shift
           gn_exp_estim <- indiv_stoch_shift_est_g_exp(
             exposure = exposure,
             delta = delta,
-            g_learner = g_learner,
+            g_learner = exp_learner,
             covars = w_names,
             av = av,
             at = at,
@@ -589,7 +582,7 @@ SuperNOVA <- function(w,
             exposure_quantized = exposure_quantized,
             lower_bound = lower_bound,
             upper_bound = upper_bound,
-            outcome_type = outcome_type,
+            outcome_type = exposure_type,
             density_type = density_type,
             n_bins = n_bins,
             max_degree = max_degree
@@ -608,7 +601,7 @@ SuperNOVA <- function(w,
           gn_exp_estim_z <- indiv_stoch_shift_est_g_exp(
             exposure = exposure,
             delta = delta,
-            g_learner = g_learner,
+            g_learner = exp_learner,
             covars = c(w_names, mediator),
             av = av,
             at = at,
@@ -617,7 +610,7 @@ SuperNOVA <- function(w,
             exposure_quantized = exposure_quantized,
             lower_bound = lower_bound,
             upper_bound = upper_bound,
-            outcome_type = outcome_type,
+            outcome_type = exposure_type,
             density_type = density_type,
             n_bins = n_bins,
             max_degree = max_degree
@@ -627,43 +620,24 @@ SuperNOVA <- function(w,
 
           ## get r(Z|W) under shifts and no shift
 
-          if (mediator_quantized == TRUE) {
-            zn_exp_estim <- indiv_stoch_shift_est_g_exp(
-              exposure = mediator,
-              delta = delta,
-              g_learner = g_learner,
-              covars = w_names,
-              av = av,
-              at = at,
-              adaptive_delta = adaptive_delta,
-              hn_trunc_thresh = hn_trunc_thresh,
-              exposure_quantized = mediator_quantized,
-              lower_bound = lower_bound,
-              upper_bound = upper_bound,
-              outcome_type = outcome_type,
-              density_type = density_type,
-              n_bins = n_bins,
-              max_degree = max_degree
-            )
-          } else {
-            zn_exp_estim <- indiv_stoch_shift_est_g_exp(
-              exposure = mediator,
-              delta = delta,
-              g_learner = g_learner,
-              covars = w_names,
-              av = av,
-              at = at,
-              adaptive_delta = adaptive_delta,
-              hn_trunc_thresh = hn_trunc_thresh,
-              exposure_quantized = mediator_quantized,
-              lower_bound = min(av[[mediator]]),
-              upper_bound = max(av[[mediator]]),
-              outcome_type = outcome_type,
-              density_type = density_type,
-              n_bins = n_bins,
-              max_degree = max_degree
-            )
-          }
+          zn_exp_estim <- indiv_stoch_shift_est_g_exp(
+            exposure = mediator,
+            delta = delta,
+            g_learner = med_learner,
+            covars = w_names,
+            av = av,
+            at = at,
+            adaptive_delta = adaptive_delta,
+            hn_trunc_thresh = hn_trunc_thresh,
+            exposure_quantized = mediator_quantized,
+            lower_bound = min(av[[mediator]]),
+            upper_bound = max(av[[mediator]]),
+            outcome_type = med_type,
+            density_type = density_type,
+            n_bins = n_bins,
+            max_degree = max_degree
+          )
+
 
           r_model <- zn_exp_estim$model
 
@@ -755,7 +729,7 @@ SuperNOVA <- function(w,
               mediator_quantized = mediator_quantized
             )
           } else {
-            d_a_int <- integrate_psi_g(
+            d_a_int <- integrate_psi_g_cont(
               av = av,
               at = at,
               covars = c(w_names, exposure, mediator),
@@ -785,22 +759,22 @@ SuperNOVA <- function(w,
           pseudo_regression_av <- g_e_shift_ratio_av * qn_estim$av_predictions$upshift
 
 
-          # at$pseudo_outcome_scaled <- scale_to_unit(pseudo_regression_at)
-          # av$pseudo_outcome_scaled <- scale_to_unit(pseudo_regression_av)
+          at$pseudo_outcome_scaled <- scale_to_unit(pseudo_regression_at)
+          av$pseudo_outcome_scaled <- scale_to_unit(pseudo_regression_av)
 
           at$pseudo_outcome <- pseudo_regression_at
           av$pseudo_outcome <- pseudo_regression_av
 
           sl_pseudo_task_at <- sl3::sl3_Task$new(
             data = at,
-            outcome = "pseudo_outcome",
+            outcome = "pseudo_outcome_scaled",
             covariates = c(exposure, w_names),
             outcome_type = "continuous"
           )
 
           sl_pseudo_task_av <- sl3::sl3_Task$new(
             data = av,
-            outcome = "pseudo_outcome",
+            outcome = "pseudo_outcome_scaled",
             covariates = c(exposure, w_names),
             outcome_type = "continuous"
           )
@@ -814,7 +788,7 @@ SuperNOVA <- function(w,
           psi_aw_av <- pseudo_model$predict(sl_pseudo_task_av)
           psi_aw_at <- pseudo_model$predict(sl_pseudo_task_at)
 
-          # psi_aw_av <- scale_to_original(psi_aw_av, max_orig = max(av$pseudo_outcome), min_orig = min(av$pseudo_outcome))
+          psi_aw_av <- scale_to_original(psi_aw_av, max_orig = max(av$pseudo_outcome), min_orig = min(av$pseudo_outcome))
 
           if (exposure_quantized == TRUE) {
             d_a_pseudo <- integrate_psi_aw_g_quant(

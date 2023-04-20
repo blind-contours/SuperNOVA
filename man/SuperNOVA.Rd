@@ -33,7 +33,7 @@ SuperNOVA(
   n_mc_sample = 1000,
   exposure_quantized = FALSE,
   mediator_quantized = FALSE,
-  density_type = "hal",
+  density_type = "sl",
   n_bins = 10,
   max_degree = 1,
   integration_method = "MC"

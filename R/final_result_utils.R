@@ -36,8 +36,9 @@ calc_final_ind_shift_param <- function(tmle_fit, exposure, fold_k) {
 
 #' Calculates the Effect Modification Shift Parameter
 #'
-#' @description This function uses a decision tree estimator to regress the efficient influence function (EIF)
+#' @description This function uses a decision tree estimator to regress the difference in expected outcomes
 #'  of an exposure onto a covariate. Both the exposure and the covariate have been determined through data-adaptive methods.
+#'  If no rules are found, a median split is applied.
 #'
 #' @param tmle_fit_av TMLE results for the validation fold.
 #' @param tmle_fit_at TMLE results for the training fold.
@@ -61,154 +62,141 @@ calc_final_effect_mod_param <- function(tmle_fit_av,
                                         effect_m_name,
                                         fold_k,
                                         em_learner) {
+  # Calculate pseudo_outcome for training and validation datasets
   pseudo_outcome_at <- tmle_fit_at$qn_shift_star - tmle_fit_at$qn_noshift_star
   pseudo_outcome_av <- tmle_fit_av$qn_shift_star - tmle_fit_av$qn_noshift_star
 
+  # Rename columns
   names(pseudo_outcome_at) <- "pseudo_outcome_at"
   names(pseudo_outcome_av) <- "pseudo_outcome_av"
 
+  # Prepare data for the tree model
   em_model_data_at <- cbind.data.frame(
     pseudo_outcome_at, subset(at,
-      select = effect_m_name
+                              select = effect_m_name
     )
   )
 
   em_model_data_av <- cbind.data.frame(
     pseudo_outcome_av, subset(av,
-      select = effect_m_name
+                              select = effect_m_name
     )
   )
 
-  task <- sl3::make_sl3_Task(
-    data = em_model_data_at,
-    covariates = effect_m_name,
-    outcome = "pseudo_outcome_at",
-    outcome_type = "continuous"
-  )
+  # Create the formula for the tree model
+  response_var <-  "pseudo_outcome_at"
+  formula_string <- paste(response_var, "~", effect_m_name)
+  formula <- as.formula(formula_string)
 
-  discrete_sl_metalrn <- sl3::Lrnr_cv_selector$new(sl3::loss_squared_error)
+  # Fit the tree model
+  tree_model <- glmtree(formula, data = em_model_data_at)
 
-  discrete_sl <- sl3::Lrnr_sl$new(
-    learners = em_learner,
-    metalearner = discrete_sl_metalrn,
-  )
+  # Extract the rules from the tree model
+  rules <- list_rules_party(tree_model)
 
-  sl_fit <- suppressWarnings(discrete_sl$train(task))
-
-  selected_learner <- sl_fit$learner_fits[[
-    which(sl_fit$coefficients == 1)
-  ]]
-
-
-  rules <- list_rules_party(selected_learner$fit_object)
-
+  # If no rules are found, use median split
   if (all(rules == "") == TRUE) {
-    # create a rule for the median -----
-
-    if (all(apply(at[, ..effect_m_name], 2, function(x) {
+    # Determine if the effect modifier is binary (0 or 1)
+    is_binary <- all(apply(at[, ..effect_m_name], 2, function(x) {
       all(x %in% 0:1)
-    })) == TRUE) {
-      medians <- apply(at[, ..effect_m_name], 2, median)
+    }))
 
-      median_rule_list <- list()
-      for (i in seq(length(medians))) {
-        median_rule <- paste(names(medians)[i], "==", medians[i])
-        median_rule_list[[i]] <- median_rule
-      }
-      rules <- median_rule_list
-    } else {
-      medians <- apply(at[, ..effect_m_name], 2, median)
-      median_rule_list <- list()
-      for (i in seq(length(medians))) {
-        median_rule <- paste(names(medians)[i], "<=", medians[i])
-        median_rule_list[[i]] <- median_rule
-      }
+    # Calculate medians for the effect modifier
+    medians <- apply(at[, ..effect_m_name], 2, median)
 
-      rules <- median_rule_list
-    }
+    # Create median rules
+    median_rule_list <- lapply(seq_along(medians), function(i) {
+      if (is_binary) {
+        paste(names(medians)[i], "==", medians[i])
+      } else {
+        paste(names(medians)[i], "<=", medians[i])
+      }
+    })
+
+    rules <- median_rule_list
   }
 
+  # Initialize results_list
   results_list <- list()
 
-  for (i in seq(rules)) {
-    rule <- rules[i]
+  # Loop through the rules
+  for (i in seq_along(rules)) {
+    rule <- rules[[i]]
 
+    # Apply the rule to split the data
     em_split_data <- em_model_data_av %>%
       dplyr::mutate(ind = ifelse(eval(parse(text = rule)), 1, 0))
 
-    # TODO: if the rule does not partition the validation sample and leads to
-    # all one value then pass to next rule - think about better implementation.
-    if (dim(table(em_split_data$ind)) == 1) {
+    # If the rule does not partition the validation sample and leads to all one value,
+    # skip to the next rule
+    if (length(unique(em_split_data$ind)) == 1) {
       next()
     }
 
+    # Calculate the inverse propensity weights
     inverse_prop_positive <- ifelse(em_split_data$ind == 1,
-      1 / (table(em_split_data$ind)[[2]] /
-        length(em_split_data$ind)), 0
+                                    1 / (table(em_split_data$ind)[[2]] /
+                                           length(em_split_data$ind)), 0
     )
 
     inverse_prop_negative <- ifelse(em_split_data$ind == 0,
-      1 / (table(em_split_data$ind)[[1]]
-      / length(em_split_data$ind)), 0
+                                    1 / (table(em_split_data$ind)[[1]]
+                                         / length(em_split_data$ind)), 0
     )
 
+    # Calculate the weighted EIFs
     inverse_prop_eif_pos <- inverse_prop_positive * (tmle_fit_av$eif - tmle_fit_av$noshift_eif)
     inverse_prop_eif_neg <- inverse_prop_negative * (tmle_fit_av$eif - tmle_fit_av$noshift_eif)
 
+    # Calculate the shift difference for both groups
     diff <- tmle_fit_av$qn_shift_star - tmle_fit_av$qn_noshift_star
-
     psi_em_one <- mean(diff[em_split_data$ind == 1])
     psi_em_zero <- mean(diff[em_split_data$ind == 0])
 
+    # Calculate variance and standard error
     psi_one_var <- var(inverse_prop_eif_pos[em_split_data$ind == 1]) /
       table(em_split_data$ind)[[2]]
 
     psi_zero_var <- var(inverse_prop_eif_neg[em_split_data$ind == 0]) /
       table(em_split_data$ind)[[1]]
 
+    # Calculate confidence intervals
     em_one_ci <- calc_CIs(psi_em_one, sqrt(psi_one_var))
     em_zero_ci <- calc_CIs(psi_em_zero, sqrt(psi_zero_var))
 
+    # Calculate p-values
     level_1_p_val <- calc_pvals(psi_em_one, psi_one_var)
     level_0_p_val <- calc_pvals(psi_em_zero, psi_zero_var)
 
-    psi_params <- c(psi_em_one, psi_em_zero)
-    variance_ests <- c(psi_one_var, psi_zero_var)
-    se_ests <- c(sqrt(psi_one_var), sqrt(psi_zero_var))
-
-    Lower_CIs <- c(em_one_ci[1], em_zero_ci[1])
-    Upper_CIs <- c(em_one_ci[2], em_zero_ci[2])
-
-    P_val_ests <- c(level_1_p_val, level_0_p_val)
-
-    condition <- c(
-      paste("Level 1 Shift Diff in", rule),
-      paste("Level 0 Shift Diff in", rule)
-    )
-
-    n <- length(tmle_fit_av$eif)
-
+    # Store results in a data frame
     results <- data.table::data.table(
-      condition, psi_params, variance_ests,
-      se_ests, Lower_CIs, Upper_CIs,
-      P_val_ests, fold_k, "Effect Mod",
-      paste(exposure, effect_m_name, sep = ""),
-      n
-    )
-    names(results) <- c(
-      "Condition", "Psi", "Variance", "SE", "Lower CI",
-      "Upper CI", "P-value", "Fold", "Type", "Variables", "N"
+      Condition = c(paste("Level 1 Shift Diff in", rule),
+                    paste("Level 0 Shift Diff in", rule)),
+      Psi = c(psi_em_one, psi_em_zero),
+      Variance = c(psi_one_var, psi_zero_var),
+      SE = c(sqrt(psi_one_var), sqrt(psi_zero_var)),
+      Lower_CI = c(em_one_ci[1], em_zero_ci[1]),
+      Upper_CI = c(em_one_ci[2], em_zero_ci[2]),
+      P_value = c(level_1_p_val, level_0_p_val),
+      Fold = fold_k,
+      Type = "Effect Mod",
+      Variables = paste(exposure, effect_m_name, sep = ""),
+      N = length(tmle_fit_av$eif)
     )
 
+    # Add the results to the results_list
     results_list[[i]] <- results
   }
 
+  # Combine all results into a single data frame
   results_df <- do.call(rbind, results_list)
 
+  # Remove duplicated results
   results_df <- results_df[!duplicated(results_df$Psi), ]
 
   return(results_df)
 }
+
 
 #' @title Calculates the Joint Shift Parameter
 #' @description Estimates the shift parameter for a joint shift

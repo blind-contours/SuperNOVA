@@ -32,13 +32,13 @@ Imports:
     furrr,
     purrr,
     polspline,
-    pracma
+    pracma,
+    haldensify
 Suggests: 
     rmarkdown,
     knitr,
     testthat (>= 3.0.0),
-    kableExtra,
-    haldensify
+    kableExtra
 VignetteBuilder: knitr
 Depends: 
     R (>= 2.10)

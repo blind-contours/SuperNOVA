@@ -11,7 +11,7 @@ load_all()
 n_sim <- 10 # number of simulations
 n_obs <- c(250, 500, 1000, 1500, 2500, 3000)
 p0_obs <- 100000
-n_mc_sample <- 1000
+
 
 n_core <- 20
 n_fold <- 10
@@ -68,7 +68,7 @@ for (sample_size in n_obs) {
       var_sets = "a-z",
       exposure_quantized = FALSE,
       mediator_quantized = FALSE,
-      n_mc_sample = n_mc_sample,
+      n_mc_sample = sample_size * 2,
       density_type = "sl",
       integration_method = "MC"
     )

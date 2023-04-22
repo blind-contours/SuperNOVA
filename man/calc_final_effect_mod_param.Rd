@@ -33,6 +33,7 @@ calc_final_effect_mod_param(
 \item{em_learner}{A list of learners for the Super Learner, specifically for decision trees.}
 }
 \description{
-This function uses a decision tree estimator to regress the efficient influence function (EIF)
+This function uses a decision tree estimator to regress the difference in expected outcomes
 of an exposure onto a covariate. Both the exposure and the covariate have been determined through data-adaptive methods.
+If no rules are found, a median split is applied.
 }

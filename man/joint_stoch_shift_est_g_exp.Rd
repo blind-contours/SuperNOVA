@@ -8,7 +8,7 @@ Exposure Variable}
 joint_stoch_shift_est_g_exp(
   exposures,
   deltas,
-  pi_learner,
+  g_learner,
   covars,
   av,
   at,
@@ -25,9 +25,6 @@ variables.}
 \item{deltas}{A \code{numeric} value identifying a shift in the observed
 value of the exposure under which observations are to be evaluated.}
 
-\item{pi_learner}{Object containing a set of instantiated learners
-from \pkg{sl3}, to be used in fitting an ensemble model.}
-
 \item{covars}{A \code{character} labeling the covariate variables}
 
 \item{av}{A \code{dataframe} of validation data specific to the fold}
@@ -39,6 +36,9 @@ determined from the clever covariate being below the hn_trunc_thresh level}
 
 \item{hn_trunc_thresh}{Truncation level of the clever covariate used in the
 adaptive delta method}
+
+\item{pi_learner}{Object containing a set of instantiated learners
+from \pkg{sl3}, to be used in fitting an ensemble model.}
 }
 \value{
 A \code{data.table} with four columns, containing estimates of the

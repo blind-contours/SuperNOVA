@@ -8,7 +8,7 @@ source(here("sandbox/02_fit_estimators.R"))
 load_all()
 
 # simulation parameters
-n_sim <- 5 # number of simulations
+n_sim <- 10 # number of simulations
 n_obs <- c(250, 500, 1000, 1500, 2500, 3000)
 p0_obs <- 100000
 n_mc_sample <- 1000
@@ -87,5 +87,5 @@ for (sample_size in n_obs) {
 # save results to file
 saveRDS(
   object = sim_results_df,
-  file = here("sandbox/data", paste0("SuperNOVA_", "mediation_cont_aq", ".rds"))
+  file = here("sandbox/data", paste0("SuperNOVA_", "mediation_cont_aq_1", ".rds"))
 )

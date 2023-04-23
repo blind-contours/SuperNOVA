@@ -1,0 +1,1222 @@
+
+R version 4.0.3 (2020-10-10) -- "Bunny-Wunnies Freak Out"
+Copyright (C) 2020 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # packages
+> library(here)
+here() starts at /global/scratch/users/david_mccoy/SuperNOVA
+> library(devtools)
+Loading required package: usethis
+> library(dplyr)
+
+Attaching package: 'dplyr'
+
+The following objects are masked from 'package:stats':
+
+    filter, lag
+
+The following objects are masked from 'package:base':
+
+    intersect, setdiff, setequal, union
+
+> library(magrittr)
+> library(stringr)
+> source(here("sandbox/02_fit_estimators.R"))
+> library(SuperNOVA)
+> 
+> # simulation parameters
+> n_sim <- 2 # number of simulations
+> n_obs <- c(250, 500, 1000, 1500, 2000, 2500, 3000, 5000) # sample sizes at root-n scale
+> p0_obs <- 100000
+> 
+> # Generate simulated data -----------------
+> 
+> full_data <- simulate_data(n_obs = 100000,
++                            delta = 1)
+> p0_data <- full_data$data
+> 
+> m1_effect <- full_data$m1_effect
+> m2_effect <- full_data$m2_effect
+> m3_effect <- full_data$m3_effect
+> m4_effect <- full_data$m4_effect
+> m1m4_effect <- full_data$m14_effect
+> m1m4_intxn <- full_data$m14_intxn
+> m3_y_shifted_covar1 <- full_data$m3_y_shifted_covar1
+> m3_y_shifted_covar0 <- full_data$m3_y_shifted_covar0
+> 
+> covars <- c("W1", "W2", "W3")
+> exposures <- c("M1", "M2", "M3", "M4")
+> outcome <- "Y"
+> 
+> 
+> # perform simulation across sample sizes
+> sim_results_df <- data.frame()
+> 
+> for (sample_size in n_obs) {
++   # get results in parallel
++   results <- list()
++   print(sample_size)
++ 
++   for (this_iter in seq_len(n_sim)) {
++     print(this_iter)
++ 
++     seed <- sample(1:10000, 1)
++     set.seed(seed)
++ 
++     data_sim <- p0_data %>%
++       dplyr::slice_sample(n = sample_size)
++ 
++     w <- data_sim[, covars]
++     a <- data_sim[, exposures]
++     y <- data_sim[, outcome]
++ 
++     est_out <- fit_estimators(w = w,
++                               a = a,
++                               y = y,
++                               seed = seed,
++                               true_effects = c(m1_effect, m2_effect, m3_effect, m4_effect),
++                               m14_effect_truth = m1m4_effect,
++                               m14_intxn_truth = m1m4_intxn,
++                               true_em_effects = c(m3_y_shifted_covar1, m3_y_shifted_covar0),
++                               deltas = list("M1" = 1, "M2" = 1, "M3" = 1, "M4" = 1),
++                               cv_folds = 2,
++                               var_sets = c("M1", "M2", "M3", "M4", "M1M4", "M3W3")
++     )
++ 
++     est_out$n_obs <- sample_size
++ 
++     results[[this_iter]] <- est_out
++   }
++   # concatenate iterations
++   results_out <- bind_rows(results, .id = "sim_iter")
++   sim_results_df <- rbind(sim_results_df, results_out)
++ }
+[1] 250
+[1] 1
+
+Iter: 1 fn: 187.9657	 Pars:  0.9999990571 0.0000009431
+Iter: 2 fn: 187.9657	 Pars:  0.9999994899 0.0000005101
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 184.1517	 Pars:  0.9999996640 0.0000003358
+Iter: 2 fn: 184.1517	 Pars:  0.9999997909 0.0000002091
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 182.4234	 Pars:  0.9999990199 0.0000009802
+Iter: 2 fn: 182.4234	 Pars:  0.9999993511 0.0000006489
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 268.0460	 Pars:  0.94207 0.05793
+Iter: 2 fn: 268.0460	 Pars:  0.94210 0.05790
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 186.9990	 Pars:  0.9999994094 0.0000005907
+Iter: 2 fn: 186.9989	 Pars:  0.99999992177 0.00000007823
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 266.0299	 Pars:  0.89710 0.10290
+Iter: 2 fn: 266.0299	 Pars:  0.89710 0.10290
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 271.6311	 Pars:  0.999998324 0.000001675
+Iter: 2 fn: 271.6311	 Pars:  0.999998933 0.000001067
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 182.2503	 Pars:  0.999998708 0.000001292
+Iter: 2 fn: 182.2503	 Pars:  0.9999996435 0.0000003565
+Iter: 3 fn: 182.2503	 Pars:  0.9999998701 0.0000001299
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 165.9376	 Pars:  0.64999 0.35001
+Iter: 2 fn: 165.9376	 Pars:  0.64999 0.35001
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 190.6490	 Pars:  0.90345 0.09655
+Iter: 2 fn: 190.6490	 Pars:  0.90346 0.09654
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 187.7382	 Pars:  0.51205 0.48795
+Iter: 2 fn: 187.7382	 Pars:  0.51205 0.48795
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 260.7227	 Pars:  0.99997779 0.00002221
+Iter: 2 fn: 260.7227	 Pars:  0.99998737 0.00001263
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 169.5680	 Pars:  0.66336 0.33664
+Iter: 2 fn: 169.5680	 Pars:  0.66335 0.33665
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 260.5433	 Pars:  0.000008598 0.999991401
+Iter: 2 fn: 260.5433	 Pars:  0.000001536 0.999998464
+Iter: 3 fn: 260.5433	 Pars:  0.0000008491 0.9999991509
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 258.0233	 Pars:  0.58634 0.41366
+Iter: 2 fn: 258.0233	 Pars:  0.58579 0.41421
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 173.6938	 Pars:  0.58744 0.41256
+Iter: 2 fn: 173.6938	 Pars:  0.58744 0.41256
+solnp--> Completed in 2 iterations
+[1] 2
+
+Iter: 1 fn: 169.9608	 Pars:  0.999994426 0.000005574
+Iter: 2 fn: 169.9608	 Pars:  0.999998979 0.000001021
+Iter: 3 fn: 169.9608	 Pars:  0.9999994483 0.0000005517
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 187.0095	 Pars:  0.42298 0.57702
+Iter: 2 fn: 187.0095	 Pars:  0.42298 0.57702
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 183.5658	 Pars:  0.9999993647 0.0000006338
+Iter: 2 fn: 183.5658	 Pars:  0.9999997435 0.0000002565
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 276.6338	 Pars:  0.9999990436 0.0000009567
+Iter: 2 fn: 276.6338	 Pars:  0.9999996732 0.0000003268
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 171.7062	 Pars:  0.13732 0.86268
+Iter: 2 fn: 171.6810	 Pars:  0.77009 0.22991
+Iter: 3 fn: 171.6810	 Pars:  0.77009 0.22991
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 269.4952	 Pars:  0.9999997597 0.0000002389
+Iter: 2 fn: 269.4952	 Pars:  0.99999996216 0.00000003784
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 269.0647	 Pars:  0.999995245 0.000004755
+Iter: 2 fn: 269.0647	 Pars:  0.99999687 0.00000313
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 183.7996	 Pars:  0.9999995680 0.0000004321
+Iter: 2 fn: 183.7996	 Pars:  0.9999997315 0.0000002685
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 189.7361	 Pars:  0.999993989 0.000006011
+Iter: 2 fn: 189.7361	 Pars:  0.9999996645 0.0000003355
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 182.8606	 Pars:  0.9999996047 0.0000003956
+Iter: 2 fn: 182.8606	 Pars:  0.9999997381 0.0000002619
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 193.2582	 Pars:  0.9999994994 0.0000005008
+Iter: 2 fn: 193.2582	 Pars:  0.9999998741 0.0000001259
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 268.8930	 Pars:  0.999998694 0.000001307
+Iter: 2 fn: 268.8930	 Pars:  0.9999996665 0.0000003335
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 189.0268	 Pars:  0.999994205 0.000005793
+Iter: 2 fn: 189.0268	 Pars:  0.999998979 0.000001021
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 269.6891	 Pars:  0.37402 0.62598
+Iter: 2 fn: 269.6891	 Pars:  0.37401 0.62599
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 268.4321	 Pars:  0.999996685 0.000003315
+Iter: 2 fn: 268.4321	 Pars:  0.9999991021 0.0000008979
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 193.6087	 Pars:  0.69954 0.30046
+Iter: 2 fn: 193.6087	 Pars:  0.69955 0.30045
+solnp--> Completed in 2 iterations
+[1] 500
+[1] 1
+
+Iter: 1 fn: 371.4270	 Pars:  0.97729 0.02271
+Iter: 2 fn: 371.2280	 Pars:  0.64646 0.35354
+Iter: 3 fn: 371.2280	 Pars:  0.64646 0.35354
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 351.6655	 Pars:  0.999994107 0.000005892
+Iter: 2 fn: 351.6655	 Pars:  0.999997814 0.000002186
+Iter: 3 fn: 351.6655	 Pars:  0.9999993575 0.0000006425
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 346.4814	 Pars:  0.0000005196 0.9999994807
+Iter: 2 fn: 346.4814	 Pars:  0.00000008735 0.99999991265
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 517.4633	 Pars:  0.99999563 0.00000437
+Iter: 2 fn: 517.4633	 Pars:  0.999997361 0.000002639
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 364.0473	 Pars:  0.9999995302 0.0000004701
+Iter: 2 fn: 364.0473	 Pars:  0.99999993915 0.00000006085
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 516.1115	 Pars:  0.999992685 0.000007315
+Iter: 2 fn: 516.1115	 Pars:  0.999998239 0.000001761
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 519.3683	 Pars:  0.52556 0.47444
+Iter: 2 fn: 519.3683	 Pars:  0.52550 0.47450
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 348.9827	 Pars:  0.000002926 0.999997072
+Iter: 2 fn: 348.9827	 Pars:  0.0000004047 0.9999995953
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 334.4377	 Pars:  0.90493 0.09507
+Iter: 2 fn: 334.4377	 Pars:  0.90498 0.09502
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 346.1382	 Pars:  0.74033 0.25967
+Iter: 2 fn: 346.1382	 Pars:  0.74034 0.25966
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 347.7689	 Pars:  0.99999891 0.00000109
+Iter: 2 fn: 347.7689	 Pars:  0.99999993 0.00000007
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 537.7517	 Pars:  0.80906 0.19094
+Iter: 2 fn: 537.7517	 Pars:  0.80907 0.19093
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 334.9051	 Pars:  0.47909 0.52091
+Iter: 2 fn: 334.9051	 Pars:  0.47909 0.52091
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 537.9506	 Pars:  0.83358 0.16642
+Iter: 2 fn: 537.9506	 Pars:  0.83360 0.16640
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 542.6722	 Pars:  0.999994807 0.000005192
+Iter: 2 fn: 542.6722	 Pars:  0.9999997448 0.0000002552
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 355.0541	 Pars:  0.999997762 0.000002237
+Iter: 2 fn: 355.0541	 Pars:  0.999998788 0.000001212
+solnp--> Completed in 2 iterations
+[1] 2
+
+Iter: 1 fn: 345.7181	 Pars:  0.99998692 0.00001308
+Iter: 2 fn: 345.7181	 Pars:  0.999993682 0.000006318
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 347.7429	 Pars:  0.99995689 0.00004311
+Iter: 2 fn: 347.7429	 Pars:  0.999992015 0.000007985
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 336.1164	 Pars:  0.00001403 0.99998597
+Iter: 2 fn: 336.1164	 Pars:  0.000007198 0.999992802
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 543.4294	 Pars:  0.999998912 0.000001088
+Iter: 2 fn: 543.4294	 Pars:  0.9999996795 0.0000003205
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 346.6831	 Pars:  0.000006046 0.999993954
+Iter: 2 fn: 346.6831	 Pars:  0.00000003189 0.99999996811
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 539.7259	 Pars:  0.999994884 0.000005116
+Iter: 2 fn: 539.7259	 Pars:  0.999998458 0.000001542
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 538.7069	 Pars:  0.9999991746 0.0000008248
+Iter: 2 fn: 538.7069	 Pars:  0.9999998829 0.0000001171
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 335.6939	 Pars:  0.14482 0.85518
+Iter: 2 fn: 335.6372	 Pars:  0.99998162 0.00001838
+Iter: 3 fn: 335.6372	 Pars:  0.999997601 0.000002399
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 369.9169	 Pars:  0.70556 0.29444
+Iter: 2 fn: 369.9169	 Pars:  0.70556 0.29444
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 369.1994	 Pars:  0.46347 0.53653
+Iter: 2 fn: 369.1994	 Pars:  0.46346 0.53654
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 377.1683	 Pars:  0.65507 0.34493
+Iter: 2 fn: 377.1683	 Pars:  0.65507 0.34493
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 539.1910	 Pars:  0.999998038 0.000001962
+Iter: 2 fn: 539.1910	 Pars:  0.9999992993 0.0000007007
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 368.2344	 Pars:  0.41387 0.58613
+Iter: 2 fn: 368.2344	 Pars:  0.41387 0.58613
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 539.6593	 Pars:  0.999995942 0.000004058
+Iter: 2 fn: 539.6593	 Pars:  0.999997528 0.000002472
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 544.0608	 Pars:  0.99999581 0.00000419
+Iter: 2 fn: 544.0608	 Pars:  0.99999998726 0.00000001274
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 377.4824	 Pars:  0.75069 0.24931
+Iter: 2 fn: 377.4824	 Pars:  0.75069 0.24931
+solnp--> Completed in 2 iterations
+[1] 1000
+[1] 1
+
+Iter: 1 fn: 733.9660	 Pars:  0.999999260 0.000000739
+Iter: 2 fn: 733.9660	 Pars:  0.9999996632 0.0000003368
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 706.8061	 Pars:  0.95772 0.04228
+Iter: 2 fn: 706.8061	 Pars:  0.95775 0.04225
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 720.1001	 Pars:  0.999998418 0.000001582
+Iter: 2 fn: 720.1001	 Pars:  0.9999998167 0.0000001833
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1033.4329	 Pars:  0.13818 0.86182
+Iter: 2 fn: 1032.8360	 Pars:  0.99998597 0.00001403
+Iter: 3 fn: 1032.8360	 Pars:  0.9999995383 0.0000004617
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 731.0645	 Pars:  0.999993822 0.000006178
+Iter: 2 fn: 731.0645	 Pars:  0.99999782 0.00000218
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1040.9772	 Pars:  0.01577 0.98423
+Iter: 2 fn: 1040.8418	 Pars:  0.9998518 0.0001482
+Iter: 3 fn: 1040.8418	 Pars:  0.99990496 0.00009504
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1036.8763	 Pars:  0.999993763 0.000006237
+Iter: 2 fn: 1036.8763	 Pars:  0.999996571 0.000003429
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 715.4680	 Pars:  0.62228 0.37772
+Iter: 2 fn: 715.4680	 Pars:  0.62228 0.37772
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 716.2698	 Pars:  0.99997972 0.00002028
+Iter: 2 fn: 716.2698	 Pars:  0.999991634 0.000008366
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 698.8165	 Pars:  0.83879 0.16121
+Iter: 2 fn: 698.8165	 Pars:  0.83880 0.16120
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 728.1108	 Pars:  0.99992713 0.00007288
+Iter: 2 fn: 728.1108	 Pars:  0.99995871 0.00004129
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1073.9964	 Pars:  0.12355 0.87645
+Iter: 2 fn: 1073.9964	 Pars:  0.12353 0.87647
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 716.4415	 Pars:  0.999997463 0.000002538
+Iter: 2 fn: 716.4415	 Pars:  0.9999997583 0.0000002417
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1074.8910	 Pars:  0.99998269 0.00001731
+Iter: 2 fn: 1074.8910	 Pars:  0.999993028 0.000006972
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1076.6407	 Pars:  0.88474 0.11526
+Iter: 2 fn: 1076.5921	 Pars:  0.66276 0.33724
+Iter: 3 fn: 1076.5921	 Pars:  0.66276 0.33724
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 726.1179	 Pars:  0.93594 0.06406
+Iter: 2 fn: 726.1124	 Pars:  0.88407 0.11593
+Iter: 3 fn: 726.1124	 Pars:  0.88407 0.11593
+solnp--> Completed in 3 iterations
+[1] 2
+
+Iter: 1 fn: 718.9828	 Pars:  0.999993996 0.000006004
+Iter: 2 fn: 718.9828	 Pars:  0.999996758 0.000003242
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 712.1203	 Pars:  0.76662 0.23338
+Iter: 2 fn: 712.1203	 Pars:  0.76666 0.23334
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 738.9258	 Pars:  0.91524 0.08476
+Iter: 2 fn: 738.9258	 Pars:  0.91530 0.08470
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1059.6740	 Pars:  0.999997228 0.000002772
+Iter: 2 fn: 1059.6740	 Pars:  0.999998649 0.000001351
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 720.5012	 Pars:  0.98507 0.01493
+Iter: 2 fn: 720.5012	 Pars:  0.98512 0.01488
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1054.3883	 Pars:  0.999997947 0.000002053
+Iter: 2 fn: 1054.3883	 Pars:  0.99999997099 0.00000002901
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1048.6551	 Pars:  0.999990075 0.000009925
+Iter: 2 fn: 1048.6551	 Pars:  0.999995711 0.000004289
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 741.5053	 Pars:  0.68091 0.31909
+Iter: 2 fn: 741.5053	 Pars:  0.68091 0.31909
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 718.7019	 Pars:  0.38821 0.61179
+Iter: 2 fn: 718.7019	 Pars:  0.38821 0.61179
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 690.4547	 Pars:  0.25847 0.74153
+Iter: 2 fn: 690.4547	 Pars:  0.25841 0.74159
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 711.5648	 Pars:  0.99999362 0.00000638
+Iter: 2 fn: 711.5648	 Pars:  0.99999741 0.00000259
+Iter: 3 fn: 711.5647	 Pars:  0.9999992965 0.0000007035
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1062.4466	 Pars:  0.999996968 0.000003032
+Iter: 2 fn: 1062.4466	 Pars:  0.9999996507 0.0000003493
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 716.9644	 Pars:  0.0000138 0.9999862
+Iter: 2 fn: 716.9644	 Pars:  0.000004326 0.999995674
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1065.1239	 Pars:  0.89096 0.10904
+Iter: 2 fn: 1065.1239	 Pars:  0.89096 0.10904
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1065.4723	 Pars:  0.9999992749 0.0000007252
+Iter: 2 fn: 1065.4723	 Pars:  0.9999998096 0.0000001904
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 711.3418	 Pars:  0.999995312 0.000004688
+Iter: 2 fn: 711.3418	 Pars:  0.999997543 0.000002457
+solnp--> Completed in 2 iterations
+[1] 1500
+[1] 1
+
+Iter: 1 fn: 1083.1161	 Pars:  0.91920 0.08080
+Iter: 2 fn: 1083.1161	 Pars:  0.91935 0.08065
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1061.1534	 Pars:  0.999999007 0.000000993
+Iter: 2 fn: 1061.1534	 Pars:  0.9999994095 0.0000005905
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1081.6726	 Pars:  0.04000 0.96000
+Iter: 2 fn: 1081.6726	 Pars:  0.03979 0.96021
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1602.4282	 Pars:  0.999995613 0.000004387
+Iter: 2 fn: 1602.4282	 Pars:  0.999999142 0.000000858
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1075.0690	 Pars:  0.75173 0.24827
+Iter: 2 fn: 1075.0690	 Pars:  0.75176 0.24824
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1604.8275	 Pars:  0.999992075 0.000007925
+Iter: 2 fn: 1604.8275	 Pars:  0.999997486 0.000002514
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1607.5302	 Pars:  0.01078 0.98922
+Iter: 2 fn: 1607.5114	 Pars:  0.000003298 0.999996702
+Iter: 3 fn: 1607.5114	 Pars:  0.000001983 0.999998017
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1075.6343	 Pars:  0.99998998 0.00001002
+Iter: 2 fn: 1075.6343	 Pars:  0.9999991724 0.0000008276
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1053.4195	 Pars:  0.87567 0.12433
+Iter: 2 fn: 1053.2830	 Pars:  0.35487 0.64513
+Iter: 3 fn: 1053.2830	 Pars:  0.35486 0.64514
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1092.9497	 Pars:  0.999992349 0.000007651
+Iter: 2 fn: 1092.9497	 Pars:  0.999997791 0.000002209
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1072.4867	 Pars:  0.999996810 0.000003191
+Iter: 2 fn: 1072.4867	 Pars:  0.999998035 0.000001965
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1548.5606	 Pars:  0.74902 0.25098
+Iter: 2 fn: 1548.5606	 Pars:  0.74903 0.25097
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1055.2200	 Pars:  0.999997877 0.000002123
+Iter: 2 fn: 1055.2200	 Pars:  0.999998702 0.000001298
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1546.9838	 Pars:  0.65362 0.34638
+Iter: 2 fn: 1546.9837	 Pars:  0.65599 0.34401
+Iter: 3 fn: 1546.9837	 Pars:  0.65599 0.34401
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1547.7894	 Pars:  0.71061 0.28939
+Iter: 2 fn: 1547.7894	 Pars:  0.71062 0.28938
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1072.0724	 Pars:  0.96815 0.03185
+Iter: 2 fn: 1072.0724	 Pars:  0.96846 0.03154
+solnp--> Completed in 2 iterations
+[1] 2
+
+Iter: 1 fn: 1059.4884	 Pars:  0.96632 0.03368
+Iter: 2 fn: 1059.4375	 Pars:  0.999997724 0.000002276
+Iter: 3 fn: 1059.4375	 Pars:  0.999998543 0.000001457
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1063.2772	 Pars:  0.999995129 0.000004871
+Iter: 2 fn: 1063.2772	 Pars:  0.999999651 0.000000349
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1084.0816	 Pars:  0.999998079 0.000001921
+Iter: 2 fn: 1084.0816	 Pars:  0.9999994838 0.0000005162
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1601.1930	 Pars:  0.90390 0.09610
+Iter: 2 fn: 1601.1930	 Pars:  0.90400 0.09600
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1061.5810	 Pars:  0.99996907 0.00003093
+Iter: 2 fn: 1061.5810	 Pars:  0.999998911 0.000001089
+Iter: 3 fn: 1061.5810	 Pars:  0.99999993056 0.00000006944
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1600.2494	 Pars:  0.999997823 0.000002177
+Iter: 2 fn: 1600.2494	 Pars:  0.999998665 0.000001335
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1600.0883	 Pars:  0.51579 0.48421
+Iter: 2 fn: 1600.0883	 Pars:  0.51568 0.48432
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1087.3710	 Pars:  0.00001398 0.99998602
+Iter: 2 fn: 1087.3710	 Pars:  0.000004619 0.999995381
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1088.2549	 Pars:  0.80831 0.19169
+Iter: 2 fn: 1088.2319	 Pars:  0.995987 0.004013
+Iter: 3 fn: 1088.2319	 Pars:  0.995989 0.004011
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1073.1464	 Pars:  0.000008674 0.999991326
+Iter: 2 fn: 1073.1464	 Pars:  0.000002328 0.999997672
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1085.1277	 Pars:  0.00001072 0.99998928
+Iter: 2 fn: 1085.1277	 Pars:  0.000006566 0.999993434
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1581.7074	 Pars:  0.9999995335 0.0000004664
+Iter: 2 fn: 1581.7074	 Pars:  0.99999991132 0.00000008868
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1094.2052	 Pars:  0.999991242 0.000008758
+Iter: 2 fn: 1094.2052	 Pars:  0.9999998267 0.0000001733
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1573.6098	 Pars:  0.999996584 0.000003415
+Iter: 2 fn: 1573.6098	 Pars:  0.999998464 0.000001536
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1576.6986	 Pars:  0.88076 0.11924
+Iter: 2 fn: 1576.6913	 Pars:  0.84845 0.15155
+Iter: 3 fn: 1576.6913	 Pars:  0.84845 0.15155
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1083.1502	 Pars:  0.35309 0.64691
+Iter: 2 fn: 1083.0986	 Pars:  0.00007465 0.99992535
+Iter: 3 fn: 1083.0986	 Pars:  0.00004796 0.99995204
+solnp--> Completed in 3 iterations
+[1] 2000
+[1] 1
+
+Iter: 1 fn: 1408.5894	 Pars:  0.97577 0.02423
+Iter: 2 fn: 1408.5784	 Pars:  0.99998838 0.00001162
+Iter: 3 fn: 1408.5784	 Pars:  0.999992999 0.000007001
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1415.2020	 Pars:  0.73631 0.26369
+Iter: 2 fn: 1415.2020	 Pars:  0.73632 0.26368
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1418.0719	 Pars:  0.99994761 0.00005239
+Iter: 2 fn: 1418.0719	 Pars:  0.99998485 0.00001515
+Iter: 3 fn: 1418.0719	 Pars:  0.999994205 0.000005795
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 2114.7371	 Pars:  0.77904 0.22096
+Iter: 2 fn: 2114.7354	 Pars:  0.79138 0.20862
+Iter: 3 fn: 2114.7354	 Pars:  0.79139 0.20861
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1407.5211	 Pars:  0.999990250 0.000009751
+Iter: 2 fn: 1407.5211	 Pars:  0.999997029 0.000002971
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2116.6925	 Pars:  0.95320 0.04680
+Iter: 2 fn: 2116.6735	 Pars:  0.89452 0.10548
+Iter: 3 fn: 2116.6735	 Pars:  0.89449 0.10551
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 2133.6627	 Pars:  0.69818 0.30182
+Iter: 2 fn: 2133.6627	 Pars:  0.69818 0.30182
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1418.2251	 Pars:  0.58816 0.41184
+Iter: 2 fn: 1418.1811	 Pars:  0.9998609 0.0001391
+Iter: 3 fn: 1418.1811	 Pars:  0.99991078 0.00008922
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1401.8834	 Pars:  0.99998459 0.00001541
+Iter: 2 fn: 1401.8834	 Pars:  0.999991644 0.000008356
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1413.3376	 Pars:  0.85898 0.14102
+Iter: 2 fn: 1413.3376	 Pars:  0.85899 0.14101
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1418.9730	 Pars:  0.61667 0.38333
+Iter: 2 fn: 1418.9730	 Pars:  0.61667 0.38333
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2078.5983	 Pars:  0.67936 0.32064
+Iter: 2 fn: 2078.5768	 Pars:  0.55706 0.44294
+Iter: 3 fn: 2078.5768	 Pars:  0.55705 0.44295
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1404.3255	 Pars:  0.90721 0.09279
+Iter: 2 fn: 1404.3255	 Pars:  0.90721 0.09279
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2075.4766	 Pars:  0.000006947 0.999993053
+Iter: 2 fn: 2075.4766	 Pars:  0.000001646 0.999998354
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2080.2230	 Pars:  0.79253 0.20747
+Iter: 2 fn: 2080.1981	 Pars:  0.91359 0.08641
+Iter: 3 fn: 2080.1981	 Pars:  0.91361 0.08639
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1415.2949	 Pars:  0.82150 0.17850
+Iter: 2 fn: 1415.2949	 Pars:  0.82154 0.17846
+solnp--> Completed in 2 iterations
+[1] 2
+
+Iter: 1 fn: 1393.2563	 Pars:  0.31752 0.68248
+Iter: 2 fn: 1393.2563	 Pars:  0.31752 0.68248
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1444.7757	 Pars:  0.74742 0.25258
+Iter: 2 fn: 1444.7757	 Pars:  0.74744 0.25256
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1431.3515	 Pars:  0.56132 0.43868
+Iter: 2 fn: 1431.3300	 Pars:  0.90533 0.09467
+Iter: 3 fn: 1431.3300	 Pars:  0.90537 0.09463
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 2144.3807	 Pars:  0.91273 0.08727
+Iter: 2 fn: 2144.1460	 Pars:  0.52487 0.47513
+Iter: 3 fn: 2144.1460	 Pars:  0.52487 0.47513
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1395.8126	 Pars:  0.999993684 0.000006316
+Iter: 2 fn: 1395.8126	 Pars:  0.999998577 0.000001423
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2142.7986	 Pars:  0.91438 0.08562
+Iter: 2 fn: 2142.7986	 Pars:  0.91448 0.08552
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2145.6288	 Pars:  0.81233 0.18767
+Iter: 2 fn: 2145.6288	 Pars:  0.81233 0.18767
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1432.5832	 Pars:  0.99999154 0.00000846
+Iter: 2 fn: 1432.5832	 Pars:  0.999998685 0.000001315
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1421.4736	 Pars:  0.73449 0.26551
+Iter: 2 fn: 1421.4736	 Pars:  0.73449 0.26551
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1440.8183	 Pars:  0.999993676 0.000006324
+Iter: 2 fn: 1440.8183	 Pars:  0.999998341 0.000001659
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1462.0358	 Pars:  0.99996701 0.00003299
+Iter: 2 fn: 1462.0358	 Pars:  0.99998528 0.00001472
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2113.6244	 Pars:  0.87866 0.12134
+Iter: 2 fn: 2113.6244	 Pars:  0.87874 0.12126
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1419.5716	 Pars:  0.63538 0.36462
+Iter: 2 fn: 1419.5716	 Pars:  0.63544 0.36456
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2112.1185	 Pars:  0.70849 0.29151
+Iter: 2 fn: 2112.1185	 Pars:  0.70849 0.29151
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2114.2182	 Pars:  0.999993972 0.000006028
+Iter: 2 fn: 2114.2182	 Pars:  0.999996086 0.000003914
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1458.7174	 Pars:  0.94420 0.05580
+Iter: 2 fn: 1458.7154	 Pars:  0.92078 0.07922
+Iter: 3 fn: 1458.7154	 Pars:  0.92082 0.07918
+solnp--> Completed in 3 iterations
+[1] 2500
+[1] 1
+
+Iter: 1 fn: 1795.7234	 Pars:  0.999997464 0.000002536
+Iter: 2 fn: 1795.7234	 Pars:  0.9999995466 0.0000004534
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1802.4751	 Pars:  0.94441 0.05559
+Iter: 2 fn: 1802.4751	 Pars:  0.94445 0.05555
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1816.8522	 Pars:  0.98344 0.01656
+Iter: 2 fn: 1816.8522	 Pars:  0.98346 0.01654
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2607.5524	 Pars:  0.78420 0.21580
+Iter: 2 fn: 2607.5524	 Pars:  0.78420 0.21580
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1791.8766	 Pars:  0.999994475 0.000005525
+Iter: 2 fn: 1791.8766	 Pars:  0.999998797 0.000001203
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2604.6268	 Pars:  0.76310 0.23690
+Iter: 2 fn: 2604.6268	 Pars:  0.76310 0.23690
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2609.2903	 Pars:  0.79961 0.20039
+Iter: 2 fn: 2609.2903	 Pars:  0.79962 0.20038
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1818.4075	 Pars:  0.91511 0.08489
+Iter: 2 fn: 1818.4075	 Pars:  0.91514 0.08486
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1771.0942	 Pars:  0.93456 0.06544
+Iter: 2 fn: 1771.0942	 Pars:  0.93489 0.06511
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1750.9198	 Pars:  0.83650 0.16350
+Iter: 2 fn: 1750.9198	 Pars:  0.83651 0.16349
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1749.3162	 Pars:  0.999994055 0.000005944
+Iter: 2 fn: 1749.3162	 Pars:  0.999998071 0.000001929
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2655.4239	 Pars:  0.9995033 0.0004967
+Iter: 2 fn: 2655.4239	 Pars:  0.99993415 0.00006585
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1768.6761	 Pars:  0.96343 0.03657
+Iter: 2 fn: 1768.6761	 Pars:  0.96349 0.03651
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2648.1128	 Pars:  0.99999455 0.00000545
+Iter: 2 fn: 2648.1128	 Pars:  0.9999998707 0.0000001293
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2649.7061	 Pars:  0.9998541 0.0001459
+Iter: 2 fn: 2649.7061	 Pars:  0.99997964 0.00002036
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1747.6779	 Pars:  0.999993413 0.000006587
+Iter: 2 fn: 1747.6779	 Pars:  0.99999607 0.00000393
+solnp--> Completed in 2 iterations
+[1] 2
+
+Iter: 1 fn: 1759.2404	 Pars:  0.52203 0.47797
+Iter: 2 fn: 1759.2111	 Pars:  0.08557 0.91443
+Iter: 3 fn: 1759.2111	 Pars:  0.08556 0.91444
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1800.4308	 Pars:  0.99998873 0.00001127
+Iter: 2 fn: 1800.4307	 Pars:  0.999998683 0.000001317
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1771.9921	 Pars:  0.51962 0.48038
+Iter: 2 fn: 1771.9919	 Pars:  0.50646 0.49354
+Iter: 3 fn: 1771.9919	 Pars:  0.50646 0.49354
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 2623.6183	 Pars:  0.26455 0.73545
+Iter: 2 fn: 2623.6183	 Pars:  0.26450 0.73550
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1759.4155	 Pars:  0.9993248 0.0006752
+Iter: 2 fn: 1759.4155	 Pars:  0.99993356 0.00006644
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2628.2526	 Pars:  0.77995 0.22005
+Iter: 2 fn: 2628.2526	 Pars:  0.77995 0.22005
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2630.6077	 Pars:  0.999996009 0.000003991
+Iter: 2 fn: 2630.6077	 Pars:  0.9999992636 0.0000007364
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1762.9338	 Pars:  0.97552 0.02448
+Iter: 2 fn: 1762.2403	 Pars:  0.20210 0.79790
+Iter: 3 fn: 1762.2403	 Pars:  0.20219 0.79781
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1777.8225	 Pars:  0.999993365 0.000006634
+Iter: 2 fn: 1777.8225	 Pars:  0.999997216 0.000002784
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1818.6097	 Pars:  0.81564 0.18436
+Iter: 2 fn: 1818.6097	 Pars:  0.81565 0.18435
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1774.3157	 Pars:  0.97602 0.02398
+Iter: 2 fn: 1774.3154	 Pars:  0.98361 0.01639
+Iter: 3 fn: 1774.3154	 Pars:  0.98366 0.01634
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 2646.3439	 Pars:  0.73658 0.26342
+Iter: 2 fn: 2646.3429	 Pars:  0.75453 0.24547
+Iter: 3 fn: 2646.3429	 Pars:  0.75453 0.24547
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1782.5287	 Pars:  0.36218 0.63782
+Iter: 2 fn: 1782.5261	 Pars:  0.42970 0.57030
+Iter: 3 fn: 1782.5261	 Pars:  0.42970 0.57030
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 2645.9378	 Pars:  0.46998 0.53002
+Iter: 2 fn: 2645.9378	 Pars:  0.46996 0.53004
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2649.7141	 Pars:  0.999993999 0.000006001
+Iter: 2 fn: 2649.7141	 Pars:  0.9999990985 0.0000009015
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1773.9206	 Pars:  0.72565 0.27435
+Iter: 2 fn: 1773.9206	 Pars:  0.72568 0.27432
+solnp--> Completed in 2 iterations
+[1] 3000
+[1] 1
+
+Iter: 1 fn: 2124.2653	 Pars:  0.13510 0.86490
+Iter: 2 fn: 2124.2459	 Pars:  0.48315 0.51685
+Iter: 3 fn: 2124.2459	 Pars:  0.48315 0.51685
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 2100.7994	 Pars:  0.77803 0.22197
+Iter: 2 fn: 2100.6287	 Pars:  0.99996872 0.00003128
+Iter: 3 fn: 2100.6287	 Pars:  0.99998038 0.00001962
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 2110.8203	 Pars:  0.9999992123 0.0000007877
+Iter: 2 fn: 2110.8203	 Pars:  0.9999998486 0.0000001514
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3169.6695	 Pars:  0.82129 0.17871
+Iter: 2 fn: 3169.6695	 Pars:  0.82141 0.17859
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2124.3066	 Pars:  0.99998362 0.00001638
+Iter: 2 fn: 2124.3066	 Pars:  0.999997944 0.000002056
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3169.5313	 Pars:  0.999995811 0.000004189
+Iter: 2 fn: 3169.5313	 Pars:  0.9999990533 0.0000009467
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3188.5295	 Pars:  0.42222 0.57778
+Iter: 2 fn: 3188.5295	 Pars:  0.42227 0.57773
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2110.8837	 Pars:  0.97271 0.02729
+Iter: 2 fn: 2110.8708	 Pars:  0.99998688 0.00001312
+Iter: 3 fn: 2110.8708	 Pars:  0.999998891 0.000001109
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 2108.2228	 Pars:  0.79340 0.20660
+Iter: 2 fn: 2108.2228	 Pars:  0.79353 0.20647
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2078.2999	 Pars:  0.71384 0.28616
+Iter: 2 fn: 2078.2999	 Pars:  0.71386 0.28614
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2116.5696	 Pars:  0.98959 0.01041
+Iter: 2 fn: 2115.9962	 Pars:  0.23133 0.76867
+Iter: 3 fn: 2115.9962	 Pars:  0.23131 0.76869
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 3139.2366	 Pars:  0.99993464 0.00006535
+Iter: 2 fn: 3139.2366	 Pars:  0.99997598 0.00002402
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2107.1327	 Pars:  0.04196 0.95804
+Iter: 2 fn: 2106.2338	 Pars:  0.75059 0.24941
+Iter: 3 fn: 2106.2338	 Pars:  0.75059 0.24941
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 3143.2573	 Pars:  0.999995453 0.000004547
+Iter: 2 fn: 3143.2573	 Pars:  0.9999993824 0.0000006176
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3147.9332	 Pars:  0.56769 0.43231
+Iter: 2 fn: 3147.9324	 Pars:  0.55225 0.44775
+Iter: 3 fn: 3147.9324	 Pars:  0.55222 0.44778
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 2117.6093	 Pars:  0.991147 0.008853
+Iter: 2 fn: 2117.2138	 Pars:  0.44166 0.55834
+Iter: 3 fn: 2117.2138	 Pars:  0.44166 0.55834
+solnp--> Completed in 3 iterations
+[1] 2
+
+Iter: 1 fn: 2164.8574	 Pars:  0.90878 0.09122
+Iter: 2 fn: 2164.8574	 Pars:  0.90882 0.09118
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2123.3916	 Pars:  0.96670 0.03330
+Iter: 2 fn: 2123.3916	 Pars:  0.96671 0.03329
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2166.7907	 Pars:  0.999994927 0.000005073
+Iter: 2 fn: 2166.7907	 Pars:  0.9999967 0.0000033
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3251.6711	 Pars:  0.99998474 0.00001526
+Iter: 2 fn: 3251.6711	 Pars:  0.999995869 0.000004131
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2160.3507	 Pars:  0.90883 0.09117
+Iter: 2 fn: 2160.3507	 Pars:  0.90885 0.09115
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3255.5410	 Pars:  0.99998149 0.00001851
+Iter: 2 fn: 3255.5410	 Pars:  0.999997562 0.000002438
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3251.1285	 Pars:  0.9998432 0.0001568
+Iter: 2 fn: 3251.1285	 Pars:  0.99995197 0.00004803
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2168.8048	 Pars:  0.99994359 0.00005641
+Iter: 2 fn: 2168.8048	 Pars:  0.99998072 0.00001928
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2119.2999	 Pars:  0.999997208 0.000002792
+Iter: 2 fn: 2119.2999	 Pars:  0.999998339 0.000001661
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2108.8331	 Pars:  0.86674 0.13326
+Iter: 2 fn: 2108.8331	 Pars:  0.86674 0.13326
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2141.3960	 Pars:  0.84883 0.15117
+Iter: 2 fn: 2141.3960	 Pars:  0.84895 0.15105
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3191.2206	 Pars:  0.99992621 0.00007379
+Iter: 2 fn: 3191.2206	 Pars:  0.99998201 0.00001799
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2120.5941	 Pars:  0.999990921 0.000009079
+Iter: 2 fn: 2120.5941	 Pars:  0.999997009 0.000002991
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3190.9151	 Pars:  0.999990768 0.000009232
+Iter: 2 fn: 3190.9150	 Pars:  0.999998662 0.000001338
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3189.9564	 Pars:  0.999993306 0.000006694
+Iter: 2 fn: 3189.9564	 Pars:  0.999998686 0.000001314
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2139.9525	 Pars:  0.84684 0.15316
+Iter: 2 fn: 2139.9525	 Pars:  0.84689 0.15311
+solnp--> Completed in 2 iterations
+[1] 5000
+[1] 1
+
+Iter: 1 fn: 3585.8825	 Pars:  0.005769 0.994231
+Iter: 2 fn: 3580.4024	 Pars:  0.99998834 0.00001166
+Iter: 3 fn: 3580.4024	 Pars:  0.999998495 0.000001505
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 3537.6430	 Pars:  0.70426 0.29574
+Iter: 2 fn: 3537.4216	 Pars:  0.99998069 0.00001931
+Iter: 3 fn: 3537.4216	 Pars:  0.99998839 0.00001161
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 3549.8597	 Pars:  0.82530 0.17470
+Iter: 2 fn: 3549.8597	 Pars:  0.82530 0.17470
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5243.1838	 Pars:  0.99998826 0.00001174
+Iter: 2 fn: 5243.1837	 Pars:  0.999996696 0.000003304
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3579.4785	 Pars:  0.99998812 0.00001188
+Iter: 2 fn: 3579.4785	 Pars:  0.999993838 0.000006162
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5246.3116	 Pars:  0.29818 0.70182
+Iter: 2 fn: 5246.2189	 Pars:  0.0003416 0.9996584
+Iter: 3 fn: 5246.2189	 Pars:  0.0001959 0.9998041
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 5243.8159	 Pars:  0.96978 0.03022
+Iter: 2 fn: 5243.7616	 Pars:  0.99998938 0.00001062
+Iter: 3 fn: 5243.7615	 Pars:  0.999993608 0.000006392
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 3556.1965	 Pars:  0.89938 0.10062
+Iter: 2 fn: 3556.1965	 Pars:  0.89945 0.10055
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3533.6159	 Pars:  0.9999818 0.0000182
+Iter: 2 fn: 3533.6159	 Pars:  0.99998801 0.00001199
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3524.6900	 Pars:  0.04738 0.95262
+Iter: 2 fn: 3524.6718	 Pars:  0.00002703 0.99997296
+Iter: 3 fn: 3524.6717	 Pars:  0.0000005158 0.9999994842
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 3534.7574	 Pars:  0.99996101 0.00003899
+Iter: 2 fn: 3534.7574	 Pars:  0.99998151 0.00001849
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5283.8359	 Pars:  0.17856 0.82144
+Iter: 2 fn: 5283.8348	 Pars:  0.15194 0.84806
+Iter: 3 fn: 5283.8348	 Pars:  0.15193 0.84807
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 3534.4283	 Pars:  0.75268 0.24732
+Iter: 2 fn: 3534.3054	 Pars:  0.9998846 0.0001154
+Iter: 3 fn: 3534.3054	 Pars:  0.99998763 0.00001237
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 5295.3381	 Pars:  0.49939 0.50061
+Iter: 2 fn: 5295.2699	 Pars:  0.67920 0.32080
+Iter: 3 fn: 5295.2699	 Pars:  0.67920 0.32080
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 5306.6548	 Pars:  0.000006496 0.999993504
+Iter: 2 fn: 5306.6548	 Pars:  0.000001199 0.999998801
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3534.3879	 Pars:  0.90167 0.09833
+Iter: 2 fn: 3534.3209	 Pars:  0.99993267 0.00006733
+Iter: 3 fn: 3534.3209	 Pars:  0.99996236 0.00003764
+solnp--> Completed in 3 iterations
+[1] 2
+
+Iter: 1 fn: 3542.0789	 Pars:  0.63985 0.36015
+Iter: 2 fn: 3542.0789	 Pars:  0.64009 0.35991
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3584.5582	 Pars:  0.999990537 0.000009462
+Iter: 2 fn: 3584.5582	 Pars:  0.999995254 0.000004746
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3580.9743	 Pars:  0.99998925 0.00001075
+Iter: 2 fn: 3580.9743	 Pars:  0.99999336 0.00000664
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5340.9803	 Pars:  0.95076 0.04924
+Iter: 2 fn: 5340.8769	 Pars:  0.999990416 0.000009584
+Iter: 3 fn: 5340.8769	 Pars:  0.999993843 0.000006157
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 3541.7580	 Pars:  0.999996169 0.000003831
+Iter: 2 fn: 3541.7580	 Pars:  0.999998853 0.000001147
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5335.6253	 Pars:  0.84718 0.15282
+Iter: 2 fn: 5335.6253	 Pars:  0.84732 0.15268
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5340.7378	 Pars:  0.92359 0.07641
+Iter: 2 fn: 5340.7378	 Pars:  0.92360 0.07640
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3579.4584	 Pars:  0.76033 0.23967
+Iter: 2 fn: 3579.4584	 Pars:  0.76036 0.23964
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3554.2628	 Pars:  0.67822 0.32178
+Iter: 2 fn: 3554.2628	 Pars:  0.67830 0.32170
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3596.6037	 Pars:  0.61352 0.38648
+Iter: 2 fn: 3596.4499	 Pars:  0.99996831 0.00003169
+Iter: 3 fn: 3596.4499	 Pars:  0.99997963 0.00002037
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 3567.6818	 Pars:  0.54955 0.45045
+Iter: 2 fn: 3567.6809	 Pars:  0.56433 0.43567
+Iter: 3 fn: 3567.6809	 Pars:  0.56433 0.43567
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 5249.8789	 Pars:  0.84905 0.15095
+Iter: 2 fn: 5249.8789	 Pars:  0.84907 0.15093
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3556.6420	 Pars:  0.99998694 0.00001305
+Iter: 2 fn: 3556.6420	 Pars:  0.99999378 0.00000622
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5251.2988	 Pars:  0.97302 0.02698
+Iter: 2 fn: 5251.2988	 Pars:  0.97391 0.02609
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5250.7981	 Pars:  0.85467 0.14533
+Iter: 2 fn: 5250.7977	 Pars:  0.84795 0.15205
+Iter: 3 fn: 5250.7977	 Pars:  0.84795 0.15205
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 3566.9648	 Pars:  0.99996627 0.00003373
+Iter: 2 fn: 3566.9648	 Pars:  0.9999998904 0.0000001096
+solnp--> Completed in 2 iterations
+> 
+> 
+> # save results to file
+> timestamp <- str_replace_all(Sys.time(), " ", "_")
+> saveRDS(
++   object = sim_results_df,
++   file = here("sandbox/data", paste0("SuperNOVA_", "sim", ".rds"))
++ )
+> 
+> proc.time()
+     user    system   elapsed 
+ 2936.061    60.382 42961.948 

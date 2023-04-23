@@ -1,0 +1,1607 @@
+
+R version 4.0.3 (2020-10-10) -- "Bunny-Wunnies Freak Out"
+Copyright (C) 2020 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # packages
+> library(here)
+here() starts at /global/scratch/users/david_mccoy/SuperNOVA
+> library(devtools)
+Loading required package: usethis
+> library(dplyr)
+
+Attaching package: 'dplyr'
+
+The following objects are masked from 'package:stats':
+
+    filter, lag
+
+The following objects are masked from 'package:base':
+
+    intersect, setdiff, setequal, union
+
+> library(magrittr)
+> library(stringr)
+> source(here("sandbox/02_fit_estimators.R"))
+> library(SuperNOVA)
+Warning message:
+replacing previous import 'pracma::cross' by 'purrr::cross' when loading 'SuperNOVA' 
+> 
+> # simulation parameters
+> n_sim <- 5 # number of simulations
+> n_obs <- c(250, 500, 1000, 1500, 2500)
+> p0_obs <- 100000
+> n_mc_sample <- 100
+> 
+> n_core <- 20
+> n_fold <- 10
+> 
+> # Generate simulated data -----------------
+> 
+> full_data <- simulate_mediation_data(n_obs = 100000,
++                            delta = 1)
+> p0_data <- full_data$data
+> 
+> nde_a1 <- full_data$nde_a1
+> nie_a1 <- full_data$nie_a1
+> ate_a1 <- full_data$ate_a1
+> 
+> nde_a1_quant <- full_data$nde_a1_quant
+> nie_a1_quant <- full_data$nie_a1_quant
+> ate_a1_quant <- full_data$ate_a1_quant
+> 
+> covars <- c("w_1", "w_2", "w_3", "w_4", "w_5")
+> exposures <- c("a_1")
+> mediators <- c("z_1")
+> outcome <- "y"
+> 
+> 
+> # perform simulation across sample sizes
+> sim_results_df <- data.frame()
+> 
+> for (sample_size in n_obs) {
++   # get results in parallel
++   results <- list()
++   print(sample_size)
++ 
++   for (this_iter in seq_len(n_sim)) {
++     print(this_iter)
++ 
++     seed <- sample(1:10000, 1)
++     set.seed(seed)
++ 
++     data_sim <- p0_data %>%
++       dplyr::slice_sample(n = sample_size)
++ 
++     w <- data_sim[, covars]
++     a <- data_sim[, exposures]
++     z <- data_sim[, mediators]
++     y <- data_sim[, outcome]
++ 
++     est_out <- fit_estimators_mediation(
++                               w = w,
++                               a = a,
++                               z = z,
++                               y = y,
++                               seed = seed,
++                               nde_effects = c(nde_a1),
++                               nie_effects = c(nie_a1),
++                               ate_effects = c(ate_a1),
++                               deltas = list("a" = 1),
++                               cv_folds = n_fold,
++                               num_cores = n_core,
++                               var_sets = "a-z",
++                               exposure_quantized = FALSE,
++                               n_mc_sample = n_mc_sample
++     )
++ 
++     est_out$n_obs <- sample_size
++ 
++     results[[this_iter]] <- est_out
++   }
++   # concatenate iterations
++   results_out <- bind_rows(results, .id = "sim_iter")
++   sim_results_df <- rbind(sim_results_df, results_out)
++ }
+[1] 250
+[1] 1
+
+Iter: 1 fn: 515.4041	 Pars:  0.999991220 0.000008779
+Iter: 2 fn: 515.4041	 Pars:  0.99999852 0.00000148
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 503.5807	 Pars:  0.9999995603 0.0000004399
+Iter: 2 fn: 503.5807	 Pars:  0.99999991469 0.00000008531
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 500.6532	 Pars:  0.66828 0.33172
+Iter: 2 fn: 500.6532	 Pars:  0.66828 0.33172
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 499.2441	 Pars:  0.9999992900 0.0000007098
+Iter: 2 fn: 499.2441	 Pars:  0.9999995405 0.0000004595
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 516.4441	 Pars:  0.999999112 0.000000888
+Iter: 2 fn: 516.4441	 Pars:  0.9999996548 0.0000003452
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 508.3049	 Pars:  0.9999994360 0.0000005645
+Iter: 2 fn: 508.3049	 Pars:  0.9999998533 0.0000001467
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 504.9788	 Pars:  0.999998954 0.000001045
+Iter: 2 fn: 504.9788	 Pars:  0.9999995445 0.0000004555
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 498.1199	 Pars:  0.99999682 0.00000318
+Iter: 2 fn: 498.1199	 Pars:  0.999998326 0.000001674
+solnp--> Completed in 2 iterations
+4.44% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+4.44% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 499.7574	 Pars:  0.94080 0.05920
+Iter: 2 fn: 499.7574	 Pars:  0.94081 0.05919
+solnp--> Completed in 2 iterations
+7.11% of observations outside training support...predictions trimmed.
+21.78% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+8% of observations outside training support...predictions trimmed.
+20% of observations outside training support...predictions trimmed.
+7.11% of observations outside training support...predictions trimmed.
+21.78% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+8% of observations outside training support...predictions trimmed.
+20% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 505.1597	 Pars:  0.999999519 0.000000482
+Iter: 2 fn: 505.1597	 Pars:  0.999999832 0.000000168
+solnp--> Completed in 2 iterations
+[1] 2
+
+Iter: 1 fn: 528.5014	 Pars:  0.48291 0.51709
+Iter: 2 fn: 528.5014	 Pars:  0.48292 0.51708
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 530.2043	 Pars:  0.86893 0.13107
+Iter: 2 fn: 530.1959	 Pars:  0.94286 0.05714
+Iter: 3 fn: 530.1959	 Pars:  0.94286 0.05714
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 526.1180	 Pars:  0.78252 0.21748
+Iter: 2 fn: 526.1180	 Pars:  0.78255 0.21745
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 524.5944	 Pars:  0.9999993726 0.0000006275
+Iter: 2 fn: 524.5944	 Pars:  0.99999994847 0.00000005153
+solnp--> Completed in 2 iterations
+7.11% of observations outside training support...predictions trimmed.
+23.11% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+24% of observations outside training support...predictions trimmed.
+40% of observations outside training support...predictions trimmed.
+7.11% of observations outside training support...predictions trimmed.
+23.11% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+24% of observations outside training support...predictions trimmed.
+40% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 522.2841	 Pars:  0.90491 0.09509
+Iter: 2 fn: 522.2730	 Pars:  0.99998006 0.00001994
+Iter: 3 fn: 522.2730	 Pars:  0.99998797 0.00001203
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 522.7902	 Pars:  0.999998928 0.000001071
+Iter: 2 fn: 522.7902	 Pars:  0.9999994021 0.0000005979
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 525.9862	 Pars:  0.45017 0.54983
+Iter: 2 fn: 525.9862	 Pars:  0.45017 0.54983
+solnp--> Completed in 2 iterations
+4% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+8% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+8% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 530.6023	 Pars:  0.999998535 0.000001464
+Iter: 2 fn: 530.6023	 Pars:  0.999999096 0.000000904
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 509.2795	 Pars:  0.80328 0.19672
+Iter: 2 fn: 509.2794	 Pars:  0.80328 0.19672
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 532.9100	 Pars:  0.9999996679 0.0000003321
+Iter: 2 fn: 532.9100	 Pars:  0.99999995521 0.00000004479
+solnp--> Completed in 2 iterations
+[1] 3
+
+Iter: 1 fn: 514.0445	 Pars:  0.9999995995 0.0000004008
+Iter: 2 fn: 514.0445	 Pars:  0.9999997356 0.0000002644
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 503.3642	 Pars:  0.999995907 0.000004093
+Iter: 2 fn: 503.3642	 Pars:  0.9999997518 0.0000002482
+Iter: 3 fn: 503.3642	 Pars:  0.9999998903 0.0000001097
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 510.5901	 Pars:  0.90428 0.09572
+Iter: 2 fn: 510.5901	 Pars:  0.90428 0.09572
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 499.9071	 Pars:  0.95283 0.04717
+Iter: 2 fn: 499.9071	 Pars:  0.95283 0.04717
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 509.3710	 Pars:  0.999998619 0.000001379
+Iter: 2 fn: 509.3710	 Pars:  0.9999991481 0.0000008519
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 508.6926	 Pars:  0.99997582 0.00002418
+Iter: 2 fn: 508.6926	 Pars:  0.99998559 0.00001441
+solnp--> Completed in 2 iterations
+5.78% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+20% of observations outside training support...predictions trimmed.
+5.78% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+20% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 513.6725	 Pars:  0.9999990877 0.0000009125
+Iter: 2 fn: 513.6725	 Pars:  0.9999997815 0.0000002185
+solnp--> Completed in 2 iterations
+2.22% of observations outside training support...predictions trimmed.
+7.11% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+12% of observations outside training support...predictions trimmed.
+2.22% of observations outside training support...predictions trimmed.
+7.11% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+12% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 507.8330	 Pars:  0.9999995460 0.0000004541
+Iter: 2 fn: 507.8330	 Pars:  0.99999993164 0.00000006836
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 510.1566	 Pars:  0.9999996878 0.0000003123
+Iter: 2 fn: 510.1566	 Pars:  0.9999997963 0.0000002037
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 510.0884	 Pars:  0.999998667 0.000001333
+Iter: 2 fn: 510.0884	 Pars:  0.9999992114 0.0000007886
+solnp--> Completed in 2 iterations
+[1] 4
+
+Iter: 1 fn: 490.2445	 Pars:  0.56184 0.43816
+Iter: 2 fn: 490.2445	 Pars:  0.56184 0.43816
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 495.6036	 Pars:  0.43109 0.56891
+Iter: 2 fn: 495.6036	 Pars:  0.43112 0.56888
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 504.0853	 Pars:  0.62362 0.37638
+Iter: 2 fn: 504.0853	 Pars:  0.62362 0.37638
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 504.7146	 Pars:  0.74067 0.25933
+Iter: 2 fn: 504.7146	 Pars:  0.74067 0.25933
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 494.7881	 Pars:  0.58730 0.41270
+Iter: 2 fn: 494.7881	 Pars:  0.58730 0.41270
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 497.1666	 Pars:  0.54252 0.45748
+Iter: 2 fn: 497.1666	 Pars:  0.54252 0.45748
+solnp--> Completed in 2 iterations
+1.78% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+1.78% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 486.4970	 Pars:  0.19539 0.80461
+Iter: 2 fn: 486.4970	 Pars:  0.19538 0.80462
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 488.4693	 Pars:  0.44292 0.55708
+Iter: 2 fn: 488.4693	 Pars:  0.44296 0.55704
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 499.8880	 Pars:  0.64720 0.35280
+Iter: 2 fn: 499.8880	 Pars:  0.64720 0.35280
+solnp--> Completed in 2 iterations
+5.33% of observations outside training support...predictions trimmed.
+21.33% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+12% of observations outside training support...predictions trimmed.
+20% of observations outside training support...predictions trimmed.
+5.33% of observations outside training support...predictions trimmed.
+21.33% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+12% of observations outside training support...predictions trimmed.
+20% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 512.0779	 Pars:  0.82214 0.17786
+Iter: 2 fn: 512.0779	 Pars:  0.82214 0.17786
+solnp--> Completed in 2 iterations
+[1] 5
+
+Iter: 1 fn: 504.7027	 Pars:  0.29935 0.70065
+Iter: 2 fn: 504.7027	 Pars:  0.29935 0.70065
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 499.1738	 Pars:  0.999996696 0.000003305
+Iter: 2 fn: 499.1738	 Pars:  0.9999996121 0.0000003879
+solnp--> Completed in 2 iterations
+4.89% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+8% of observations outside training support...predictions trimmed.
+4.89% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+8% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 527.0515	 Pars:  0.98115 0.01885
+Iter: 2 fn: 527.0260	 Pars:  0.999998753 0.000001247
+Iter: 3 fn: 527.0260	 Pars:  0.9999992043 0.0000007957
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 504.9646	 Pars:  0.9999995710 0.0000004288
+Iter: 2 fn: 504.9646	 Pars:  0.99999997779 0.00000002221
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 493.2627	 Pars:  0.9999993939 0.0000006062
+Iter: 2 fn: 493.2627	 Pars:  0.99999995061 0.00000004939
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 501.3273	 Pars:  0.99993432 0.00006567
+Iter: 2 fn: 501.3273	 Pars:  0.99997337 0.00002663
+solnp--> Completed in 2 iterations
+2.67% of observations outside training support...predictions trimmed.
+15.11% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+8% of observations outside training support...predictions trimmed.
+20% of observations outside training support...predictions trimmed.
+2.67% of observations outside training support...predictions trimmed.
+15.11% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+8% of observations outside training support...predictions trimmed.
+20% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 561.2349	 Pars:  0.999995836 0.000004164
+Iter: 2 fn: 561.2349	 Pars:  0.999997353 0.000002647
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 497.9393	 Pars:  0.00002527 0.99997473
+Iter: 2 fn: 497.9393	 Pars:  0.0000121 0.9999879
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 515.5943	 Pars:  0.999994742 0.000005258
+Iter: 2 fn: 515.5943	 Pars:  0.999996618 0.000003382
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 499.7903	 Pars:  0.52232 0.47768
+Iter: 2 fn: 499.7886	 Pars:  0.46161 0.53839
+Iter: 3 fn: 499.7886	 Pars:  0.46161 0.53839
+solnp--> Completed in 3 iterations
+[1] 500
+[1] 1
+
+Iter: 1 fn: 1011.7959	 Pars:  0.9999992646 0.0000007354
+Iter: 2 fn: 1011.7959	 Pars:  0.9999998332 0.0000001668
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1013.2572	 Pars:  0.990485 0.009515
+Iter: 2 fn: 1013.2478	 Pars:  0.999996328 0.000003672
+Iter: 3 fn: 1013.2478	 Pars:  0.999997792 0.000002208
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1011.8701	 Pars:  0.99998410 0.00001589
+Iter: 2 fn: 1011.8701	 Pars:  0.99999508 0.00000492
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1012.9531	 Pars:  0.999996476 0.000003524
+Iter: 2 fn: 1012.9531	 Pars:  0.9999992839 0.0000007161
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1015.4382	 Pars:  0.99991886 0.00008114
+Iter: 2 fn: 1015.4382	 Pars:  0.99998333 0.00001667
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1011.4634	 Pars:  0.999998285 0.000001715
+Iter: 2 fn: 1011.4634	 Pars:  0.9999996776 0.0000003224
+solnp--> Completed in 2 iterations
+2.89% of observations outside training support...predictions trimmed.
+11.11% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+8% of observations outside training support...predictions trimmed.
+2.89% of observations outside training support...predictions trimmed.
+11.11% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+8% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 1013.1289	 Pars:  0.21616 0.78384
+Iter: 2 fn: 1013.1289	 Pars:  0.21611 0.78389
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1008.2337	 Pars:  0.35337 0.64663
+Iter: 2 fn: 1008.2337	 Pars:  0.35327 0.64673
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1015.2940	 Pars:  0.99998107 0.00001893
+Iter: 2 fn: 1015.2940	 Pars:  0.999995085 0.000004915
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1011.1667	 Pars:  0.999993048 0.000006952
+Iter: 2 fn: 1011.1667	 Pars:  0.999998215 0.000001785
+solnp--> Completed in 2 iterations
+1.78% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+1.78% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+[1] 2
+
+Iter: 1 fn: 992.7525	 Pars:  0.999995684 0.000004316
+Iter: 2 fn: 992.7525	 Pars:  0.9999990089 0.0000009911
+solnp--> Completed in 2 iterations
+1.56% of observations outside training support...predictions trimmed.
+9.78% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+12% of observations outside training support...predictions trimmed.
+1.56% of observations outside training support...predictions trimmed.
+9.78% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+12% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 1002.6654	 Pars:  0.999996156 0.000003844
+Iter: 2 fn: 1002.6654	 Pars:  0.999998999 0.000001001
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1022.7782	 Pars:  0.37574 0.62426
+Iter: 2 fn: 1022.7700	 Pars:  0.27711 0.72289
+Iter: 3 fn: 1022.7700	 Pars:  0.27711 0.72289
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1009.4985	 Pars:  0.53525 0.46475
+Iter: 2 fn: 1009.4831	 Pars:  0.92159 0.07841
+Iter: 3 fn: 1009.4831	 Pars:  0.92159 0.07841
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1005.2744	 Pars:  0.69480 0.30520
+Iter: 2 fn: 1005.2744	 Pars:  0.69481 0.30519
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 999.1006	 Pars:  0.999994588 0.000005412
+Iter: 2 fn: 999.1006	 Pars:  0.999996938 0.000003062
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 996.8856	 Pars:  0.99999355 0.00000645
+Iter: 2 fn: 996.8856	 Pars:  0.999997627 0.000002373
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 996.2489	 Pars:  0.999998055 0.000001945
+Iter: 2 fn: 996.2489	 Pars:  0.999998919 0.000001081
+solnp--> Completed in 2 iterations
+1.78% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+1.78% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 1003.2051	 Pars:  0.000007584 0.999992415
+Iter: 2 fn: 1003.2051	 Pars:  0.000002891 0.999997109
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1003.8413	 Pars:  0.999992192 0.000007806
+Iter: 2 fn: 1003.8413	 Pars:  0.999997429 0.000002571
+solnp--> Completed in 2 iterations
+[1] 3
+
+Iter: 1 fn: 1006.0100	 Pars:  0.82364 0.17636
+Iter: 2 fn: 1006.0100	 Pars:  0.82386 0.17614
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1005.7269	 Pars:  0.92697 0.07303
+Iter: 2 fn: 1005.7269	 Pars:  0.92698 0.07302
+solnp--> Completed in 2 iterations
+2% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 1008.9744	 Pars:  0.84932 0.15068
+Iter: 2 fn: 1008.9744	 Pars:  0.84933 0.15067
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 996.7087	 Pars:  0.76740 0.23260
+Iter: 2 fn: 996.7058	 Pars:  0.88117 0.11883
+Iter: 3 fn: 996.7058	 Pars:  0.88121 0.11879
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1013.1248	 Pars:  0.80454 0.19546
+Iter: 2 fn: 1013.1248	 Pars:  0.80459 0.19541
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1017.2101	 Pars:  0.81442 0.18558
+Iter: 2 fn: 1017.2101	 Pars:  0.81445 0.18555
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1005.9300	 Pars:  0.96628 0.03372
+Iter: 2 fn: 1005.9300	 Pars:  0.96629 0.03371
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1003.1268	 Pars:  0.999998039 0.000001961
+Iter: 2 fn: 1003.1268	 Pars:  0.9999992828 0.0000007172
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1024.8179	 Pars:  0.99998413 0.00001587
+Iter: 2 fn: 1024.8179	 Pars:  0.99998959 0.00001041
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 997.9863	 Pars:  0.96453 0.03547
+Iter: 2 fn: 997.9863	 Pars:  0.96456 0.03544
+solnp--> Completed in 2 iterations
+2% of observations outside training support...predictions trimmed.
+10% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+6% of observations outside training support...predictions trimmed.
+12% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+10% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+6% of observations outside training support...predictions trimmed.
+12% of observations outside training support...predictions trimmed.
+[1] 4
+
+Iter: 1 fn: 1028.4372	 Pars:  0.9999995687 0.0000004305
+Iter: 2 fn: 1028.4372	 Pars:  0.9999998744 0.0000001256
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1020.5602	 Pars:  0.999993449 0.000006551
+Iter: 2 fn: 1020.5602	 Pars:  0.9999995015 0.0000004985
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1028.6404	 Pars:  0.999995864 0.000004135
+Iter: 2 fn: 1028.6404	 Pars:  0.999997337 0.000002663
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1018.9752	 Pars:  0.99999618 0.00000382
+Iter: 2 fn: 1018.9752	 Pars:  0.9999996962 0.0000003038
+Iter: 3 fn: 1018.9752	 Pars:  0.99999990183 0.00000009817
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1021.1555	 Pars:  0.91862 0.08138
+Iter: 2 fn: 1021.1555	 Pars:  0.91863 0.08137
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1025.2578	 Pars:  0.95786 0.04214
+Iter: 2 fn: 1025.2578	 Pars:  0.95790 0.04210
+solnp--> Completed in 2 iterations
+1.11% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+1.11% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 1027.3918	 Pars:  0.999997986 0.000002014
+Iter: 2 fn: 1027.3918	 Pars:  0.9999998122 0.0000001878
+solnp--> Completed in 2 iterations
+2.89% of observations outside training support...predictions trimmed.
+10% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+12% of observations outside training support...predictions trimmed.
+2.89% of observations outside training support...predictions trimmed.
+10% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+12% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 1018.6802	 Pars:  0.999998926 0.000001074
+Iter: 2 fn: 1018.6802	 Pars:  0.9999997049 0.0000002951
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1022.6283	 Pars:  0.9999992452 0.0000007549
+Iter: 2 fn: 1022.6283	 Pars:  0.9999996538 0.0000003462
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1027.6460	 Pars:  0.999998934 0.000001064
+Iter: 2 fn: 1027.6460	 Pars:  0.9999997589 0.0000002411
+solnp--> Completed in 2 iterations
+[1] 5
+
+Iter: 1 fn: 1012.4146	 Pars:  0.69126 0.30874
+Iter: 2 fn: 1012.4146	 Pars:  0.69131 0.30869
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1020.6525	 Pars:  0.45013 0.54987
+Iter: 2 fn: 1020.6525	 Pars:  0.45015 0.54985
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1018.1718	 Pars:  0.9999992715 0.0000007285
+Iter: 2 fn: 1018.1718	 Pars:  0.9999998797 0.0000001203
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1023.2326	 Pars:  0.63362 0.36638
+Iter: 2 fn: 1023.2326	 Pars:  0.63367 0.36633
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1010.4141	 Pars:  0.65142 0.34858
+Iter: 2 fn: 1010.4141	 Pars:  0.65142 0.34858
+solnp--> Completed in 2 iterations
+0.44% of observations outside training support...predictions trimmed.
+3.11% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+0.44% of observations outside training support...predictions trimmed.
+3.11% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 1018.9630	 Pars:  0.82434 0.17566
+Iter: 2 fn: 1018.9630	 Pars:  0.82435 0.17565
+solnp--> Completed in 2 iterations
+2.22% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+2.22% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 1016.3089	 Pars:  0.79841 0.20159
+Iter: 2 fn: 1016.3089	 Pars:  0.79841 0.20159
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1017.9744	 Pars:  0.63349 0.36651
+Iter: 2 fn: 1017.9743	 Pars:  0.63350 0.36650
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1017.6534	 Pars:  0.71164 0.28836
+Iter: 2 fn: 1017.6534	 Pars:  0.71165 0.28835
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1017.3086	 Pars:  0.73822 0.26178
+Iter: 2 fn: 1017.3086	 Pars:  0.73822 0.26178
+solnp--> Completed in 2 iterations
+[1] 1000
+[1] 1
+
+Iter: 1 fn: 2023.3412	 Pars:  0.90963 0.09037
+Iter: 2 fn: 2023.3412	 Pars:  0.90963 0.09037
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2012.4212	 Pars:  0.999994225 0.000005773
+Iter: 2 fn: 2012.4212	 Pars:  0.999997591 0.000002409
+solnp--> Completed in 2 iterations
+2% of observations outside training support...predictions trimmed.
+1% of observations outside training support...predictions trimmed.
+3% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+1% of observations outside training support...predictions trimmed.
+3% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 2013.4550	 Pars:  0.91917 0.08083
+Iter: 2 fn: 2013.4550	 Pars:  0.91921 0.08079
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2018.2023	 Pars:  0.99998297 0.00001703
+Iter: 2 fn: 2018.2023	 Pars:  0.999994064 0.000005936
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2007.0057	 Pars:  0.98325 0.01675
+Iter: 2 fn: 2007.0057	 Pars:  0.98326 0.01674
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2027.3644	 Pars:  0.98873 0.01127
+Iter: 2 fn: 2027.2986	 Pars:  0.99999622 0.00000378
+Iter: 3 fn: 2027.2986	 Pars:  0.999997725 0.000002275
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 2010.3545	 Pars:  0.9998579 0.0001421
+Iter: 2 fn: 2010.3545	 Pars:  0.99994777 0.00005223
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2024.5662	 Pars:  0.9998138 0.0001862
+Iter: 2 fn: 2024.5662	 Pars:  0.99995179 0.00004821
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2008.0953	 Pars:  0.94250 0.05750
+Iter: 2 fn: 2007.9602	 Pars:  0.999997415 0.000002585
+Iter: 3 fn: 2007.9602	 Pars:  0.99999992093 0.00000007907
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 2001.7848	 Pars:  0.99999847 0.00000153
+Iter: 2 fn: 2001.7848	 Pars:  0.9999990589 0.0000009411
+solnp--> Completed in 2 iterations
+0.78% of observations outside training support...predictions trimmed.
+3.78% of observations outside training support...predictions trimmed.
+1% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+8% of observations outside training support...predictions trimmed.
+0.78% of observations outside training support...predictions trimmed.
+3.78% of observations outside training support...predictions trimmed.
+1% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+8% of observations outside training support...predictions trimmed.
+[1] 2
+
+Iter: 1 fn: 2003.1806	 Pars:  0.999996586 0.000003414
+Iter: 2 fn: 2003.1806	 Pars:  0.9999994631 0.0000005369
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2026.0897	 Pars:  0.56113 0.43887
+Iter: 2 fn: 2025.9863	 Pars:  0.0001008 0.9998992
+Iter: 3 fn: 2025.9862	 Pars:  0.000003603 0.999996397
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 2014.1171	 Pars:  0.65948 0.34052
+Iter: 2 fn: 2014.0411	 Pars:  0.99991068 0.00008932
+Iter: 3 fn: 2014.0411	 Pars:  0.99994255 0.00005745
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 2040.4297	 Pars:  0.99997699 0.00002301
+Iter: 2 fn: 2040.4297	 Pars:  0.999993248 0.000006752
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2031.8386	 Pars:  0.999996519 0.000003482
+Iter: 2 fn: 2031.8386	 Pars:  0.9999977 0.0000023
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2032.3952	 Pars:  0.999996742 0.000003258
+Iter: 2 fn: 2032.3952	 Pars:  0.999998142 0.000001858
+solnp--> Completed in 2 iterations
+0.44% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+0.44% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 2022.2030	 Pars:  0.12520 0.87480
+Iter: 2 fn: 2022.1531	 Pars:  0.0000165 0.9999835
+Iter: 3 fn: 2022.1531	 Pars:  0.0000106 0.9999894
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 2025.1020	 Pars:  0.999994512 0.000005488
+Iter: 2 fn: 2025.1020	 Pars:  0.999997899 0.000002101
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2029.2171	 Pars:  0.9999889 0.0000111
+Iter: 2 fn: 2029.2171	 Pars:  0.999993638 0.000006362
+solnp--> Completed in 2 iterations
+1.67% of observations outside training support...predictions trimmed.
+8% of observations outside training support...predictions trimmed.
+1% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+7% of observations outside training support...predictions trimmed.
+1.67% of observations outside training support...predictions trimmed.
+8% of observations outside training support...predictions trimmed.
+1% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+7% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 2026.9541	 Pars:  0.9999503 0.0000497
+Iter: 2 fn: 2026.9541	 Pars:  0.99998699 0.00001301
+solnp--> Completed in 2 iterations
+[1] 3
+
+Iter: 1 fn: 2015.6464	 Pars:  0.64793 0.35207
+Iter: 2 fn: 2015.6464	 Pars:  0.64796 0.35204
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2008.1230	 Pars:  0.55483 0.44517
+Iter: 2 fn: 2008.1230	 Pars:  0.55484 0.44516
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2022.8150	 Pars:  0.59966 0.40034
+Iter: 2 fn: 2022.8150	 Pars:  0.59967 0.40033
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2010.7324	 Pars:  0.38867 0.61133
+Iter: 2 fn: 2010.7324	 Pars:  0.38866 0.61134
+solnp--> Completed in 2 iterations
+2.44% of observations outside training support...predictions trimmed.
+1% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+2.44% of observations outside training support...predictions trimmed.
+1% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 2020.8838	 Pars:  0.46517 0.53483
+Iter: 2 fn: 2020.8838	 Pars:  0.46518 0.53482
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2006.5262	 Pars:  0.40410 0.59590
+Iter: 2 fn: 2006.5262	 Pars:  0.40400 0.59600
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2013.6041	 Pars:  0.48294 0.51706
+Iter: 2 fn: 2013.6041	 Pars:  0.48294 0.51706
+solnp--> Completed in 2 iterations
+1.67% of observations outside training support...predictions trimmed.
+9.22% of observations outside training support...predictions trimmed.
+1% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+8% of observations outside training support...predictions trimmed.
+1.67% of observations outside training support...predictions trimmed.
+9.22% of observations outside training support...predictions trimmed.
+1% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+8% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 1925.8806	 Pars:  0.09512 0.90488
+Iter: 2 fn: 1925.8806	 Pars:  0.09512 0.90488
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2017.2915	 Pars:  0.84373 0.15627
+Iter: 2 fn: 2017.2915	 Pars:  0.84374 0.15626
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2022.1295	 Pars:  0.86484 0.13516
+Iter: 2 fn: 2022.1295	 Pars:  0.86488 0.13512
+solnp--> Completed in 2 iterations
+[1] 4
+
+Iter: 1 fn: 1984.7127	 Pars:  0.96368 0.03632
+Iter: 2 fn: 1984.7127	 Pars:  0.96379 0.03621
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1992.8383	 Pars:  0.57463 0.42537
+Iter: 2 fn: 1992.8383	 Pars:  0.57463 0.42537
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1980.7688	 Pars:  0.86045 0.13955
+Iter: 2 fn: 1980.7688	 Pars:  0.86048 0.13952
+solnp--> Completed in 2 iterations
+0.67% of observations outside training support...predictions trimmed.
+1% of observations outside training support...predictions trimmed.
+1% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+1% of observations outside training support...predictions trimmed.
+1% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 1989.5431	 Pars:  0.98391 0.01609
+Iter: 2 fn: 1989.5431	 Pars:  0.98405 0.01595
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2005.3097	 Pars:  0.93280 0.06720
+Iter: 2 fn: 2005.2658	 Pars:  0.87849 0.12151
+Iter: 3 fn: 2005.2658	 Pars:  0.87849 0.12151
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1986.2886	 Pars:  0.88226 0.11774
+Iter: 2 fn: 1986.2886	 Pars:  0.88226 0.11774
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1993.8205	 Pars:  0.85148 0.14852
+Iter: 2 fn: 1993.8124	 Pars:  0.83219 0.16781
+Iter: 3 fn: 1993.8124	 Pars:  0.83219 0.16781
+solnp--> Completed in 3 iterations
+1.22% of observations outside training support...predictions trimmed.
+7.67% of observations outside training support...predictions trimmed.
+1% of observations outside training support...predictions trimmed.
+3% of observations outside training support...predictions trimmed.
+5% of observations outside training support...predictions trimmed.
+1.22% of observations outside training support...predictions trimmed.
+7.67% of observations outside training support...predictions trimmed.
+1% of observations outside training support...predictions trimmed.
+3% of observations outside training support...predictions trimmed.
+5% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 1989.5180	 Pars:  0.93140 0.06860
+Iter: 2 fn: 1989.5180	 Pars:  0.93147 0.06853
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1982.0450	 Pars:  0.77620 0.22380
+Iter: 2 fn: 1982.0450	 Pars:  0.77622 0.22378
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1997.5522	 Pars:  0.82526 0.17474
+Iter: 2 fn: 1997.5522	 Pars:  0.82198 0.17802
+Iter: 3 fn: 1997.5522	 Pars:  0.82198 0.17802
+solnp--> Completed in 3 iterations
+[1] 5
+
+Iter: 1 fn: 2005.5102	 Pars:  0.29903 0.70097
+Iter: 2 fn: 2005.5102	 Pars:  0.30089 0.69911
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1996.3482	 Pars:  0.99994918 0.00005082
+Iter: 2 fn: 1996.3482	 Pars:  0.99996963 0.00003037
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1975.6822	 Pars:  0.99998844 0.00001156
+Iter: 2 fn: 1975.6822	 Pars:  0.999996904 0.000003096
+solnp--> Completed in 2 iterations
+1.67% of observations outside training support...predictions trimmed.
+12.56% of observations outside training support...predictions trimmed.
+1% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+14% of observations outside training support...predictions trimmed.
+1.67% of observations outside training support...predictions trimmed.
+12.56% of observations outside training support...predictions trimmed.
+1% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+14% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 1999.3312	 Pars:  0.999994271 0.000005729
+Iter: 2 fn: 1999.3312	 Pars:  0.999998831 0.000001169
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1985.6417	 Pars:  0.31787 0.68213
+Iter: 2 fn: 1985.6417	 Pars:  0.31803 0.68197
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2002.1512	 Pars:  0.50487 0.49513
+Iter: 2 fn: 2002.1512	 Pars:  0.50488 0.49512
+solnp--> Completed in 2 iterations
+1.89% of observations outside training support...predictions trimmed.
+1% of observations outside training support...predictions trimmed.
+3% of observations outside training support...predictions trimmed.
+1.89% of observations outside training support...predictions trimmed.
+1% of observations outside training support...predictions trimmed.
+3% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 1996.2864	 Pars:  0.99994339 0.00005661
+Iter: 2 fn: 1996.2864	 Pars:  0.99998815 0.00001185
+Iter: 3 fn: 1996.2864	 Pars:  0.999994046 0.000005954
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 1984.3179	 Pars:  0.83747 0.16253
+Iter: 2 fn: 1984.3179	 Pars:  0.83769 0.16231
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 1991.6949	 Pars:  0.95324 0.04676
+Iter: 2 fn: 1991.6949	 Pars:  0.95330 0.04670
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2007.6157	 Pars:  0.999994978 0.000005022
+Iter: 2 fn: 2007.6157	 Pars:  0.999997813 0.000002187
+solnp--> Completed in 2 iterations
+[1] 1500
+[1] 1
+
+Iter: 1 fn: 2984.8255	 Pars:  0.999995397 0.000004603
+Iter: 2 fn: 2984.8255	 Pars:  0.999998644 0.000001356
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3016.1084	 Pars:  0.999997737 0.000002262
+Iter: 2 fn: 3016.1084	 Pars:  0.9999997479 0.0000002521
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3012.3054	 Pars:  0.0005446 0.9994554
+Iter: 2 fn: 2990.8690	 Pars:  0.999996293 0.000003704
+Iter: 3 fn: 2990.8690	 Pars:  0.9999992188 0.0000007812
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 2992.0826	 Pars:  0.999993612 0.000006388
+Iter: 2 fn: 2992.0826	 Pars:  0.9999993974 0.0000006026
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2989.9347	 Pars:  0.999991936 0.000008064
+Iter: 2 fn: 2989.9347	 Pars:  0.999998623 0.000001377
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3013.5834	 Pars:  0.999998722 0.000001278
+Iter: 2 fn: 3013.5834	 Pars:  0.9999996261 0.0000003739
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2984.6032	 Pars:  0.999995588 0.000004412
+Iter: 2 fn: 2984.6032	 Pars:  0.999997104 0.000002896
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2996.4128	 Pars:  0.99999684 0.00000316
+Iter: 2 fn: 2996.4128	 Pars:  0.9999994687 0.0000005313
+solnp--> Completed in 2 iterations
+0.59% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+0.59% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 3001.6251	 Pars:  0.19087 0.80913
+Iter: 2 fn: 3001.6014	 Pars:  0.34677 0.65323
+Iter: 3 fn: 3001.6014	 Pars:  0.34663 0.65337
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 2985.9796	 Pars:  0.54901 0.45099
+Iter: 2 fn: 2985.9656	 Pars:  0.45522 0.54478
+Iter: 3 fn: 2985.9656	 Pars:  0.45522 0.54478
+solnp--> Completed in 3 iterations
+2.07% of observations outside training support...predictions trimmed.
+8.96% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+2.67% of observations outside training support...predictions trimmed.
+9.33% of observations outside training support...predictions trimmed.
+2.07% of observations outside training support...predictions trimmed.
+8.96% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+2.67% of observations outside training support...predictions trimmed.
+9.33% of observations outside training support...predictions trimmed.
+[1] 2
+
+Iter: 1 fn: 3025.3254	 Pars:  0.0006281 0.9993719
+Iter: 2 fn: 3018.7170	 Pars:  0.43746 0.56254
+Iter: 3 fn: 3018.7170	 Pars:  0.43746 0.56254
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 3037.5065	 Pars:  0.55041 0.44959
+Iter: 2 fn: 3037.5065	 Pars:  0.55041 0.44959
+solnp--> Completed in 2 iterations
+0.3% of observations outside training support...predictions trimmed.
+1.56% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+2.67% of observations outside training support...predictions trimmed.
+0.3% of observations outside training support...predictions trimmed.
+1.56% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+2.67% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 3005.2852	 Pars:  0.999993606 0.000006394
+Iter: 2 fn: 3005.2851	 Pars:  0.9999997278 0.0000002722
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3001.4633	 Pars:  0.42042 0.57958
+Iter: 2 fn: 3001.4633	 Pars:  0.42036 0.57964
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3032.6033	 Pars:  0.47181 0.52819
+Iter: 2 fn: 3032.6033	 Pars:  0.47181 0.52819
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3029.1681	 Pars:  0.46859 0.53141
+Iter: 2 fn: 3029.1681	 Pars:  0.46870 0.53130
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3007.4553	 Pars:  0.76294 0.23706
+Iter: 2 fn: 3007.4553	 Pars:  0.76294 0.23706
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3015.8961	 Pars:  0.35245 0.64755
+Iter: 2 fn: 3015.8961	 Pars:  0.35237 0.64763
+solnp--> Completed in 2 iterations
+1.56% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+2.67% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+1.56% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+2.67% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 3015.3106	 Pars:  0.46522 0.53478
+Iter: 2 fn: 3015.3106	 Pars:  0.46523 0.53477
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3014.4917	 Pars:  0.70675 0.29325
+Iter: 2 fn: 3014.4917	 Pars:  0.70677 0.29323
+solnp--> Completed in 2 iterations
+[1] 3
+
+Iter: 1 fn: 3031.9588	 Pars:  0.999990602 0.000009399
+Iter: 2 fn: 3031.9588	 Pars:  0.999997364 0.000002636
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3028.5493	 Pars:  0.9998372 0.0001628
+Iter: 2 fn: 3028.5492	 Pars:  0.9998976 0.0001024
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3034.6703	 Pars:  0.53559 0.46441
+Iter: 2 fn: 3034.6703	 Pars:  0.53556 0.46444
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3037.2830	 Pars:  0.999993663 0.000006337
+Iter: 2 fn: 3037.2830	 Pars:  0.999998545 0.000001455
+solnp--> Completed in 2 iterations
+0.59% of observations outside training support...predictions trimmed.
+0.52% of observations outside training support...predictions trimmed.
+4.52% of observations outside training support...predictions trimmed.
+1.33% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+0.59% of observations outside training support...predictions trimmed.
+0.52% of observations outside training support...predictions trimmed.
+4.52% of observations outside training support...predictions trimmed.
+1.33% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+4% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 3041.3688	 Pars:  0.999992093 0.000007907
+Iter: 2 fn: 3041.3688	 Pars:  0.999996464 0.000003536
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3018.4246	 Pars:  0.999997045 0.000002955
+Iter: 2 fn: 3018.4246	 Pars:  0.99999994757 0.00000005243
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3039.1399	 Pars:  0.99998933 0.00001067
+Iter: 2 fn: 3039.1399	 Pars:  0.999995383 0.000004617
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3049.2726	 Pars:  0.999994498 0.000005502
+Iter: 2 fn: 3049.2726	 Pars:  0.999998849 0.000001151
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3037.7290	 Pars:  0.999992064 0.000007936
+Iter: 2 fn: 3037.7289	 Pars:  0.999996276 0.000003724
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3030.2609	 Pars:  0.96439 0.03561
+Iter: 2 fn: 3030.2609	 Pars:  0.96484 0.03516
+solnp--> Completed in 2 iterations
+[1] 4
+
+Iter: 1 fn: 3041.3841	 Pars:  0.92298 0.07702
+Iter: 2 fn: 3041.3527	 Pars:  0.9998737 0.0001263
+Iter: 3 fn: 3041.3527	 Pars:  0.99992687 0.00007313
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 3038.1490	 Pars:  0.999992797 0.000007204
+Iter: 2 fn: 3038.1490	 Pars:  0.999998026 0.000001974
+solnp--> Completed in 2 iterations
+0.22% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+0.22% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 3033.4689	 Pars:  0.999998314 0.000001686
+Iter: 2 fn: 3033.4689	 Pars:  0.9999990269 0.0000009731
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3037.7479	 Pars:  0.76795 0.23205
+Iter: 2 fn: 3037.7479	 Pars:  0.76803 0.23197
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3021.6988	 Pars:  0.999994569 0.000005431
+Iter: 2 fn: 3021.6988	 Pars:  0.999998459 0.000001541
+solnp--> Completed in 2 iterations
+0.81% of observations outside training support...predictions trimmed.
+3.19% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+1.33% of observations outside training support...predictions trimmed.
+6.67% of observations outside training support...predictions trimmed.
+0.81% of observations outside training support...predictions trimmed.
+3.19% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+1.33% of observations outside training support...predictions trimmed.
+6.67% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 3034.1898	 Pars:  0.99999268 0.00000732
+Iter: 2 fn: 3034.1898	 Pars:  0.999997849 0.000002151
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3032.7578	 Pars:  0.999990738 0.000009262
+Iter: 2 fn: 3032.7577	 Pars:  0.999997777 0.000002223
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3021.1670	 Pars:  0.22086 0.77914
+Iter: 2 fn: 3021.1670	 Pars:  0.22059 0.77941
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3044.4564	 Pars:  0.61649 0.38351
+Iter: 2 fn: 3044.4540	 Pars:  0.59435 0.40565
+Iter: 3 fn: 3044.4540	 Pars:  0.59435 0.40565
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 3033.2001	 Pars:  0.00003045 0.99996955
+Iter: 2 fn: 3033.2001	 Pars:  0.00001931 0.99998069
+solnp--> Completed in 2 iterations
+[1] 5
+
+Iter: 1 fn: 3011.1669	 Pars:  0.76287 0.23713
+Iter: 2 fn: 3011.1669	 Pars:  0.76287 0.23713
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3001.0039	 Pars:  0.33113 0.66887
+Iter: 2 fn: 3001.0039	 Pars:  0.33110 0.66890
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3020.1978	 Pars:  0.999995318 0.000004682
+Iter: 2 fn: 3020.1978	 Pars:  0.999996991 0.000003009
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3005.2661	 Pars:  0.64351 0.35649
+Iter: 2 fn: 3005.2661	 Pars:  0.64351 0.35649
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3010.7565	 Pars:  0.56938 0.43062
+Iter: 2 fn: 3010.7565	 Pars:  0.56930 0.43070
+solnp--> Completed in 2 iterations
+0.37% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+0.37% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 3004.1984	 Pars:  0.99998951 0.00001049
+Iter: 2 fn: 3004.1984	 Pars:  0.999997466 0.000002534
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3000.3418	 Pars:  0.44099 0.55901
+Iter: 2 fn: 3000.3418	 Pars:  0.44104 0.55896
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3003.4978	 Pars:  0.99999832 0.00000168
+Iter: 2 fn: 3003.4977	 Pars:  0.999998985 0.000001015
+solnp--> Completed in 2 iterations
+0.74% of observations outside training support...predictions trimmed.
+4.22% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+6% of observations outside training support...predictions trimmed.
+0.74% of observations outside training support...predictions trimmed.
+4.22% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+2% of observations outside training support...predictions trimmed.
+6% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 3006.1927	 Pars:  0.38630 0.61370
+Iter: 2 fn: 3006.1925	 Pars:  0.37862 0.62138
+Iter: 3 fn: 3006.1925	 Pars:  0.37862 0.62138
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 3009.0787	 Pars:  0.99993494 0.00006506
+Iter: 2 fn: 3009.0787	 Pars:  0.999994269 0.000005731
+solnp--> Completed in 2 iterations
+[1] 2500
+[1] 1
+
+Iter: 1 fn: 4993.0340	 Pars:  0.01769 0.98231
+Iter: 2 fn: 4986.4574	 Pars:  0.99998685 0.00001315
+Iter: 3 fn: 4986.4574	 Pars:  0.999997541 0.000002459
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 4975.8260	 Pars:  0.72384 0.27616
+Iter: 2 fn: 4975.8168	 Pars:  0.68818 0.31182
+Iter: 3 fn: 4975.8168	 Pars:  0.68808 0.31192
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 4991.2118	 Pars:  0.009002 0.990998
+Iter: 2 fn: 4986.1254	 Pars:  0.92234 0.07766
+Iter: 3 fn: 4986.1254	 Pars:  0.92234 0.07766
+solnp--> Completed in 3 iterations
+0.53% of observations outside training support...predictions trimmed.
+0.8% of observations outside training support...predictions trimmed.
+1.2% of observations outside training support...predictions trimmed.
+0.53% of observations outside training support...predictions trimmed.
+0.8% of observations outside training support...predictions trimmed.
+1.2% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 5007.8448	 Pars:  0.999994761 0.000005238
+Iter: 2 fn: 5007.8448	 Pars:  0.999998284 0.000001716
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5009.7582	 Pars:  0.999995900 0.000004099
+Iter: 2 fn: 5009.7581	 Pars:  0.9999990437 0.0000009563
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 4981.2998	 Pars:  0.92865 0.07135
+Iter: 2 fn: 4981.2474	 Pars:  0.69595 0.30405
+Iter: 3 fn: 4981.2474	 Pars:  0.69660 0.30340
+solnp--> Completed in 3 iterations
+0.67% of observations outside training support...predictions trimmed.
+3.47% of observations outside training support...predictions trimmed.
+0.4% of observations outside training support...predictions trimmed.
+1.2% of observations outside training support...predictions trimmed.
+4.8% of observations outside training support...predictions trimmed.
+0.67% of observations outside training support...predictions trimmed.
+3.47% of observations outside training support...predictions trimmed.
+0.4% of observations outside training support...predictions trimmed.
+1.2% of observations outside training support...predictions trimmed.
+4.8% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 5016.8145	 Pars:  0.72004 0.27996
+Iter: 2 fn: 5016.8062	 Pars:  0.81787 0.18213
+Iter: 3 fn: 5016.8062	 Pars:  0.81787 0.18213
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 5011.0915	 Pars:  0.999994038 0.000005962
+Iter: 2 fn: 5011.0914	 Pars:  0.9999991281 0.0000008719
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5006.2898	 Pars:  0.93322 0.06678
+Iter: 2 fn: 5006.2492	 Pars:  0.75326 0.24674
+Iter: 3 fn: 5006.2492	 Pars:  0.75325 0.24675
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 5014.5266	 Pars:  0.9999227 0.0000773
+Iter: 2 fn: 5014.5266	 Pars:  0.99996708 0.00003292
+solnp--> Completed in 2 iterations
+[1] 2
+
+Iter: 1 fn: 5041.9774	 Pars:  0.99998683 0.00001317
+Iter: 2 fn: 5041.9773	 Pars:  0.99999653 0.00000347
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5035.7170	 Pars:  0.86182 0.13818
+Iter: 2 fn: 5035.7084	 Pars:  0.91880 0.08120
+Iter: 3 fn: 5035.7084	 Pars:  0.91852 0.08148
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 5035.5774	 Pars:  0.97059 0.02941
+Iter: 2 fn: 5034.8157	 Pars:  0.0001238 0.9998762
+Iter: 3 fn: 5034.8157	 Pars:  0.00007946 0.99992054
+solnp--> Completed in 3 iterations
+0.49% of observations outside training support...predictions trimmed.
+3.24% of observations outside training support...predictions trimmed.
+0.4% of observations outside training support...predictions trimmed.
+1.2% of observations outside training support...predictions trimmed.
+2.4% of observations outside training support...predictions trimmed.
+0.49% of observations outside training support...predictions trimmed.
+3.24% of observations outside training support...predictions trimmed.
+0.4% of observations outside training support...predictions trimmed.
+1.2% of observations outside training support...predictions trimmed.
+2.4% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 5033.2986	 Pars:  0.37005 0.62995
+Iter: 2 fn: 5033.0832	 Pars:  0.99992238 0.00007762
+Iter: 3 fn: 5033.0832	 Pars:  0.99995011 0.00004989
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 5038.5803	 Pars:  0.70221 0.29779
+Iter: 2 fn: 5038.5803	 Pars:  0.70222 0.29778
+solnp--> Completed in 2 iterations
+0.62% of observations outside training support...predictions trimmed.
+0.4% of observations outside training support...predictions trimmed.
+1.2% of observations outside training support...predictions trimmed.
+0.62% of observations outside training support...predictions trimmed.
+0.4% of observations outside training support...predictions trimmed.
+1.2% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 5037.7598	 Pars:  0.96479 0.03521
+Iter: 2 fn: 5037.7598	 Pars:  0.96533 0.03467
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5030.4668	 Pars:  0.99995179 0.00004821
+Iter: 2 fn: 5030.4668	 Pars:  0.9999855 0.0000145
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5027.9890	 Pars:  0.89246 0.10754
+Iter: 2 fn: 5027.9890	 Pars:  0.89285 0.10715
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5049.1804	 Pars:  0.99997645 0.00002355
+Iter: 2 fn: 5049.1804	 Pars:  0.99998758 0.00001242
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5050.5157	 Pars:  0.48003 0.51997
+Iter: 2 fn: 5050.4528	 Pars:  0.70421 0.29579
+Iter: 3 fn: 5050.4528	 Pars:  0.70439 0.29561
+solnp--> Completed in 3 iterations
+[1] 3
+
+Iter: 1 fn: 5041.8844	 Pars:  0.999997197 0.000002802
+Iter: 2 fn: 5041.8844	 Pars:  0.999998254 0.000001746
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5027.5530	 Pars:  0.46250 0.53750
+Iter: 2 fn: 5027.4544	 Pars:  0.68108 0.31892
+Iter: 3 fn: 5027.4544	 Pars:  0.68119 0.31881
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 5046.9758	 Pars:  0.08896 0.91104
+Iter: 2 fn: 5046.9758	 Pars:  0.08878 0.91122
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5026.9858	 Pars:  0.9999949 0.0000051
+Iter: 2 fn: 5026.9858	 Pars:  0.999998532 0.000001468
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5029.6986	 Pars:  0.999991745 0.000008256
+Iter: 2 fn: 5029.6986	 Pars:  0.999998961 0.000001039
+solnp--> Completed in 2 iterations
+0.53% of observations outside training support...predictions trimmed.
+4.53% of observations outside training support...predictions trimmed.
+0.4% of observations outside training support...predictions trimmed.
+2.4% of observations outside training support...predictions trimmed.
+6.4% of observations outside training support...predictions trimmed.
+0.53% of observations outside training support...predictions trimmed.
+4.53% of observations outside training support...predictions trimmed.
+0.4% of observations outside training support...predictions trimmed.
+2.4% of observations outside training support...predictions trimmed.
+6.4% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 5047.2891	 Pars:  0.999991845 0.000008153
+Iter: 2 fn: 5047.2891	 Pars:  0.999997246 0.000002754
+solnp--> Completed in 2 iterations
+0.62% of observations outside training support...predictions trimmed.
+0.4% of observations outside training support...predictions trimmed.
+0.4% of observations outside training support...predictions trimmed.
+0.62% of observations outside training support...predictions trimmed.
+0.4% of observations outside training support...predictions trimmed.
+0.4% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 5023.9549	 Pars:  0.86159 0.13841
+Iter: 2 fn: 5023.9549	 Pars:  0.86166 0.13834
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5036.9922	 Pars:  0.999990267 0.000009732
+Iter: 2 fn: 5036.9922	 Pars:  0.99999822 0.00000178
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5033.8869	 Pars:  0.55765 0.44235
+Iter: 2 fn: 5033.8868	 Pars:  0.55449 0.44551
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5044.9947	 Pars:  0.999993853 0.000006146
+Iter: 2 fn: 5044.9947	 Pars:  0.999998477 0.000001523
+solnp--> Completed in 2 iterations
+[1] 4
+
+Iter: 1 fn: 5037.0000	 Pars:  0.98517 0.01483
+Iter: 2 fn: 5037.0000	 Pars:  0.98504 0.01496
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5041.8083	 Pars:  0.99998809 0.00001191
+Iter: 2 fn: 5041.8083	 Pars:  0.999994452 0.000005548
+solnp--> Completed in 2 iterations
+0.36% of observations outside training support...predictions trimmed.
+0.4% of observations outside training support...predictions trimmed.
+1.6% of observations outside training support...predictions trimmed.
+0.36% of observations outside training support...predictions trimmed.
+0.4% of observations outside training support...predictions trimmed.
+1.6% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 5046.2369	 Pars:  0.99997068 0.00002932
+Iter: 2 fn: 5046.2368	 Pars:  0.999994013 0.000005987
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5034.0456	 Pars:  0.90329 0.09671
+Iter: 2 fn: 5033.9058	 Pars:  0.99998235 0.00001765
+Iter: 3 fn: 5033.9058	 Pars:  0.9999991709 0.0000008291
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 4914.5121	 Pars:  0.02806 0.97194
+Iter: 2 fn: 4914.5121	 Pars:  0.02806 0.97194
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5036.3336	 Pars:  0.999996706 0.000003293
+Iter: 2 fn: 5036.3336	 Pars:  0.9999990214 0.0000009786
+solnp--> Completed in 2 iterations
+0.76% of observations outside training support...predictions trimmed.
+4.31% of observations outside training support...predictions trimmed.
+0.4% of observations outside training support...predictions trimmed.
+1.2% of observations outside training support...predictions trimmed.
+6.4% of observations outside training support...predictions trimmed.
+0.76% of observations outside training support...predictions trimmed.
+4.31% of observations outside training support...predictions trimmed.
+0.4% of observations outside training support...predictions trimmed.
+1.2% of observations outside training support...predictions trimmed.
+6.4% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 5049.8384	 Pars:  0.99998650 0.00001349
+Iter: 2 fn: 5049.8384	 Pars:  0.999995424 0.000004576
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5030.7847	 Pars:  0.99996626 0.00003374
+Iter: 2 fn: 5030.7846	 Pars:  0.99998968 0.00001032
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5044.7163	 Pars:  0.999993471 0.000006529
+Iter: 2 fn: 5044.7163	 Pars:  0.9999997061 0.0000002939
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5049.8609	 Pars:  0.999996193 0.000003808
+Iter: 2 fn: 5049.8609	 Pars:  0.999998967 0.000001033
+solnp--> Completed in 2 iterations
+[1] 5
+
+Iter: 1 fn: 5028.0542	 Pars:  0.999990875 0.000009125
+Iter: 2 fn: 5028.0542	 Pars:  0.999997119 0.000002881
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5045.7729	 Pars:  0.99998975 0.00001025
+Iter: 2 fn: 5045.7729	 Pars:  0.999997533 0.000002467
+solnp--> Completed in 2 iterations
+0.98% of observations outside training support...predictions trimmed.
+0.8% of observations outside training support...predictions trimmed.
+1.6% of observations outside training support...predictions trimmed.
+0.98% of observations outside training support...predictions trimmed.
+0.8% of observations outside training support...predictions trimmed.
+1.6% of observations outside training support...predictions trimmed.
+
+Iter: 1 fn: 5040.2670	 Pars:  0.999993628 0.000006373
+Iter: 2 fn: 5040.2670	 Pars:  0.9999984 0.0000016
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5042.6017	 Pars:  0.99153 0.00847
+Iter: 2 fn: 5042.5911	 Pars:  0.9999829 0.0000171
+Iter: 3 fn: 5042.5911	 Pars:  0.999990089 0.000009911
+solnp--> Completed in 3 iterations
+
+Iter: 1 fn: 5024.6868	 Pars:  0.999990327 0.000009671
+Iter: 2 fn: 5024.6868	 Pars:  0.999996646 0.000003354
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5041.8185	 Pars:  0.97294 0.02706
+Iter: 2 fn: 5041.8185	 Pars:  0.97305 0.02695
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5028.8381	 Pars:  0.95095 0.04905
+Iter: 2 fn: 5028.8381	 Pars:  0.95096 0.04904
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5023.6079	 Pars:  0.98404 0.01596
+Iter: 2 fn: 5023.6079	 Pars:  0.98463 0.01537
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5048.3685	 Pars:  0.82967 0.17033
+Iter: 2 fn: 5048.3685	 Pars:  0.82984 0.17016
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 5045.7739	 Pars:  0.94542 0.05458
+Iter: 2 fn: 5045.4963	 Pars:  0.99998882 0.00001118
+Iter: 3 fn: 5045.4962	 Pars:  0.999992833 0.000007167
+solnp--> Completed in 3 iterations
+0.93% of observations outside training support...predictions trimmed.
+4.44% of observations outside training support...predictions trimmed.
+0.8% of observations outside training support...predictions trimmed.
+0.8% of observations outside training support...predictions trimmed.
+5.2% of observations outside training support...predictions trimmed.
+0.93% of observations outside training support...predictions trimmed.
+4.44% of observations outside training support...predictions trimmed.
+0.8% of observations outside training support...predictions trimmed.
+0.8% of observations outside training support...predictions trimmed.
+5.2% of observations outside training support...predictions trimmed.
+There were 50 or more warnings (use warnings() to see the first 50)
+> 
+> 
+> # save results to file
+> saveRDS(
++   object = sim_results_df,
++   file = here("sandbox/data", paste0("SuperNOVA_", "mediation", ".rds"))
++ )
+> 
+> proc.time()
+     user    system   elapsed 
+ 3316.876   101.372 39081.936 

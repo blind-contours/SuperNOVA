@@ -1,0 +1,158 @@
+
+R version 4.0.3 (2020-10-10) -- "Bunny-Wunnies Freak Out"
+Copyright (C) 2020 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(SuperNOVA)
+> library(readr)
+> library(here)
+here() starts at /global/scratch/users/david_mccoy/SuperNOVA
+> 
+> NIEHS_2019 <- read_csv(here("sandbox/NHANES/input/NIEHS_2019.csv"))
+Rows: 1330 Columns: 33
+-- Column specification --------------------------------------------------------
+Delimiter: ","
+dbl (33): SEQN, TELOMEAN, LBX074LA, LBX099LA, LBX118LA, LBX138LA, LBX153LA, ...
+
+i Use `spec()` to retrieve the full column specification for this data.
+i Specify the column types or set `show_col_types = FALSE` to quiet this message.
+> 
+> exposures <- c("LBX074LA",
++                "LBX099LA",
++                "LBX118LA",
++                "LBX138LA",
++                "LBX153LA",
++                "LBX170LA",
++                "LBX180LA",
++                "LBX187LA",
++                "LBX194LA",
++                "LBXD03LA",
++                "LBXD05LA",
++                "LBXD07LA",
++                "LBXF03LA",
++                "LBXF04LA",
++                "LBXF05LA",
++                "LBXF08LA",
++                "LBXHXCLA",
++                "LBXPCBLA")
+> 
+> NIEHS_2019 <- NIEHS_2019[complete.cases(NIEHS_2019[, exposures]), ]
+> 
+> deltas <- list("LBX074LA" = 2,
++                "LBX099LA" = 2,
++                "LBX118LA" = 2,
++                "LBX138LA" = 2,
++                "LBX153LA" = 2,
++                "LBX170LA" = 2,
++                "LBX180LA" = 2,
++                "LBX187LA" = 2,
++                "LBX194LA" = 2,
++                "LBXD03LA" = 2,
++                "LBXD05LA" = 2,
++                "LBXD07LA" = 2,
++                "LBXF03LA" = 2,
++                "LBXF04LA" = 2,
++                "LBXF05LA" = 2,
++                "LBXF08LA" = 2,
++                "LBXHXCLA" = 2,
++                "LBXPCBLA" = 2)
+> 
+> outcome <- "TELOMEAN"
+> 
+> covariates <- c("LBXWBCSI",
++                 "LBXLYPCT",
++                 "LBXMOPCT",
++                 "LBXEOPCT",
++                 "LBXBAPCT",
++                 "LBXNEPCT",
++                 "male",
++                 "age_cent",
++                 "age_sq",
++                 "race_cat",
++                 "bmi_cat3",
++                 "ln_lbxcot",
++                 "edu_cat")
+> 
+> w <- NIEHS_2019[, covariates]
+> a <- NIEHS_2019[, exposures]
+> y <- NIEHS_2019$TELOMEAN
+> 
+> 
+> nhanes_results <- SuperNOVA(
++   w = w,
++   a = a,
++   y = y,
++   delta = deltas,
++   n_folds = 20,
++   num_cores = 20,
++   family = "continuous",
++   quantile_thresh = 0,
++   seed = 294580,
++   adaptive_delta = FALSE
++ )
+
+Iter: 1 fn: 2682.7724	 Pars:  0.21463 0.78537
+Iter: 2 fn: 2682.7724	 Pars:  0.21464 0.78536
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2693.4935	 Pars:  0.23316 0.76684
+Iter: 2 fn: 2693.4935	 Pars:  0.23316 0.76684
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2670.2728	 Pars:  0.11448 0.88552
+Iter: 2 fn: 2670.2728	 Pars:  0.11447 0.88553
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2724.3147	 Pars:  0.27531 0.72469
+Iter: 2 fn: 2724.3147	 Pars:  0.27531 0.72469
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2663.8224	 Pars:  0.20848 0.79152
+Iter: 2 fn: 2663.8224	 Pars:  0.20848 0.79152
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2820.2713	 Pars:  0.44744 0.55256
+Iter: 2 fn: 2820.2713	 Pars:  0.44743 0.55257
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2710.6257	 Pars:  0.26389 0.73611
+Iter: 2 fn: 2710.6257	 Pars:  0.26390 0.73610
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2697.5131	 Pars:  0.10928 0.89072
+Iter: 2 fn: 2697.5131	 Pars:  0.10927 0.89073
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2741.8497	 Pars:  0.21543 0.78457
+Iter: 2 fn: 2741.8497	 Pars:  0.21542 0.78458
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2725.0225	 Pars:  0.23776 0.76224
+Iter: 2 fn: 2725.0225	 Pars:  0.23776 0.76224
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 2713.7090	 Pars:  0.22675 0.77325
+Iter: 2 fn: 2713.7090	 Pars:  0.22675 0.77325
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 3704.3911	 Pars:  0.23725 0.76275
+Iter: 2 fn: 3704.3911	 Pars:  0.23725 0.76275
+solnp--> Completed in 2 iterations
+Error in (function (.x, .f, ..., .progress = FALSE)  : i In index: 1.
+Caused by error in `table(em_split_data$ind)[[2]]`:
+! subscript out of bounds
+Calls: SuperNOVA ... resolve.list -> signalConditionsASAP -> signalConditions
+In addition: There were 50 or more warnings (use warnings() to see the first 50)
+Execution halted

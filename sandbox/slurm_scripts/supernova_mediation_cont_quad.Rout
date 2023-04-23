@@ -1,0 +1,136 @@
+
+R version 4.0.3 (2020-10-10) -- "Bunny-Wunnies Freak Out"
+Copyright (C) 2020 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # packages
+> library(here)
+here() starts at /global/scratch/users/david_mccoy/SuperNOVA
+> library(devtools)
+Loading required package: usethis
+> library(dplyr)
+
+Attaching package: 'dplyr'
+
+The following objects are masked from 'package:stats':
+
+    filter, lag
+
+The following objects are masked from 'package:base':
+
+    intersect, setdiff, setequal, union
+
+> library(magrittr)
+> library(stringr)
+> source(here("sandbox/02_fit_estimators.R"))
+> load_all()
+i Loading SuperNOVA
+Warning message:
+replacing previous import 'pracma::cross' by 'purrr::cross' when loading 'SuperNOVA' 
+> 
+> # simulation parameters
+> n_sim <- 5 # number of simulations
+> n_obs <- c(250, 500, 1000, 1500, 2500, 3000)
+> p0_obs <- 100000
+> n_mc_sample <- 1000
+> 
+> n_core <- 20
+> n_fold <- 10
+> 
+> # Generate simulated data -----------------
+> 
+> full_data <- simulate_mediation_data(n_obs = 100000,
++                                      delta = 1)
+> p0_data <- full_data$data
+> 
+> nde_a1 <- full_data$nde_a1
+> nie_a1 <- full_data$nie_a1
+> ate_a1 <- full_data$ate_a1
+> 
+> covars <- c("w_1", "w_2", "w_3", "w_4", "w_5")
+> exposures <- c("a_1")
+> mediators <- c("z_1")
+> outcome <- "y"
+> 
+> # perform simulation across sample sizes
+> sim_results_df <- data.frame()
+> 
+> for (sample_size in n_obs) {
++   # get results in parallel
++   results <- list()
++   print(sample_size)
++ 
++   for (this_iter in seq_len(n_sim)) {
++     print(this_iter)
++ 
++     seed <- sample(1:10000, 1)
++     set.seed(seed)
++ 
++     data_sim <- p0_data %>%
++       dplyr::slice_sample(n = sample_size)
++ 
++     w <- data_sim[, covars]
++     a <- data_sim[, exposures]
++     z <- data_sim[, mediators]
++     y <- data_sim[, outcome]
++ 
++     est_out_aq <- fit_estimators_mediation(
++       w = w,
++       a = a,
++       z = z,
++       y = y,
++       seed = seed,
++       nde_effects = c(nde_a1),
++       nie_effects = c(nie_a1),
++       ate_effects = c(ate_a1),
++       deltas = list("a" = 1),
++       cv_folds = n_fold,
++       num_cores = n_core,
++       var_sets = "a-z",
++       exposure_quantized = FALSE,
++       mediator_quantized = FALSE,
++       n_mc_sample = n_mc_sample,
++       density_type = "sl",
++       integration_method = "AQ"
++     )
++ 
++     est_out_aq$integration_method <- "AQ"
++     est_out_aq$n_obs <- sample_size
++ 
++     results[[this_iter]] <- est_out_aq
++   }
++   # concatenate iterations
++   results_out <- bind_rows(results, .id = "sim_iter")
++   sim_results_df <- rbind(sim_results_df, results_out)
++ }
+[1] 250
+[1] 1
+
+Iter: 1 fn: 339.7980	 Pars:  0.49629 0.50371
+Iter: 2 fn: 339.7980	 Pars:  0.49688 0.50312
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 146.6905	 Pars:  0.76439 0.23561
+Iter: 2 fn: 146.6905	 Pars:  0.76439 0.23561
+solnp--> Completed in 2 iterations
+
+Iter: 1 fn: 514.8972	 Pars:  0.999997651 0.000002349
+Iter: 2 fn: 514.8972	 Pars:  0.9999993947 0.0000006053
+solnp--> Completed in 2 iterations
+Error in (function (.x, .f, ..., .progress = FALSE)  : i In index: 1.
+Caused by error:
+! $ operator is invalid for atomic vectors
+Calls: fit_estimators_mediation ... resolve.list -> signalConditionsASAP -> signalConditions
+Execution halted

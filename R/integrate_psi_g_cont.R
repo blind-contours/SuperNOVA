@@ -56,7 +56,7 @@ integrate_psi_g_cont <- function(av, at, covars, w_names, q_model, r_model, g_mo
       integral_inner <- (max(sample_z_inner) - min(sample_z_inner)) * mean(integrands_inner)
     } else if (integration_method == "AQ") {
       integral_inner <- stats::integrate(
-        function(z) integrand_q_r(z, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a),
+        function(z) integrand_q_r(z, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a, density_type),
         lower = lower_z,
         upper = upper_z,
         rel.tol = 0.001,

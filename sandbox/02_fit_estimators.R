@@ -140,7 +140,9 @@ fit_estimators_mediation <- function(w,
                                      mediator_quantized,
                                      n_mc_sample,
                                      density_type,
-                                     integration_method = "MC"){
+                                     integration_method = "MC",
+                                     n_bins,
+                                     use_multinomial){
 
   sim_results <- SuperNOVA(
     w = w,
@@ -162,7 +164,9 @@ fit_estimators_mediation <- function(w,
     mediator_quantized = mediator_quantized,
     density_type = density_type,
     n_mc_sample = n_mc_sample,
-    integration_method = integration_method
+    integration_method = integration_method,
+    n_bins = n_bins,
+    use_multinomial = use_multinomial
   )
 
   med_shift_results <- sim_results$`Mediation Shift Results`$az

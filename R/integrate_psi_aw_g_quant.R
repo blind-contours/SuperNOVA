@@ -20,14 +20,14 @@
 #' @return A \code{data.table} with two columns, containing estimates of the
 #'  outcome mechanism at the natural value of the exposure Q(A, W) and an
 #'  upshift of the exposure Q(A + delta, W).
-integrate_psi_aw_g_quant <- function(at, av, covars, w_names, pseudo_model, g_model, exposure, delta, psi_aw, n_bins) {
+integrate_psi_aw_g_quant <- function(at, av, covars, w_names, pseudo_model, g_model, exposure, psi_aw, n_bins, use_multinomial) {
   at <- as.data.frame(at)
   av <- as.data.frame(av)
 
-  integrand <- function(bin_a, row_data, covars, pseudo_model, g_model, exposure, delta, upper, av) {
-    # row_data <- do.call("rbind", replicate(length(a), row_data, simplify = FALSE))
+  integrand_psi_g_quant <- function(bin_a, row_data, covars, pseudo_model, g_model, exposure, av, use_multinomial) {
+    row_data <- do.call("rbind", replicate(length(bin_a), row_data, simplify = FALSE))
     new_data_m <- new_data_g <- row_data
-    new_data_m[exposure] <- ifelse(bin_a + delta >= upper, upper, bin_a + delta)
+    new_data_m[exposure] <- bin_a
     new_data_g[exposure] <- bin_a
 
     task_m <- sl3::sl3_Task$new(
@@ -36,19 +36,30 @@ integrate_psi_aw_g_quant <- function(at, av, covars, w_names, pseudo_model, g_mo
       outcome = "pseudo_outcome_scaled"
     )
 
-    task_g <- sl3::sl3_Task$new(
-      data = new_data_g,
-      covariates = c(w_names),
-      outcome = exposure,
-    )
+    m_preds <- pseudo_model$predict(task_m)
+    m_val <- scale_to_original(m_preds, min_orig = min(av$pseudo_outcome), max_orig = max(av$pseudo_outcome))
 
-    m_val <- scale_to_original(pseudo_model$predict(task_m)[[1]], min_orig = min(av$pseudo_outcome), max_orig = max(av$pseudo_outcome))
-    g_val <- g_model$predict(task_g)
-    index <- ifelse(bin_a + delta >= upper, upper, bin_a + delta)
-    g_val <- unlist(g_val)[[index]]
-    # g_val <- ifelse(g_val <= 1/sqrt(nrow(av)), 1/sqrt(nrow(av)), g_val)
+    if (density_type == "sl") {
+      task_g <- sl3::sl3_Task$new(
+        data = new_data_g,
+        covariates = c(w_names),
+        outcome = exposure,
+      )
 
+      if (use_multinomial) {
+        g_val <- g_model$predict(task_g)
+        index <- ifelse(bin_a + delta >= upper, upper, bin_a + delta)
+        g_val <- unlist(g_val)[[index]]
+      }else{
+        g_val <- g_model$predict(task_g)$likelihood
+      }
+
+
+    }else{
+      g_val <- suppressMessages(predict(g_model, new_A = new_data_g[[exposure]], new_W = new_data_g[w_names]))
+  }
     output <- m_val * g_val
+
     return(output)
   }
 
@@ -56,10 +67,7 @@ integrate_psi_aw_g_quant <- function(at, av, covars, w_names, pseudo_model, g_mo
 
   for (i in 1:nrow(av)) {
     row_data <- av[i, ]
-    integral_values <- sapply(1:n_bins, function(bin_a) {
-      integrand_val <- integrand(bin_a, row_data, covars, pseudo_model, g_model, exposure, delta, upper = n_bins, av)
-      return(integrand_val)
-    })
+    integral_values <- integrand_psi_g_quant(bin_a = unique(av[[exposure]]), row_data, covars, pseudo_model, g_model, exposure, av, use_multinomial)
 
     integral_result <- sum(integral_values)
 

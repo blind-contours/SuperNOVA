@@ -10,6 +10,7 @@
 #' @param m_delta numeric value for the m model delta
 #' @param upper_bound numeric value specifying the upper bound for exposure values
 #' @param density_type character string specifying the density type ("sl" or other)
+#' @export
 #'
 #' @return output numeric vector of integrand values
 integrand_q_g <- function(sample_a, row_data, covars, q_model, g_model, exposure, g_delta, m_delta, upper_bound, density_type) {

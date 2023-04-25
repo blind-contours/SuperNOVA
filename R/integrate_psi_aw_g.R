@@ -27,7 +27,7 @@ integrate_psi_aw_g <- function(at, av, covars, w_names, pseudo_model, g_model, e
   lower <- min(av[exposure])
   upper <- max(av[exposure])
 
-  integrand <- function(sample_a, row_data, covars, pseudo_model, g_model, exposure, delta, upper, density_type, av) {
+  integrand_psi_g <- function(sample_a, row_data, covars, pseudo_model, g_model, exposure, delta, upper, density_type, av) {
     row_data <- do.call("rbind", replicate(length(sample_a), row_data, simplify = FALSE))
     new_data_m <- new_data_g <- row_data
     new_data_m[exposure] <- ifelse(sample_a + delta >= upper, upper, sample_a + delta)
@@ -66,11 +66,11 @@ integrate_psi_aw_g <- function(at, av, covars, w_names, pseudo_model, g_model, e
 
     if (integration_method == "MC") {
       sample_a <- runif(n_samples, lower, upper)
-      integral_values <- integrand(sample_a, row_data, covars, pseudo_model, g_model, exposure, delta, upper, density_type, av)
+      integral_values <- integrand_psi_g(sample_a, row_data, covars, pseudo_model, g_model, exposure, delta, upper, density_type, av)
       integral_result <- mean(integral_values) * (max(sample_a) - min(sample_a))
     } else if (integration_method == "AQ") {
       integral_result <- stats::integrate(
-        function(a) integrand(a, row_data, covars, pseudo_model, g_model, exposure, delta, upper, density_type, av),
+        function(a) integrand_psi_g(a, row_data, covars, pseudo_model, g_model, exposure, delta, upper, density_type, av),
         lower = lower,
         upper = upper,
         rel.tol = 0.001,

@@ -13,7 +13,7 @@ indiv_stoch_shift_est_g_exp(
   at,
   adaptive_delta,
   hn_trunc_thresh,
-  exposure_quantized,
+  use_multinomial,
   lower_bound,
   upper_bound,
   outcome_type,
@@ -49,10 +49,6 @@ distributions.}
 in the adaptive delta procedure. It represents the minimum proportion of observations in each
 exposure group to be included when adjusting delta.}
 
-\item{exposure_quantized}{A \code{logical} indicating whether the exposure variable has been
-discretized. If \code{TRUE}, multinomial learners will be used instead of density learners
-for the GPS estimation.}
-
 \item{lower_bound}{A \code{numeric} value specifying the lower bound of the exposure variable
 to prevent shifting past this limit during the GPS estimation.}
 
@@ -78,6 +74,10 @@ increase the risk of overfitting.}
 package, to be used in fitting an ensemble model for GPS estimation. Learners should be
 chosen based on the structure of the data and the relationships between exposure, covariates,
 and outcome.}
+
+\item{exposure_quantized}{A \code{logical} indicating whether the exposure variable has been
+discretized. If \code{TRUE}, multinomial learners will be used instead of density learners
+for the GPS estimation.}
 }
 \value{
 A \code{data.table} with four columns, containing estimates of the

@@ -19,7 +19,10 @@ integrate_psi_g_discrete(
   n_bins,
   n_samples = 1000,
   method = "MC",
-  mediator_quantized
+  mediator_quantized,
+  density_type,
+  upper_bound,
+  use_multinomial
 )
 }
 \arguments{

@@ -12,9 +12,9 @@ integrate_psi_aw_g_quant(
   pseudo_model,
   g_model,
   exposure,
-  delta,
   psi_aw,
-  n_bins
+  n_bins,
+  use_multinomial
 )
 }
 \arguments{
@@ -27,12 +27,12 @@ integrate_psi_aw_g_quant(
 \item{exposure}{A \code{numeric} indicating the magnitude of the shift to be
 computed for the exposure \code{A}. This is passed to the internal}
 
-\item{delta}{Object containing a set of instantiated learners from the
-\pkg{sl3}, to be used in fitting an ensemble model.}
-
 \item{data}{A \code{character} vector of exposures to be shifted.}
 
 \item{q_model}{A \code{character} vector covariates to adjust for.}
+
+\item{delta}{Object containing a set of instantiated learners from the
+\pkg{sl3}, to be used in fitting an ensemble model.}
 }
 \value{
 A \code{data.table} with two columns, containing estimates of the

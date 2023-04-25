@@ -36,7 +36,8 @@ SuperNOVA(
   density_type = "sl",
   n_bins = 10,
   max_degree = 1,
-  integration_method = "MC"
+  integration_method = "MC",
+  use_multinomial = FALSE
 )
 }
 \arguments{

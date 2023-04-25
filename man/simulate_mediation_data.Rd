@@ -4,7 +4,7 @@
 \alias{simulate_mediation_data}
 \title{DGP for testing SuperNOVA with mediation}
 \usage{
-simulate_mediation_data(n_obs = 1e+05, delta = 1)
+simulate_mediation_data(n_obs = 1e+05, delta = 1, breaks = breaks)
 }
 \arguments{
 \item{n_obs}{Number of observations}

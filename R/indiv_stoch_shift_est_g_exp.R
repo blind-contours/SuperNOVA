@@ -70,7 +70,7 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
                                         at,
                                         adaptive_delta,
                                         hn_trunc_thresh,
-                                        exposure_quantized,
+                                        use_multinomial,
                                         lower_bound,
                                         upper_bound,
                                         outcome_type,
@@ -179,7 +179,7 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
     pred_g_exp_upshifted_av <- g_model$predict(sl_task_upshifted_av)
     pred_g_exp_upupshifted_av <- g_model$predict(sl_task_upupshifted_av)
 
-    if (exposure_quantized == TRUE) {
+    if (use_multinomial == TRUE) {
       get_value_from_column <- function(a, row_quantile_predictions, lower_bound = lower_bound, upper_bound = upper_bound) {
         a <- ifelse(a < lower_bound, lower_bound, a)
         a <- ifelse(a > upper_bound, upper_bound, a)
@@ -342,7 +342,7 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
           pred_g_exp_upshifted_av <- g_model$predict(sl_task_upshifted_av)
           pred_g_exp_upupshifted_av <- g_model$predict(sl_task_upupshifted_av)
 
-          if (exposure_quantized == TRUE) {
+          if (use_multinomial == TRUE) {
             get_value_from_column <- function(a, row_quantile_predictions, lower_bound = lower_bound, upper_bound = upper_bound) {
               a <- ifelse(a < lower_bound, lower_bound, a)
               a <- ifelse(a > upper_bound, upper_bound, a)

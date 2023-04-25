@@ -27,7 +27,7 @@
 #'  outcome mechanism at the natural value of the exposure Q(A, W) and an
 #'  upshift of the exposure Q(A + delta, W)
 
-integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, g_model, exposure, mediator, delta, n_bins, n_samples = 1000, method = "MC", mediator_quantized) {
+integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, g_model, exposure, mediator, delta, n_bins, n_samples = 1000, method = "MC", mediator_quantized, density_type, upper_bound, use_multinomial) {
   av <- as.data.frame(av)
   at <- as.data.frame(at)
 
@@ -36,12 +36,12 @@ integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, 
 
   sample_z <- runif(n_samples, min = lower_z, max = upper_z)
 
-  integrand_m_r <- function(sample_z_inner, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a, scale_data, mediator_quantized) {
+  integrand_m_r <- function(sample_z_inner, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_bound, density_type, use_multinomial) {
     row_data_rep <- do.call("rbind", replicate(length(sample_z_inner), row_data, simplify = FALSE))
     new_data_m <- new_data_r <- row_data_rep
 
     new_data_m[mediator] <- sample_z_inner
-    new_data_m[exposure] <- ifelse(new_data_m[[exposure]] + delta >= upper_a, upper_a, new_data_m[[exposure]] + delta)
+    new_data_m[exposure] <- ifelse(new_data_m[[exposure]] + delta >= upper_bound, upper_bound, new_data_m[[exposure]] + delta)
 
     new_data_r[mediator] <- sample_z_inner
 
@@ -51,32 +51,38 @@ integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, 
       outcome = "y"
     )
 
-    task_r <- sl3::sl3_Task$new(
-      data = new_data_r,
-      covariates = c(w_names),
-      outcome = mediator,
-    )
-
     m_val <- q_model$predict(task_m)
 
-    if (mediator_quantized) {
-      r_val <- r_model$predict(task_r)
-      r_vals <- unlist(r_val, recursive = FALSE)
-      likelihood_r <- sapply(r_vals, function(x) x[[sample_z_inner]])
-      output <- m_val * likelihood_r
-    } else {
-      r_val <- r_model$predict(task_r)$likelihood
+    if (density_type == "sl") {
+      task_r <- sl3::sl3_Task$new(
+        data = new_data_r,
+        covariates = c(w_names),
+        outcome = mediator,
+      )
+
+      if (use_multinomial) {
+        r_val <- r_model$predict(task_r)
+        r_vals <- unlist(r_val, recursive = FALSE)
+        likelihood_r <- sapply(r_vals, function(x) x[[sample_z_inner]])
+        output <- m_val * likelihood_r
+      } else {
+        r_val <- r_model$predict(task_r)$likelihood
+        output <- m_val * r_val
+      }
+    }else{
+      r_val <- suppressMessages(predict(r_model, new_A = new_data_r[[mediator]], new_W = new_data_r[w_names]))
       output <- m_val * r_val
     }
+
     return(output)
   }
 
-  integrand_m_g_r_mc <- function(sample_a, sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a, scale_data, mediator_quantized) {
+  integrand_m_g_r_mc <- function(sample_a, sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_bound, density_type, use_multinomial) {
     n_samples <- length(sample_z)
     row_data_rep <- do.call("rbind", replicate(n_samples, row_data, simplify = FALSE))
     new_data_m <- new_data_g <- new_data_r <- row_data_rep
 
-    new_data_m[exposure] <- ifelse(sample_a + delta >= upper_a, upper_a, sample_a + delta)
+    new_data_m[exposure] <- ifelse(sample_a + delta >= upper_bound, upper_bound, sample_a + delta)
     new_data_m[mediator] <- sample_z
 
     new_data_g[exposure] <- sample_a
@@ -88,34 +94,40 @@ integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, 
       outcome = "y"
     )
 
-    task_g <- sl3::sl3_Task$new(
-      data = new_data_g,
-      covariates = c(w_names),
-      outcome = exposure,
-    )
-
-    task_r <- sl3::sl3_Task$new(
-      data = new_data_r,
-      covariates = c(w_names),
-      outcome = mediator,
-    )
-
     m_val <- q_model$predict(task_m)
-    g_val <- g_model$predict(task_g)
 
-    # r_val <- ifelse(r_val <= 1/sqrt(nrow(scale_data)), 1/sqrt(nrow(scale_data)), r_val)
+    if (density_type == "sl") {
+      task_g <- sl3::sl3_Task$new(
+        data = new_data_g,
+        covariates = c(w_names),
+        outcome = exposure,
+      )
 
-    g_vals <- unlist(g_val, recursive = FALSE)
-    likelihood <- sapply(g_vals, function(x) x[[sample_a]])
+      task_r <- sl3::sl3_Task$new(
+        data = new_data_r,
+        covariates = c(w_names),
+        outcome = mediator,
+      )
 
-    if (mediator_quantized) {
-      r_val <- r_model$predict(task_r)
-      r_vals <- unlist(r_val, recursive = FALSE)
-      likelihood_r <- sapply(r_vals, function(x) x[[sample_z]])
-      output <- m_val * likelihood * likelihood_r
-    } else {
-      r_val <- r_model$predict(task_r)$likelihood
-      output <- m_val * likelihood * r_val
+
+      g_val <- g_model$predict(task_g)
+
+      if (use_multinomial == TRUE) {
+        g_vals <- unlist(g_val, recursive = FALSE)
+        likelihood <- sapply(g_vals, function(x) x[[sample_a]])
+        r_val <- r_model$predict(task_r)
+        r_vals <- unlist(r_val, recursive = FALSE)
+        likelihood_r <- sapply(r_vals, function(x) x[[sample_z]])
+        output <- m_val * likelihood * likelihood_r
+      }else{
+        likelihood <- g_val$likelihood
+        r_val <- r_model$predict(task_r)$likelihood
+        output <- m_val * likelihood * r_val
+      }
+    }else{
+      r_val <- suppressMessages(predict(r_model, new_A = new_data_r[[mediator]], new_W = new_data_r[w_names]))
+      g_val <- suppressMessages(predict(g_model, new_A = new_data_g[[exposure]], new_W = new_data_g[w_names]))
+      output <- m_val * g_val * r_val
     }
 
     return(output)
@@ -130,15 +142,15 @@ integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, 
 
     if (mediator_quantized) {
       integral_inner <- sum(sapply(1:n_bins, function(z_val) {
-        integrand_m_r(z_val, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av, mediator_quantized)
+        integrand_m_r(sample_z_inner = sample_z, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_bound, density_type, use_multinomial)
       }))
     } else {
       if (method == "MC") {
-        mc_integrands_inner <- integrand_m_r(sample_z_inner = sample_z, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av, mediator_quantized)
+        mc_integrands_inner <- integrand_m_r(sample_z_inner  = sample_z, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_bound, density_type, use_multinomial)
         integral_inner <- (max(sample_z) - min(sample_z)) * mean(mc_integrands_inner)
       } else {
         integral_inner <- stats::integrate(
-          function(sample_z_inner) integrand_m_r(sample_z_inner, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av, mediator_quantized),
+          function(sample_z_inner) integrand_m_r(sample_z_inner = sample_z, row_data, covars, w_names, q_model, r_model, exposure, mediator, delta, upper_bound, density_type, use_multinomial),
           lower = min(sample_z),
           upper = max(sample_z),
           rel.tol = 0.001,
@@ -149,18 +161,18 @@ integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, 
     }
 
     integral_outer_results_i <- numeric(n_bins)
-    for (a_val in 1:n_bins) {
+    for (a_val in unique(av[[exposure]])) {
       if (mediator_quantized) {
         integral_outer <- sum(sapply(1:n_bins, function(z_val) {
-          integrand_m_g_r_mc(sample_a = a_val, z_val, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av, mediator_quantized)
+          integrand_m_g_r_mc(sample_a = a_val, sample_z = sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_bound, density_type, use_multinomial)
         }))
       } else {
         if (method == "MC") {
-          integrand_val <- integrand_m_g_r_mc(sample_a = a_val, sample_z = sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av, mediator_quantized)
+          integrand_val <- integrand_m_g_r_mc(sample_a = a_val, sample_z = sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_bound, density_type, use_multinomial)
           integral_outer <- (max(sample_z) - min(sample_z)) * mean(integrand_val)
         } else {
           integral_outer <- stats::integrate(
-            function(sample_z) integrand_m_g_r_mc(sample_a = a_val, sample_z = sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_a = n_bins, scale_data = av, mediator_quantized),
+            function(sample_z) integrand_m_g_r_mc(sample_a = a_val, sample_z = sample_z, row_data, covars, w_names, q_model, g_model, r_model, exposure, mediator, delta, upper_bound, density_type, use_multinomial),
             lower = min(sample_z),
             upper = max(sample_z),
             rel.tol = 0.001,

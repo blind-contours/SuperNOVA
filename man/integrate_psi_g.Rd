@@ -21,9 +21,13 @@ integrate_psi_g(
 )
 }
 \arguments{
-\item{covars}{The mediator variable}
+\item{at}{Training data}
 
-\item{w_names}{Covariate names}
+\item{av}{Validation}
+
+\item{covars}{Covariates used in the m model}
+
+\item{w_names}{Covariate used in the g model}
 
 \item{q_model}{A \code{character} vector covariates to adjust for.}
 
@@ -40,9 +44,11 @@ computed for the exposure \code{A}. This is passed to the internal}
 \item{delta}{Object containing a set of instantiated learners from the
 \pkg{sl3}, to be used in fitting an ensemble model.}
 
-\item{data}{A \code{character} vector of exposures to be shifted.}
+\item{integration_method}{Type of integration method to be used}
 
-\item{bins}{A \code{dataframe} of training data specific to the fold}
+\item{n_samples}{Number of MC samples for MC integration}
+
+\item{density_type}{Type of density estimation}
 }
 \value{
 A \code{data.table} with two columns, containing estimates of the

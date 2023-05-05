@@ -13,7 +13,7 @@
 #' @param delta A \code{numeric} value specifying the shift in the observed value of the
 #' exposure for evaluating counterfactual observations. Positive values will result in upward
 #' shifts, while negative values will result in downward shifts.
-#' @param pi_learner An object containing a set of instantiated learners from the \pkg{sl3}
+#' @param g_learner An object containing a set of instantiated learners from the \pkg{sl3}
 #' package, to be used in fitting an ensemble model for GPS estimation. Learners should be
 #' chosen based on the structure of the data and the relationships between exposure, covariates,
 #' and outcome.
@@ -28,9 +28,6 @@
 #' @param hn_trunc_thresh A \code{numeric} value specifying the level of the clever covariate
 #' in the adaptive delta procedure. It represents the minimum proportion of observations in each
 #' exposure group to be included when adjusting delta.
-#' @param exposure_quantized A \code{logical} indicating whether the exposure variable has been
-#' discretized. If \code{TRUE}, multinomial learners will be used instead of density learners
-#' for the GPS estimation.
 #' @param lower_bound A \code{numeric} value specifying the lower bound of the exposure variable
 #' to prevent shifting past this limit during the GPS estimation.
 #' @param upper_bound A \code{numeric} value specifying the upper bound of the exposure variable
@@ -46,6 +43,7 @@
 #' interactions to be used in the Highly Adaptive Lasso (HAL) if HAL is chosen as the
 #' density estimator. Higher values will result in a more flexible GPS model, but may
 #' increase the risk of overfitting.
+#' @param use_multinomial TRUE/FALSE whether to use multinomial for PMF estimation vs. PDF of exposure
 #'
 #' @importFrom data.table as.data.table setnames set copy
 #' @importFrom stats predict
@@ -85,7 +83,7 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
     data.table::set(shifted_data,
       j = exposure,
       value = shift_additive(
-        a = subset(data, select = exposure),
+        a = data[[exposure]],
         delta = delta,
         lower_bound = lower_bound,
         upper_bound = upper_bound
@@ -116,52 +114,60 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
     sl_task_noshift_at <- sl3::sl3_Task$new(
       data = at,
       outcome = exposure,
-      covariates = covars
+      covariates = covars,
+      outcome_type = outcome_type
     )
 
     sl_task_noshift_av <- sl3::sl3_Task$new(
       data = av,
       outcome = exposure,
-      covariates = covars
+      covariates = covars,
+      outcome_type = outcome_type
     )
 
     # sl3 task for data with exposure shifted DOWNWARDS A-delta
     sl_task_downshifted_at <- sl3::sl3_Task$new(
       data = at_downshifted,
       outcome = exposure,
-      covariates = covars
+      covariates = covars,
+      outcome_type = outcome_type
     )
 
     sl_task_downshifted_av <- sl3::sl3_Task$new(
       data = av_downshifted,
       outcome = exposure,
-      covariates = covars
+      covariates = covars,
+      outcome_type = outcome_type
     )
 
     # sl3 task for data with exposure shifted UPWARDS A+delta
     sl_task_upshifted_at <- sl3::sl3_Task$new(
       data = at_upshifted,
       outcome = exposure,
-      covariates = covars
+      covariates = covars,
+      outcome_type = outcome_type
     )
 
     sl_task_upshifted_av <- sl3::sl3_Task$new(
       data = av_upshifted,
       outcome = exposure,
-      covariates = covars
+      covariates = covars,
+      outcome_type = outcome_type
     )
 
     # sl3 task for data with exposure shifted UPWARDS A+2delta
     sl_task_upupshifted_at <- sl3::sl3_Task$new(
       data = at_upupshifted,
       outcome = exposure,
-      covariates = covars
+      covariates = covars,
+      outcome_type = outcome_type
     )
 
     sl_task_upupshifted_av <- sl3::sl3_Task$new(
       data = av_upupshifted,
       outcome = exposure,
-      covariates = covars
+      covariates = covars,
+      outcome_type = outcome_type
     )
 
     g_model <- suppressWarnings(suppressMessages(g_learner$train(sl_task)))
@@ -208,23 +214,23 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
 
 
     g_model <- suppressMessages(haldensify(
-      A = at[[exposure]], W = at[w_names], n_bins = n_bins, lambda_seq = exp(seq(-1, -10, length = 100)),
+      A = at[[exposure]], W = at[covars], n_bins = n_bins, lambda_seq = exp(seq(-1, -10, length = 100)),
       # the following arguments are passed to hal9001::fit_hal()
       max_degree = max_degree
     ))
 
     # at predictions -----------
-    pred_g_exp_noshift_at <- predict(g_model, new_A = at[[exposure]], new_W = at[w_names])
-    pred_g_exp_downshifted_at <- predict(g_model, new_A = at_downshifted[[exposure]], new_W = at_downshifted[w_names])
-    pred_g_exp_upshifted_at <- predict(g_model, new_A = at_upshifted[[exposure]], new_W = at_upshifted[w_names])
-    pred_g_exp_upupshifted_at <- predict(g_model, new_A = at_upupshifted[[exposure]], new_W = at_upupshifted[w_names])
+    pred_g_exp_noshift_at <- predict(g_model, new_A = at[[exposure]], new_W = at[covars])
+    pred_g_exp_downshifted_at <- predict(g_model, new_A = at_downshifted[[exposure]], new_W = at_downshifted[covars])
+    pred_g_exp_upshifted_at <- predict(g_model, new_A = at_upshifted[[exposure]], new_W = at_upshifted[covars])
+    pred_g_exp_upupshifted_at <- predict(g_model, new_A = at_upupshifted[[exposure]], new_W = at_upupshifted[covars])
 
     # av predictions -----------
 
-    pred_g_exp_noshift_av <- predict(g_model, new_A = av[[exposure]], new_W = av[w_names])
-    pred_g_exp_downshifted_av <- predict(g_model, new_A = av_downshifted[[exposure]], new_W = av_downshifted[w_names])
-    pred_g_exp_upshifted_av <- predict(g_model, new_A = av_upshifted[[exposure]], new_W = av_upshifted[w_names])
-    pred_g_exp_upupshifted_av <- predict(g_model, new_A = av_upupshifted[[exposure]], new_W = av_upupshifted[w_names])
+    pred_g_exp_noshift_av <- predict(g_model, new_A = av[[exposure]], new_W = av[covars])
+    pred_g_exp_downshifted_av <- predict(g_model, new_A = av_downshifted[[exposure]], new_W = av_downshifted[covars])
+    pred_g_exp_upshifted_av <- predict(g_model, new_A = av_upshifted[[exposure]], new_W = av_upshifted[covars])
+    pred_g_exp_upupshifted_av <- predict(g_model, new_A = av_upupshifted[[exposure]], new_W = av_upupshifted[covars])
   }
 
   # create output data.tables
@@ -370,17 +376,17 @@ indiv_stoch_shift_est_g_exp <- function(exposure,
           av_downshifted <- as.data.frame(av_downshifted)
 
           # at predictions -----------
-          pred_g_exp_noshift_at <- predict(g_model, new_A = at[[exposure]], new_W = at[w_names])
-          pred_g_exp_downshifted_at <- predict(g_model, new_A = at_downshifted[[exposure]], new_W = at_downshifted[w_names])
-          pred_g_exp_upshifted_at <- predict(g_model, new_A = at_upshifted[[exposure]], new_W = at_upshifted[w_names])
-          pred_g_exp_upupshifted_at <- predict(g_model, new_A = at_upupshifted[[exposure]], new_W = at_upupshifted[w_names])
+          pred_g_exp_noshift_at <- predict(g_model, new_A = at[[exposure]], new_W = at[covars])
+          pred_g_exp_downshifted_at <- predict(g_model, new_A = at_downshifted[[exposure]], new_W = at_downshifted[covars])
+          pred_g_exp_upshifted_at <- predict(g_model, new_A = at_upshifted[[exposure]], new_W = at_upshifted[covars])
+          pred_g_exp_upupshifted_at <- predict(g_model, new_A = at_upupshifted[[exposure]], new_W = at_upupshifted[covars])
 
           # av predictions -----------
 
-          pred_g_exp_noshift_av <- predict(g_model, new_A = av[[exposure]], new_W = av[w_names])
-          pred_g_exp_downshifted_av <- predict(g_model, new_A = av_downshifted[[exposure]], new_W = av_downshifted[w_names])
-          pred_g_exp_upshifted_av <- predict(g_model, new_A = av_upshifted[[exposure]], new_W = av_upshifted[w_names])
-          pred_g_exp_upupshifted_av <- predict(g_model, new_A = av_upupshifted[[exposure]], new_W = av_upupshifted[w_names])
+          pred_g_exp_noshift_av <- predict(g_model, new_A = av[[exposure]], new_W = av[covars])
+          pred_g_exp_downshifted_av <- predict(g_model, new_A = av_downshifted[[exposure]], new_W = av_downshifted[covars])
+          pred_g_exp_upshifted_av <- predict(g_model, new_A = av_upshifted[[exposure]], new_W = av_upshifted[covars])
+          pred_g_exp_upupshifted_av <- predict(g_model, new_A = av_upupshifted[[exposure]], new_W = av_upupshifted[covars])
         }
 
         # create output data.tables

@@ -1,14 +1,13 @@
 library(data.table)
 
 # Create dummy data
-exposure <- c("exposure1", "exposure2")
+exposure <- c("exposure1")
 delta <- 0.5
 mu_learner <- c("lrn_glm")
 covars <- c("cov1", "cov2")
 
 av <- data.table(
   "exposure1" = rnorm(100),
-  "exposure2" = rnorm(100),
   "cov1" = rnorm(100),
   "cov2" = rnorm(100),
   "y" = rnorm(100)
@@ -16,7 +15,6 @@ av <- data.table(
 
 at <- data.table(
   "exposure1" = rnorm(100),
-  "exposure2" = rnorm(100),
   "cov1" = rnorm(100),
   "cov2" = rnorm(100),
   "y" = rnorm(100)
@@ -25,12 +23,15 @@ at <- data.table(
 # Test function
 mu_learner <- make_learner(Stack, c(Lrnr_glm$new(), Lrnr_mean$new()))
 
-out_list <- indiv_stoch_shift_est_Q(exposure,
+out_list <- indiv_stoch_shift_est_Q(
+  exposure,
   delta,
   mu_learner = mu_learner,
   covars = c(covars, exposure),
   av,
-  at
+  at,
+  lower_bound = -Inf,
+  upper_bound = Inf
 )
 
 # Test that the function returns a list with two elements

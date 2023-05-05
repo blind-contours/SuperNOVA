@@ -30,6 +30,11 @@ variable should be a column name in the input data.}
 exposure for evaluating counterfactual observations. Positive values will result in upward
 shifts, while negative values will result in downward shifts.}
 
+\item{g_learner}{An object containing a set of instantiated learners from the \pkg{sl3}
+package, to be used in fitting an ensemble model for GPS estimation. Learners should be
+chosen based on the structure of the data and the relationships between exposure, covariates,
+and outcome.}
+
 \item{covars}{A \code{character} vector representing the labels of the covariate variables.
 These variables should be column names in the input data and serve as control variables in
 the GPS estimation.}
@@ -48,6 +53,8 @@ distributions.}
 \item{hn_trunc_thresh}{A \code{numeric} value specifying the level of the clever covariate
 in the adaptive delta procedure. It represents the minimum proportion of observations in each
 exposure group to be included when adjusting delta.}
+
+\item{use_multinomial}{TRUE/FALSE whether to use multinomial for PMF estimation vs. PDF of exposure}
 
 \item{lower_bound}{A \code{numeric} value specifying the lower bound of the exposure variable
 to prevent shifting past this limit during the GPS estimation.}
@@ -69,15 +76,6 @@ variable is discretized. This parameter is only applicable when exposure_quantiz
 interactions to be used in the Highly Adaptive Lasso (HAL) if HAL is chosen as the
 density estimator. Higher values will result in a more flexible GPS model, but may
 increase the risk of overfitting.}
-
-\item{pi_learner}{An object containing a set of instantiated learners from the \pkg{sl3}
-package, to be used in fitting an ensemble model for GPS estimation. Learners should be
-chosen based on the structure of the data and the relationships between exposure, covariates,
-and outcome.}
-
-\item{exposure_quantized}{A \code{logical} indicating whether the exposure variable has been
-discretized. If \code{TRUE}, multinomial learners will be used instead of density learners
-for the GPS estimation.}
 }
 \value{
 A \code{data.table} with four columns, containing estimates of the

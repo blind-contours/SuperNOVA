@@ -12,8 +12,7 @@ calc_pooled_em_shifts(
   fluc_mod_out = NULL,
   w_names,
   a_names,
-  fluctuation,
-  em_learner
+  fluctuation
 )
 }
 \arguments{
@@ -34,9 +33,6 @@ procedure, as given by \code{\link{fit_fluctuation}}.}
 \item{a_names}{Names of exposure}
 
 \item{fluctuation}{type of fluctuation to use}
-
-\item{em_learner}{Stack of decision trees to regress influence function
-onto covariate space}
 }
 \value{
 A \code{list} containing the parameter estimate, estimated variance

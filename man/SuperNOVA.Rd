@@ -2,8 +2,13 @@
 % Please edit documentation in R/SuperNOVA.R
 \name{SuperNOVA}
 \alias{SuperNOVA}
-\title{Data-adaptive efficient estimation of interactions and effect
-modification using stochastic shift interventions}
+\title{Data-adaptive estimation of interactions, effect modification, and
+mediation using stochastic shift intervention target parameters. In many mixed exposure settings,
+interactions in the mixture, effect modifiers in the covariates that modify the
+impact of an exposure and mediating pathways from exposure to outcome are generally unknown. SuperNOVA finds these variable sets
+on one part of the data and estimates counterfactual outcome changes given shifts to exposure on an estimation part of the data.
+Using cross-validation and targeted learning, estimators are created that utlize machine learning that are unbiased and have the
+minimum variance.}
 \usage{
 SuperNOVA(
   w,
@@ -18,7 +23,6 @@ SuperNOVA(
   mu_learner = NULL,
   g_learner = NULL,
   e_learner = NULL,
-  em_learner = NULL,
   zeta_learner = NULL,
   n_folds = 2,
   outcome_type = "continuous",
@@ -42,96 +46,103 @@ SuperNOVA(
 }
 \arguments{
 \item{w}{A \code{matrix}, \code{data.frame}, or similar containing a set of
-baseline covariates.}
+baseline covariates. These variables are measured before exposures.}
 
-\item{a}{\code{matrix}, \code{data.frame}, or similar containing an
-individual or set of
-exposures}
+\item{a}{\code{matrix}, \code{data.frame}, or similar containing individual or
+multiple exposures.}
 
-\item{z}{\code{matrix}, \code{data.frame}, or similar containing an
-individual or set of mediators}
+\item{z}{\code{matrix}, \code{data.frame}, or similar containing individual or
+multiple mediators (optional).}
 
-\item{y}{\code{numeric} vector of the observed outcomes.}
+\item{y}{\code{numeric} vector of observed outcomes.}
 
-\item{deltas}{A \code{numeric} value indicating the shift in the exposures to
-be used in defining the target parameter. This is defined with respect to
-the scale of the exposures (A).}
+\item{deltas}{A \code{numeric} value indicating the shift in exposures to
+define the target parameter, with respect to the scale of the exposures (A). If adaptive_delta
+is true, these values will be reduced.}
 
-\item{estimator}{The type of estimator to be fit, either \code{"tmle"} for
-targeted maximum likelihood or \code{"onestep"} for a one-step estimator.}
+\item{estimator}{The type of estimator to fit: \code{"tmle"} for targeted
+maximum likelihood estimation, or \code{"onestep"} for a one-step estimator.}
 
-\item{fluctuation}{The method to be used in the submodel fluctuation step
-(targeting step) to compute the TML estimator. The choices are "standard"
-and "weighted" for where to place the auxiliary covariate in the logistic
-tilting regression.}
+\item{fluctuation}{Method used in the targeting step for TML estimation: "standard" or "weighted".
+This determines where to place the auxiliary covariate in the logistic tilting regression.}
 
-\item{var_sets}{If using SuperNOVA deterministically, this parameter takes
-in a list of the form var_sets <- c("A_1", "A_1-Z_2") etc. where the
-analyst passes in variable sets for exposures, exosure-mediator, or exposure-
-covariate.}
+\item{var_sets}{A list specifying variable sets for deterministic SuperNOVA usage.
+Example: var_sets <- c("A_1", "A_1-Z_2") where the analyst provides variable sets
+for exposures, exposure-mediator, or exposure-covariate relationships.}
 
-\item{pi_learner}{Learners used to fit Super Learner ensembles to densities
-via \pkg{sl3}}
+\item{pi_learner}{Learners for fitting Super Learner ensembles to densities via \pkg{sl3}.}
 
-\item{mu_learner}{Learners used to fit Super Learner ensembles to the outcome
-model via \pkg{sl3}}
+\item{mu_learner}{Learners for fitting Super Learner ensembles to the outcome model via \pkg{sl3}.}
 
-\item{g_learner}{Learners used to fit Super Learner ensembles to the g mech
-g(A|W) - a probability estimator not a density estimator used in mediation
-via \pkg{sl3}}
+\item{g_learner}{Learners for fitting Super Learner ensembles to the g-mechanism
+g(A|W) (a probability estimator, not a density estimator) for mediation via \pkg{sl3}.}
 
-\item{e_learner}{Learners used to fit Super Learner ensembles to the e mech
-g(A|Z,W) - a probability estimator not a density estimator used in mediation
-via \pkg{sl3}}
+\item{e_learner}{Learners for fitting Super Learner ensembles to the e-mechanism
+g(A|Z,W) (a probability estimator, not a density estimator) for mediation via \pkg{sl3}.}
 
-\item{em_learner}{Super learner from \pkg{sl3} of decision trees used to
-apply to the EIF of the shift applied to an exposure using covariates W.}
+\item{zeta_learner}{Learners for fitting Super Learner ensembles to the outcome model via \pkg{sl3}..}
 
-\item{zeta_learner}{Learners used to fit Super Learner ensembles to the outcome
-model via \pkg{sl3}}
+\item{n_folds}{Number of folds to use in cross-validation, default is 2.}
 
-\item{n_folds}{Number of folds to use in cross-validation}
+\item{outcome_type}{Data type of the outcome, default is "continuous".}
 
-\item{quantile_thresh}{Threshold based on quantiles of the f-statistic used
-to identify "important" basis functions in the data-adaptive procedure}
+\item{quantile_thresh}{Threshold based on quantiles of the F-statistic, used to
+identify "important" basis functions in the data-adaptive procedure.}
 
-\item{verbose}{Whether to run verbosely}
+\item{verbose}{Whether to run verbosely (default: FALSE).}
 
-\item{parallel}{TRUE/FALSE parallelize across cores}
+\item{parallel}{Whether to parallelize across cores (default: TRUE).}
 
-\item{parallel_type}{If parallel is TRUE, type of parallelization to use. Default
-is "multi_session", other values are multicore and sequential.}
+\item{parallel_type}{Type of parallelization to use if parallel is TRUE:
+"multi_session" (default), "multicore", or "sequential".}
 
-\item{num_cores}{Number of CPU cores to use in parallelization}
+\item{num_cores}{Number of CPU cores to use in parallelization (default: 2).}
 
-\item{seed}{\code{numeric} seed value to be passed to all functions}
+\item{seed}{\code{numeric} seed value to be passed to all functions.}
 
-\item{hn_trunc_thresh}{Truncation level for the clever covariate}
+\item{hn_trunc_thresh}{Truncation level for the clever covariate (default: 10).}
 
-\item{adaptive_delta}{If TRUE, this reduces the user specified delta until
-the Hn calculated for a shift does not have any observation that is greater
-than hn_trunc_thresh.}
+\item{adaptive_delta}{If TRUE, reduces the user-specified delta until
+the Hn calculated for a shift does not have any observation greater
+than hn_trunc_thresh (default: FALSE).}
 
-\item{family}{Outcome type family}
+\item{n_mc_sample}{Number of iterations to be used for the Monte Carlo integration
+procedure when using continuous exposures (default: 1000).}
+
+\item{exposure_quantized}{Whether the exposure has been discretized into bins,
+in which case the integration procedure is skipped and weighted sums are used instead (default: FALSE).}
+
+\item{mediator_quantized}{If the mediator is discretized, a multinomial ML function
+is used in this regression to avoid density estimation (default: FALSE).}
+
+\item{density_type}{Type of density estimation to be used: "sl" for Super Learner
+(default) or "hal" for highly adaptive lasso.}
+
+\item{n_bins}{Number of bins for quantizing the outcome if highly adaptive lasso
+is used for the density type (default: 10).}
+
+\item{max_degree}{Maximum degree of interactions used in the highly adaptive lasso
+density estimator if used (default: 1).}
+
+\item{integration_method}{Type of integration to be used in the continuous exposure
+case: "MC" for Monte Carlo integration (default) or "AQ" for adaptive quadrature.}
+
+\item{use_multinomial}{Whether to use multinomial regression for binned exposures
+(default: FALSE).}
 }
 \value{
-S3 object of class \code{SuperNOVA} containing the results of the
+An S3 object of class \code{SuperNOVA} containing the results of the
 procedure to compute a TML or one-step estimate of the counterfactual mean
 under a modified treatment policy that shifts a continuous-valued exposure
-by a scalar amount \code{delta}. These exposure are data-adaptively
+by a scalar amount \code{delta}. These exposures are data-adaptively
 identified using the CV-TMLE procedure.
-)
 }
 \description{
-Data-adaptive efficient estimation of interactions and effect
-modification using stochastic shift interventions
-}
-\details{
-Treat variables identified in the same basis functions in ensemble
-b-spline models as a data-adaptive parameter. Given variable sets identified,
-depending on if basis functions contain variables for \code{A} or \code{AV} construct
-targeted minimum loss estimations of the counterfactual mean differences
-under various target parameters for individual variables, effect modifying
-variables, or interacting variables. Ensemble machine learning may be used
-to construct the initial estimates of nuisance functions using \pkg{sl3}.
+The SuperNOVA function provides an efficient approach to estimate
+interactions, effect modification, and mediation using targeted minimum loss
+estimators for counterfactual mean differences under various target parameters.
+The procedure employs data-adaptive ensemble b-spline models and stochastic interventions,
+leveraging the \pkg{sl3} package for ensemble machine learning. The data is split into V folds, in each fold
+the training data is used to find variable sets using flexible basis function estimators. Given the different variable sets,
+stochastic intervention target parameters are applied with cross-validated targeted learning.
 }

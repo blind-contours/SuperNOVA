@@ -7,7 +7,10 @@
 #' @param y A \code{numeric} vector of the observed outcomes.
 #' @param qn An object providing the value of the outcome evaluated after
 #'  imposing a shift in the treatment. This object is passed in after being
-#'  constructed by a call to the internal function \code{est_Q}.
+#'  constructed by a call to the internal function \code{est_Q}. These values
+#'  have been scaled to 0-1.
+#' @param qn_unscaled Same as qn but not scaled - kept in original outcome
+#' scale.
 #' @param hn An object providing values of the auxiliary ("clever") covariate,
 #'  constructed from the treatment mechanism and required for targeted minimum
 #'  loss-based estimation. This object object should be passed in after being
@@ -31,8 +34,7 @@ eif <- function(y,
                 qn_unscaled,
                 hn,
                 estimator = c("tmle", "onestep"),
-                fluc_mod_out = NULL,
-                data) {
+                fluc_mod_out = NULL) {
   # set TMLE as default estimator type
   estimator <- match.arg(estimator)
 

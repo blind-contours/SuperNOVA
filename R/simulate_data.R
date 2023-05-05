@@ -3,7 +3,6 @@
 #' @param n_obs Number of observations
 #' @param sigma_mod Sigma matrix of exposures
 #' @param delta Amount to shift exposure by
-#' @param shift_var_index for the exposure vector that indicates which
 #' exposure to shift
 #'
 #' @return A dataframe of simulated data
@@ -19,7 +18,7 @@ simulate_data <- function(n_obs = 100000,
                             nrow = 3,
                             ncol = 3
                           ),
-                          delta = 0.5) {
+                          delta = 1) {
   covars <- MASS::mvrnorm(
     n = n_obs, mu = c(6, 7),
     Sigma = matrix(c(1, 0.4, 0.4, 1), 2, 2)

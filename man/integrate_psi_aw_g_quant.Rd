@@ -13,26 +13,33 @@ integrate_psi_aw_g_quant(
   g_model,
   exposure,
   psi_aw,
-  n_bins,
-  use_multinomial
+  use_multinomial,
+  density_type
 )
 }
 \arguments{
-\item{covars}{The mediator variable}
+\item{at}{Training data}
 
-\item{w_names}{Covariate names}
+\item{av}{Validation data}
 
-\item{g_model}{The training data}
+\item{covars}{Covariates using the m model}
+
+\item{w_names}{Covariates used in the g model}
+
+\item{pseudo_model}{Pseudo regression model}
+
+\item{g_model}{Exposure density/probability model}
 
 \item{exposure}{A \code{numeric} indicating the magnitude of the shift to be
 computed for the exposure \code{A}. This is passed to the internal}
 
-\item{data}{A \code{character} vector of exposures to be shifted.}
+\item{psi_aw}{Vector of pseudo regression predictions}
 
-\item{q_model}{A \code{character} vector covariates to adjust for.}
+\item{use_multinomial}{TRUE/FALSE whether multinomial regression is used}
 
-\item{delta}{Object containing a set of instantiated learners from the
-\pkg{sl3}, to be used in fitting an ensemble model.}
+\item{density_type}{Type of density estimation sl or hal}
+
+\item{n_bins}{Number of bins in the discrete exposure}
 }
 \value{
 A \code{data.table} with two columns, containing estimates of the

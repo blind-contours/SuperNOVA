@@ -2,15 +2,21 @@
 #'
 #' @details Does the double integration as described in lemma 1
 #'
-#' @param data A \code{character} vector of exposures to be shifted.
+#' @param at Training data
+#' @param av Validation data
 #' @param covars The mediator variable
 #' @param w_names Covariate names
 #' @param q_model A \code{character} vector covariates to adjust for.
 #' @param g_model The training data
 #' @param exposure A \code{numeric} indicating the magnitude of the shift to be
 #'  computed for the exposure \code{A}. This is passed to the internal
-#' @param delta Object containing a set of instantiated learners from the
-#'  \pkg{sl3}, to be used in fitting an ensemble model.
+#' @param g_delta Shift in exposure in the g model
+#' @param m_delta Shift in exposure in the m model
+#' @param n_samples Number of samples for MC integration
+#' @param density_type Type of density estimation
+#' @param lower_bound Lower bound of exposure
+#' @param upper_bound Upper bound of exposure
+#' @param integration_method Type of integration method to use
 #'
 #' @importFrom stats glm as.formula predict
 #' @importFrom data.table as.data.table setnames copy set
@@ -31,7 +37,7 @@ integrate_q_g <- function(av, at, covars, w_names, q_model, g_model, exposure, g
     results <- sapply(1:nrow(av), function(i) {
       row_data <- av[i, ]
 
-      mc_integrands <- integrand_q_g(sample_a, row_data, covars, q_model, g_model, exposure, g_delta, m_delta, upper_bound, density_type)
+      mc_integrands <- integrand_q_g(sample_a, row_data, covars, w_names, q_model, g_model, exposure, g_delta, m_delta, upper_bound, density_type)
 
       integral_result <- (max(sample_a) - min(sample_a)) * mean(mc_integrands)
       return(integral_result)

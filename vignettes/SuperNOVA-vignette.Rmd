@@ -188,8 +188,9 @@ NIEH_results <- SuperNOVA(
   outcome_type = "continuous",
   quantile_thresh = 0,
   verbose = TRUE,
-  parallel = TRUE,
-  num_cores = 5,
+  parallel = FALSE,
+  parallel_type = "sequential",
+  num_cores = 2,
   seed = seed,
   adaptive_delta = TRUE
 )

@@ -20,6 +20,10 @@ integrate_q_g_quant(
 )
 }
 \arguments{
+\item{av}{Validation data}
+
+\item{at}{Training data}
+
 \item{covars}{The mediator variable}
 
 \item{w_names}{Covariate names}
@@ -31,10 +35,15 @@ integrate_q_g_quant(
 \item{exposure}{A \code{numeric} indicating the magnitude of the shift to be
 computed for the exposure \code{A}. This is passed to the internal}
 
-\item{data}{A \code{character} vector of exposures to be shifted.}
+\item{g_delta}{Shift amount applied to A in g model}
 
-\item{delta}{Object containing a set of instantiated learners from the
-\pkg{sl3}, to be used in fitting an ensemble model.}
+\item{m_delta}{Shift amount applied to A in m model}
+
+\item{n_bins}{Number of bins in exposure}
+
+\item{density_type}{Type of density estimation}
+
+\item{upper_bound}{Upper bound of exposure}
 }
 \value{
 A \code{data.table} with two columns, containing estimates of the

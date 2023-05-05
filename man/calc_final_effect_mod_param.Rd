@@ -11,8 +11,7 @@ calc_final_effect_mod_param(
   at,
   av,
   effect_m_name,
-  fold_k,
-  em_learner
+  fold_k
 )
 }
 \arguments{
@@ -29,8 +28,6 @@ calc_final_effect_mod_param(
 \item{effect_m_name}{The name of the effect modifier variable as a \code{character} string.}
 
 \item{fold_k}{The fold in which the effect modification was found.}
-
-\item{em_learner}{A list of learners for the Super Learner, specifically for decision trees.}
 }
 \description{
 This function uses a decision tree estimator to regress the difference in expected outcomes

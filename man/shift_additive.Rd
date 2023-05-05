@@ -13,6 +13,10 @@ shift_additive(a, w = NULL, delta, lower_bound, upper_bound)
 
 \item{delta}{A \code{numeric} indicating the magnitude of the shift to be
 computed for the treatment \code{A}.}
+
+\item{lower_bound}{Lower bound of expossure}
+
+\item{upper_bound}{Upper bound of exposure}
 }
 \value{
 A \code{numeric} vector containing the shifted exposure values.

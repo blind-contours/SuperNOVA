@@ -10,8 +10,7 @@ eif(
   qn_unscaled,
   hn,
   estimator = c("tmle", "onestep"),
-  fluc_mod_out = NULL,
-  data
+  fluc_mod_out = NULL
 )
 }
 \arguments{
@@ -19,7 +18,11 @@ eif(
 
 \item{qn}{An object providing the value of the outcome evaluated after
 imposing a shift in the treatment. This object is passed in after being
-constructed by a call to the internal function \code{est_Q}.}
+constructed by a call to the internal function \code{est_Q}. These values
+have been scaled to 0-1.}
+
+\item{qn_unscaled}{Same as qn but not scaled - kept in original outcome
+scale.}
 
 \item{hn}{An object providing values of the auxiliary ("clever") covariate,
 constructed from the treatment mechanism and required for targeted minimum

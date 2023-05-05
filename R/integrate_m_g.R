@@ -2,16 +2,16 @@
 #'
 #' @details Does the double integration as described in lemma 1
 #'
-#' @param data A \code{character} vector of exposures to be shifted.
+#' @param av Validation data
+#' @param at Training data
 #' @param covars The mediator variable
 #' @param w_names Covariate names
 #' @param q_model A \code{character} vector covariates to adjust for.
 #' @param g_model The training data
 #' @param exposure A \code{numeric} indicating the magnitude of the shift to be
 #'  computed for the exposure \code{A}. This is passed to the internal
-#' @param delta Object containing a set of instantiated learners from the
-#'  \pkg{sl3}, to be used in fitting an ensemble model.
-#'
+#' @param g_delta Amount of delta applied to exposure in g model
+#' @param m_delta Amount of delta applied to exposure in m model
 #' @importFrom stats glm as.formula predict
 #' @importFrom data.table as.data.table setnames copy set
 #' @importFrom stringr str_detect

@@ -1,63 +1,79 @@
-#' @title Data-adaptive efficient estimation of interactions and effect
-#' modification using stochastic shift interventions
+#' @title Data-adaptive estimation of interactions, effect modification, and
+#' mediation using stochastic shift intervention target parameters. In many mixed exposure settings,
+#' interactions in the mixture, effect modifiers in the covariates that modify the
+#' impact of an exposure and mediating pathways from exposure to outcome are generally unknown. SuperNOVA finds these variable sets
+#' on one part of the data and estimates counterfactual outcome changes given shifts to exposure on an estimation part of the data.
+#' Using cross-validation and targeted learning, estimators are created that utlize machine learning that are unbiased and have the
+#' minimum variance.
 #'
-#' @details Treat variables identified in the same basis functions in ensemble
-#' b-spline models as a data-adaptive parameter. Given variable sets identified,
-#'  depending on if basis functions contain variables for `A` or `AV` construct
-#'  targeted minimum loss estimations of the counterfactual mean differences
-#'  under various target parameters for individual variables, effect modifying
-#'  variables, or interacting variables. Ensemble machine learning may be used
-#'  to construct the initial estimates of nuisance functions using \pkg{sl3}.
+#' @description The SuperNOVA function provides an efficient approach to estimate
+#' interactions, effect modification, and mediation using targeted minimum loss
+#' estimators for counterfactual mean differences under various target parameters.
+#' The procedure employs data-adaptive ensemble b-spline models and stochastic interventions,
+#' leveraging the \pkg{sl3} package for ensemble machine learning. The data is split into V folds, in each fold
+#' the training data is used to find variable sets using flexible basis function estimators. Given the different variable sets,
+#' stochastic intervention target parameters are applied with cross-validated targeted learning.
+#'
 #' @param w A \code{matrix}, \code{data.frame}, or similar containing a set of
-#'  baseline covariates.
-#' @param a \code{matrix}, \code{data.frame}, or similar containing an
-#' individual or set of
-#'  exposures
-#' @param z \code{matrix}, \code{data.frame}, or similar containing an
-#' individual or set of mediators
-#' @param y \code{numeric} vector of the observed outcomes.
-#' @param deltas A \code{numeric} value indicating the shift in the exposures to
-#'  be used in defining the target parameter. This is defined with respect to
-#'  the scale of the exposures (A).
-#' @param var_sets If using SuperNOVA deterministically, this parameter takes
-#' in a list of the form var_sets <- c("A_1", "A_1-Z_2") etc. where the
-#' analyst passes in variable sets for exposures, exosure-mediator, or exposure-
-#' covariate.
-#' @param estimator The type of estimator to be fit, either \code{"tmle"} for
-#'  targeted maximum likelihood or \code{"onestep"} for a one-step estimator.
-#' @param fluctuation The method to be used in the submodel fluctuation step
-#'  (targeting step) to compute the TML estimator. The choices are "standard"
-#'  and "weighted" for where to place the auxiliary covariate in the logistic
-#'  tilting regression.
-#' @param pi_learner Learners used to fit Super Learner ensembles to densities
-#' via \pkg{sl3}
-#' @param mu_learner Learners used to fit Super Learner ensembles to the outcome
-#' model via \pkg{sl3}
-#' @param g_learner Learners used to fit Super Learner ensembles to the g mech
-#' g(A|W) - a probability estimator not a density estimator used in mediation
-#' via \pkg{sl3}
-#' @param e_learner Learners used to fit Super Learner ensembles to the e mech
-#' g(A|Z,W) - a probability estimator not a density estimator used in mediation
-#' via \pkg{sl3}
-#' @param zeta_learner Learners used to fit Super Learner ensembles to the outcome
-#' model via \pkg{sl3}
-#' @param em_learner Super learner from \pkg{sl3} of decision trees used to
-#' apply to the EIF of the shift applied to an exposure using covariates W.
-#' @param n_folds Number of folds to use in cross-validation
-#' @param family Outcome type family
-#' @param quantile_thresh Threshold based on quantiles of the f-statistic used
-#' to identify "important" basis functions in the data-adaptive procedure
-#' @param verbose Whether to run verbosely
-#' @param parallel TRUE/FALSE parallelize across cores
-#' @param seed \code{numeric} seed value to be passed to all functions
-#' @param hn_trunc_thresh Truncation level for the clever covariate
-#' @param parallel_type If parallel is TRUE, type of parallelization to use. Default
-#' is "multi_session", other values are multicore and sequential.
-#' @param num_cores Number of CPU cores to use in parallelization
-#' @param adaptive_delta If TRUE, this reduces the user specified delta until
-#' the Hn calculated for a shift does not have any observation that is greater
-#' than hn_trunc_thresh.
+#' baseline covariates. These variables are measured before exposures.
+#' @param a \code{matrix}, \code{data.frame}, or similar containing individual or
+#' multiple exposures.
+#' @param z \code{matrix}, \code{data.frame}, or similar containing individual or
+#' multiple mediators (optional).
+#' @param y \code{numeric} vector of observed outcomes.
+#' @param deltas A \code{numeric} value indicating the shift in exposures to
+#' define the target parameter, with respect to the scale of the exposures (A). If adaptive_delta
+#' is true, these values will be reduced.
+#' @param var_sets A list specifying variable sets for deterministic SuperNOVA usage.
+#' Example: var_sets <- c("A_1", "A_1-Z_2") where the analyst provides variable sets
+#' for exposures, exposure-mediator, or exposure-covariate relationships.
+#' @param estimator The type of estimator to fit: \code{"tmle"} for targeted
+#' maximum likelihood estimation, or \code{"onestep"} for a one-step estimator.
+#' @param fluctuation Method used in the targeting step for TML estimation: "standard" or "weighted".
+#' This determines where to place the auxiliary covariate in the logistic tilting regression.
+#' @param pi_learner Learners for fitting Super Learner ensembles to densities via \pkg{sl3}.
+#' @param mu_learner Learners for fitting Super Learner ensembles to the outcome model via \pkg{sl3}.
+#' @param g_learner Learners for fitting Super Learner ensembles to the g-mechanism
+#' g(A|W) (a probability estimator, not a density estimator) for mediation via \pkg{sl3}.
+#' @param e_learner Learners for fitting Super Learner ensembles to the e-mechanism
+#' g(A|Z,W) (a probability estimator, not a density estimator) for mediation via \pkg{sl3}.
+#' @param zeta_learner Learners for fitting Super Learner ensembles to the outcome model via \pkg{sl3}..
+#' @param n_folds Number of folds to use in cross-validation, default is 2.
+#' @param outcome_type Data type of the outcome, default is "continuous".
+#' @param quantile_thresh Threshold based on quantiles of the F-statistic, used to
+#' identify "important" basis functions in the data-adaptive procedure.
+#' @param verbose Whether to run verbosely (default: FALSE).
+#' @param parallel Whether to parallelize across cores (default: TRUE).
+#' @param parallel_type Type of parallelization to use if parallel is TRUE:
+#' "multi_session" (default), "multicore", or "sequential".
+#' @param num_cores Number of CPU cores to use in parallelization (default: 2).
+#' @param seed \code{numeric} seed value to be passed to all functions.
+#' @param hn_trunc_thresh Truncation level for the clever covariate (default: 10).
+#' @param adaptive_delta If TRUE, reduces the user-specified delta until
+#' the Hn calculated for a shift does not have any observation greater
+#' than hn_trunc_thresh (default: FALSE).
+#' @param n_mc_sample Number of iterations to be used for the Monte Carlo integration
+#' procedure when using continuous exposures (default: 1000).
+#' @param exposure_quantized Whether the exposure has been discretized into bins,
+#' in which case the integration procedure is skipped and weighted sums are used instead (default: FALSE).
+#' @param mediator_quantized If the mediator is discretized, a multinomial ML function
+#' is used in this regression to avoid density estimation (default: FALSE).
+#' @param density_type Type of density estimation to be used: "sl" for Super Learner
+#' (default) or "hal" for highly adaptive lasso.
+#' @param n_bins Number of bins for quantizing the outcome if highly adaptive lasso
+#' is used for the density type (default: 10).
+#' @param max_degree Maximum degree of interactions used in the highly adaptive lasso
+#' density estimator if used (default: 1).
+#' @param integration_method Type of integration to be used in the continuous exposure
+#' case: "MC" for Monte Carlo integration (default) or "AQ" for adaptive quadrature.
+#' @param use_multinomial Whether to use multinomial regression for binned exposures
+#' (default: FALSE).
 #'
+#' @return An S3 object of class \code{SuperNOVA} containing the results of the
+#' procedure to compute a TML or one-step estimate of the counterfactual mean
+#' under a modified treatment policy that shifts a continuous-valued exposure
+#' by a scalar amount \code{delta}. These exposures are data-adaptively
+#' identified using the CV-TMLE procedure.
 #' @export
 #' @importFrom MASS mvrnorm
 #' @importFrom foreach %dopar%
@@ -68,12 +84,6 @@
 #' @import furrr
 #' @import purrr
 #' @importFrom data.table rbindlist
-#' @return S3 object of class \code{SuperNOVA} containing the results of the
-#'  procedure to compute a TML or one-step estimate of the counterfactual mean
-#'  under a modified treatment policy that shifts a continuous-valued exposure
-#'  by a scalar amount \code{delta}. These exposure are data-adaptively
-#'  identified using the CV-TMLE procedure.
-#' )
 
 SuperNOVA <- function(w,
                       a,
@@ -87,7 +97,6 @@ SuperNOVA <- function(w,
                       mu_learner = NULL,
                       g_learner = NULL,
                       e_learner = NULL,
-                      em_learner = NULL,
                       zeta_learner = NULL,
                       n_folds = 2,
                       outcome_type = "continuous",
@@ -162,14 +171,31 @@ SuperNOVA <- function(w,
     e_learner <- sls$e_learner
   }
 
-  if (is.null(em_learner)) {
-    sls <- create_sls()
-    em_learner <- sls$em_learner
-  }
-
   if (exposure_quantized == TRUE) {
     sls <- create_sls()
     quant_learner <- sls$quant_learner
+  }
+
+  if (exposure_quantized == TRUE) {
+    if(use_multinomial == TRUE){
+      exp_learner <- quant_learner
+      exposure_type <- "categorical"
+    }else{
+      exp_learner <- pi_learner
+      exposure_type <- "continuous"
+    }
+
+  } else {
+    exp_learner <- pi_learner
+    exposure_type <- "continuous"
+  }
+
+  if (mediator_quantized == TRUE) {
+    med_learner <- quant_learner
+    med_type <- "categorical"
+  } else {
+    med_learner <- pi_learner
+    med_type <- "continuous"
   }
 
   if (parallel == TRUE) {
@@ -275,11 +301,6 @@ SuperNOVA <- function(w,
           lower_bound <- min(min(av[[exposure]]), min(at[[exposure]]))
           upper_bound <- max(max(av[[exposure]]), max(at[[exposure]]))
 
-          if (exposure_quantized == TRUE) {
-            g_type <- "categorical"
-          } else {
-            g_type <- "continuous"
-          }
 
           ind_gn_exp_estim <- indiv_stoch_shift_est_g_exp(
             exposure = target,
@@ -290,10 +311,10 @@ SuperNOVA <- function(w,
             at = at,
             adaptive_delta = adaptive_delta,
             hn_trunc_thresh = hn_trunc_thresh,
-            exposure_quantized = exposure_quantized,
+            use_multinomial = use_multinomial,
             lower_bound = lower_bound,
             upper_bound = upper_bound,
-            outcome_type = g_type,
+            outcome_type = exposure_type,
             density_type = density_type,
             n_bins = n_bins,
             max_degree = max_degree
@@ -362,6 +383,9 @@ SuperNOVA <- function(w,
           delta <- deltas[[exposure]]
           covars <- c(w_names)
 
+          lower_bound <- min(min(av[[exposure]]), min(at[[exposure]]))
+          upper_bound <- max(max(av[[exposure]]), max(at[[exposure]]))
+
           gn_exp_estim <- indiv_stoch_shift_est_g_exp(
             exposure = exposure,
             delta = delta,
@@ -371,10 +395,10 @@ SuperNOVA <- function(w,
             at = at,
             adaptive_delta = adaptive_delta,
             hn_trunc_thresh = hn_trunc_thresh,
-            exposure_quantized = exposure_quantized,
+            use_multinomial = use_multinomial,
             lower_bound = lower_bound,
             upper_bound = upper_bound,
-            outcome_type = outcome_type,
+            outcome_type = exposure_type,
             density_type = density_type,
             n_bins = n_bins,
             max_degree = max_degree
@@ -425,8 +449,7 @@ SuperNOVA <- function(w,
             at = at,
             av = av,
             effect_m_name = effect_m_name,
-            fold_k = fold_k,
-            em_learner = em_learner
+            fold_k = fold_k
           )
 
           effect_mod_in_fold$Delta <- delta
@@ -467,8 +490,11 @@ SuperNOVA <- function(w,
             at = at,
             adaptive_delta = adaptive_delta,
             hn_trunc_thresh = hn_trunc_thresh,
-            upper_bound = upper_bound,
-            lower_bound = lower_bound
+            use_multinomial = use_multinomial,
+            density_type = density_type,
+            max_degree = max_degree,
+            n_bins = n_bins,
+            outcome_type = exposure_type
           )
 
           joint_gn_exp_estims$gn_results[[3]] <- mapply(
@@ -489,9 +515,7 @@ SuperNOVA <- function(w,
             mu_learner = mu_learner,
             covars,
             av,
-            at,
-            upper_bound,
-            lower_bound
+            at
           )
 
           intxn_results_list <- list()
@@ -553,27 +577,6 @@ SuperNOVA <- function(w,
           lower_bound <- min(min(av[[exposure]]), min(at[[exposure]]))
           upper_bound <- max(max(av[[exposure]]), max(at[[exposure]]))
 
-          if (exposure_quantized == TRUE) {
-            if(use_multinomial == TRUE){
-              exp_learner <- quant_learner
-              exposure_type <- "categorical"
-            }else{
-              exp_learner <- pi_learner
-              exposure_type <- "continuous"
-              }
-
-          } else {
-            exp_learner <- pi_learner
-            exposure_type <- "continuous"
-          }
-
-          if (mediator_quantized == TRUE) {
-            med_learner <- quant_learner
-            med_type <- "categorical"
-          } else {
-            med_learner <- pi_learner
-            med_type <- "continuous"
-          }
 
           ## get g(A|W) under shifts and no shift
           gn_exp_estim <- indiv_stoch_shift_est_g_exp(
@@ -853,7 +856,8 @@ SuperNOVA <- function(w,
               exposure,
               psi_aw = psi_aw_av,
               n_bins = n_bins,
-              use_multinomial = TRUE)
+              use_multinomial = TRUE,
+              density_type = density_type)
             }else{
               d_a_pseudo <- integrate_psi_aw_g_quant(
                 at = at,
@@ -864,8 +868,8 @@ SuperNOVA <- function(w,
                 g_model,
                 exposure,
                 psi_aw = psi_aw_av,
-                n_bins = n_bins,
-                use_multinomial = FALSE)
+                use_multinomial = FALSE,
+                density_type = density_type)
           }}else {
             d_a_pseudo <- integrate_psi_aw_g(
               at = at,
@@ -877,9 +881,7 @@ SuperNOVA <- function(w,
               exposure,
               psi_aw = psi_aw_av,
               n_samples = n_mc_sample,
-              density_type = density_type,
-              integration_method = integration_method,
-              delta = 0
+              density_type = density_type
             )
           }
 
@@ -1088,170 +1090,6 @@ SuperNOVA <- function(w,
             "da_pseudo" = d_a_pseudo,
             "da_int" = d_a_int$d_a
           )
-        } else if (sum(stringr::str_count(matches, paste(c(a_names), collapse = "|"))) == 2 &
-          sum(stringr::str_count(matches, paste(c(z_names), collapse = "|"))) == 1) {
-          exposures <- stringr::str_extract(
-            matches,
-            paste(c(a_names), collapse = "|")
-          )
-          exposures <- exposures[!is.na(exposures)]
-
-          exposures <- as.list(exposures)
-          deltas_med <- deltas[unlist(exposures)]
-          exposures[[3]] <- unlist(exposures)
-
-          mediator <- stringr::str_extract(matches, paste(c(z_names),
-            collapse = "|"
-          ))
-
-          mediator <- mediator[!is.na(mediator)]
-
-          covars <- c(w_names)
-
-          joint_gn_exp_estims <- joint_stoch_shift_est_g_exp(
-            exposures = exposures,
-            deltas = deltas_med,
-            pi_learner = pi_learner,
-            covars = covars,
-            av = av,
-            at = at,
-            adaptive_delta = adaptive_delta,
-            hn_trunc_thresh = hn_trunc_thresh
-          )
-
-          deltas_updated <- joint_gn_exp_estims$delta_results
-          deltas_updated[[3]] <- c(deltas_updated[[1]], deltas_updated[[2]])
-
-          joint_gn_exp_estims$gn_results[[3]] <- as.data.frame(mapply(
-            `*`,
-            joint_gn_exp_estims$gn_results[[1]],
-            joint_gn_exp_estims$gn_results[[3]]
-          ))
-
-          covars <- c(w_names, a_names)
-
-          zn_exp_estim <- joint_stoch_shift_est_z_exp(
-            exposures = exposures,
-            mediator = mediator,
-            deltas = deltas_updated,
-            pi_learner = pi_learner,
-            w_names = w_names,
-            a_names = a_names,
-            z_names = z_names,
-            av = av,
-            at = at
-          )
-
-          # for the direct effects we just need the density of each A because
-          # z is not shifted
-          nde_gn_estim_a1 <- est_hn(gn_exp = joint_gn_exp_estims$gn_results[[1]])
-          nde_gn_estim_a2 <- est_hn(gn_exp = joint_gn_exp_estims$gn_results[[2]])
-          nde_gn_estim_a1a2 <- est_hn(gn_exp = joint_gn_exp_estims$gn_results[[3]])
-
-          # truncate the NDE estimates
-
-          nde_gn_estim_a1_trunc <- as.data.frame(apply(nde_gn_estim_a1, 2, function(x) {
-            ifelse(x >= hn_trunc_thresh, hn_trunc_thresh, x)
-          }))
-          nde_gn_estim_a2_trunc <- as.data.frame(apply(nde_gn_estim_a2, 2, function(x) {
-            ifelse(x >= hn_trunc_thresh, hn_trunc_thresh, x)
-          }))
-          nde_gn_estim_a1a2_trunc <- as.data.frame(apply(nde_gn_estim_a1a2, 2, function(x) {
-            ifelse(x >= hn_trunc_thresh, hn_trunc_thresh, x)
-          }))
-
-
-          # for the indirect effects we need the density of each A and the density
-          # of Z given a shift in the respective A.
-
-          nie_gn_estim_a1 <- est_hn(gn_exp = as.data.frame(joint_gn_exp_estims$gn_results[[1]]) * as.data.frame(zn_exp_estim$gn_results[[1]]))
-          nie_gn_estim_a2 <- est_hn(gn_exp = as.data.frame(joint_gn_exp_estims$gn_results[[2]]) * as.data.frame(zn_exp_estim$gn_results[[2]]))
-          nie_gn_estim_a1a2 <- est_hn(gn_exp = as.data.frame(joint_gn_exp_estims$gn_results[[3]]) * as.data.frame(zn_exp_estim$gn_results[[3]]))
-
-          # truncate the NIE estimates
-
-          nie_gn_estim_a1_trunc <- as.data.frame(apply(nie_gn_estim_a1, 2, function(x) {
-            ifelse(x >= hn_trunc_thresh, hn_trunc_thresh, x)
-          }))
-          nie_gn_estim_a2_trunc <- as.data.frame(apply(nie_gn_estim_a2, 2, function(x) {
-            ifelse(x >= hn_trunc_thresh, hn_trunc_thresh, x)
-          }))
-          nie_gn_estim_a1a2_trunc <- as.data.frame(apply(nie_gn_estim_a1a2, 2, function(x) {
-            ifelse(x >= hn_trunc_thresh, hn_trunc_thresh, x)
-          }))
-
-          nde_hns <- list(nde_gn_estim_a1_trunc, nde_gn_estim_a2_trunc, nde_gn_estim_a1a2_trunc)
-          nie_hns <- list(nie_gn_estim_a1_trunc, nie_gn_estim_a2_trunc, nie_gn_estim_a1a2_trunc)
-
-          covars <- c(a_names, w_names)
-
-          zn_estim <- estimate_mediator_joint(
-            mediator = mediator,
-            exposure = exposures,
-            deltas = deltas_updated,
-            mu_learner = mu_learner,
-            covars = covars,
-            av = av,
-            at = at
-          )
-
-          covars <- c(w_names, a_names, z_names)
-
-          qn_estim <- est_Q_w_shifted_joint_mediation(
-            exposures = exposures,
-            mediator = mediator,
-            delta = deltas_updated,
-            mu_learner = mu_learner,
-            covars = covars,
-            av = av,
-            at = at,
-            zn_estim = zn_estim
-          )
-
-          for (i in seq(exposures)) {
-            exposure <- exposures[i]
-            delta <- deltas_updated[i]
-
-            tmle_fit_a_shift <- tmle_exposhift(
-              data_internal = av,
-              delta = delta,
-              Qn_scaled = qn_estim[[i]]$a_shifted,
-              Hn = nde_hns[[i]],
-              fluctuation = fluctuation,
-              y = av$y
-            )
-
-            tmle_fit_a_z_shift <- tmle_exposhift(
-              data_internal = av,
-              delta = delta,
-              Qn_scaled = qn_estim[[i]]$a_z_shifted,
-              Hn = nie_hns[[i]],
-              fluctuation = fluctuation,
-              y = av$y
-            )
-
-            joint_mediation_in_fold <- calc_mediation_param(
-              tmle_fit_a_shift = tmle_fit_a_shift,
-              tmle_fit_a_z_shift = tmle_fit_a_z_shift,
-              exposure,
-              mediator,
-              y = av$y,
-              fold_k = fold_k,
-              delta = delta
-            )
-
-            joint_fold_results_mediation[[
-              paste("Fold", fold_k, ":", paste(paste(unlist(exposure), collapse = ""), mediator, sep = ""))
-            ]] <- list(
-              "data" = av,
-              "Qn_a_shift_scaled" = qn_estim[[i]]$a_shifted,
-              "Qn_a_z_shift_scaled" = qn_estim[[i]]$a_z_shifted,
-              "Hn_a_shift" = nde_hns[[i]],
-              "Hn_az_shift" = nie_hns[[i]],
-              "k_fold_result" = joint_mediation_in_fold,
-              "delta" = unlist(delta)
-            )
-          }
         }
       }
 
@@ -1306,8 +1144,7 @@ SuperNOVA <- function(w,
       estimator = estimator,
       w_names = w_names,
       a_names = a_names,
-      fluctuation = fluctuation,
-      em_learner = em_learner
+      fluctuation = fluctuation
     )
   } else {
     pooled_em_shift_results <- NULL

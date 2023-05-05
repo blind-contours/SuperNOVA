@@ -14,8 +14,11 @@ joint_stoch_shift_est_g_exp(
   at,
   adaptive_delta,
   hn_trunc_thresh,
-  lower_bound,
-  upper_bound
+  use_multinomial,
+  density_type,
+  max_degree,
+  n_bins,
+  outcome_type
 )
 }
 \arguments{
@@ -24,6 +27,9 @@ variables.}
 
 \item{deltas}{A \code{numeric} value identifying a shift in the observed
 value of the exposure under which observations are to be evaluated.}
+
+\item{g_learner}{Object containing a set of instantiated learners
+from \pkg{sl3}, to be used in fitting an ensemble model.}
 
 \item{covars}{A \code{character} labeling the covariate variables}
 
@@ -37,8 +43,16 @@ determined from the clever covariate being below the hn_trunc_thresh level}
 \item{hn_trunc_thresh}{Truncation level of the clever covariate used in the
 adaptive delta method}
 
-\item{pi_learner}{Object containing a set of instantiated learners
-from \pkg{sl3}, to be used in fitting an ensemble model.}
+\item{use_multinomial}{TRUE/FALSE for using multinomial for discretized exposure}
+
+\item{density_type}{Type of density estimator used}
+
+\item{max_degree}{Max degree of interaction used in the haldensify fit,
+if used.}
+
+\item{n_bins}{Number of bins to discretize outcome for haldensify if used.}
+
+\item{outcome_type}{Type of outcome variable}
 }
 \value{
 A \code{data.table} with four columns, containing estimates of the

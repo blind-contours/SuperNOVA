@@ -19,7 +19,7 @@
 #' @param z_names List of mediator names
 #' @param y_name Outcome name
 #' @param fluctuation Type of fluctuation to be used
-#' @importFrom stats var
+#' @importFrom stats var cov
 #' @importFrom dplyr bind_rows
 #'
 #' @return A \code{list} containing the parameter estimate, estimated variance

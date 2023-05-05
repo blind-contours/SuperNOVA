@@ -14,7 +14,6 @@
 #'  \pkg{sl3}, to be used in fitting an ensemble model.
 #' @param av A \code{dataframe} of validation data specific to the fold
 #' @param at A \code{dataframe} of training data specific to the fold
-#'
 #' @importFrom stats glm as.formula predict
 #' @importFrom data.table as.data.table setnames copy set
 #' @importFrom stringr str_detect
@@ -29,9 +28,7 @@ joint_stoch_shift_est_Q <- function(exposures,
                                     mu_learner,
                                     covars,
                                     av,
-                                    at,
-                                    upper_bound,
-                                    lower_bound) {
+                                    at) {
   future::plan(future::sequential, gc = TRUE)
 
   # scale the outcome for logit transform
@@ -43,79 +40,123 @@ joint_stoch_shift_est_Q <- function(exposures,
 
   results <- list()
 
+  upper_bound <- Inf
+  lower_bound <- -Inf
+
   for (i in 1:length(exposures)) {
     exposure <- exposures[[i]]
     delta <- deltas[[i]]
 
-
     # need a data set with the exposure stochastically shifted DOWNWARDS A-delta
-    av_downshifted <- data.table::copy(av)
-    data.table::set(av_downshifted, j = exposure, value = shift_additive(
-      a = subset(av, select = exposure),
-      delta = -delta,
-      upper_bound = upper_bound,
-      lower_bound = lower_bound
-    ))
 
-    # need a data set with the exposure stochastically shifted UPWARDS A+delta
-    av_upshifted <- data.table::copy(av)
-    data.table::set(av_upshifted, j = exposure, value = shift_additive(
-      a = subset(av, select = exposure),
-      delta = delta,
-      upper_bound = upper_bound,
-      lower_bound = lower_bound
-    ))
+    if (length(exposure) == 1) {
+      av_downshifted <- data.table::copy(av)
+      data.table::set(av_downshifted, j = exposure, value = shift_additive(
+        a = av[[exposure]],
+        delta = -delta,
+        upper_bound = upper_bound,
+        lower_bound = lower_bound
+      ))
 
-    # need a data set with the exposure stochastically shifted UPWARDS A+2delta
-    av_upupshifted <- data.table::copy(av)
-    data.table::set(av_upupshifted, j = exposure, value = shift_additive(
-      a = subset(av, select = exposure),
-      delta = 2 * delta,
-      upper_bound = upper_bound,
-      lower_bound = lower_bound
-    ))
+      # need a data set with the exposure stochastically shifted UPWARDS A+delta
+      av_upshifted <- data.table::copy(av)
+      data.table::set(av_upshifted, j = exposure, value = shift_additive(
+        a = av[[exposure]],
+        delta = delta,
+        upper_bound = upper_bound,
+        lower_bound = lower_bound
+      ))
+
+      # need a data set with the exposure stochastically shifted UPWARDS A+2delta
+      av_upupshifted <- data.table::copy(av)
+      data.table::set(av_upupshifted, j = exposure, value = shift_additive(
+        a = av[[exposure]],
+        delta = 2 * delta,
+        upper_bound = upper_bound,
+        lower_bound = lower_bound
+      ))
+
+    }else{
+      av_downshifted <- data.table::copy(av)
+      data.table::set(av_downshifted, j = exposure, value = joint_shift_additive(
+        a1 = av[[exposure[[1]]]],
+        a2 = av[[exposure[[2]]]],
+        delta1 = -deltas[[1]],
+        delta2 = -deltas[[2]],
+        upper_bound1 = upper_bound,
+        lower_bound1 = lower_bound,
+        upper_bound2 = upper_bound,
+        lower_bound2 = lower_bound
+      ))
+
+      # need a data set with the exposure stochastically shifted UPWARDS A+delta
+      av_upshifted <- data.table::copy(av)
+      data.table::set(av_upshifted, j = exposure, value = joint_shift_additive(
+        a1 = av[[exposure[[1]]]],
+        a2 = av[[exposure[[2]]]],
+        delta1 = deltas[[1]],
+        delta2 = deltas[[2]],
+        upper_bound1 = upper_bound,
+        lower_bound1 = lower_bound,
+        upper_bound2 = upper_bound,
+        lower_bound2 = lower_bound
+      ))
+
+      av_upupshifted <- data.table::copy(av)
+      data.table::set(av_upupshifted, j = exposure, value = joint_shift_additive(
+        a1 = av[[exposure[[1]]]],
+        a2 = av[[exposure[[2]]]],
+        delta1 = 2*deltas[[1]],
+        delta2 = 2*deltas[[2]],
+        upper_bound1 = upper_bound,
+        lower_bound1 = lower_bound,
+        upper_bound2 = upper_bound,
+        lower_bound2 = lower_bound
+      ))
+
+    }
 
     sl <- Lrnr_sl$new(
       learners = mu_learner,
       metalearner = sl3::Lrnr_nnls$new()
     )
 
-    at_task_noshift <- sl3::sl3_Task$new(
+    at_task_noshift <- suppressMessages(sl3::sl3_Task$new(
       data = at,
       covariates = covars,
       outcome = "y",
       outcome_type = "quasibinomial"
-    )
+    ))
 
-    av_task_noshift <- sl3::sl3_Task$new(
+    av_task_noshift <- suppressMessages(sl3::sl3_Task$new(
       data = av,
       covariates = covars,
       outcome = "y",
       outcome_type = "quasibinomial"
-    )
+    ))
 
-    av_task_upshift <- sl3::sl3_Task$new(
+    av_task_upshift <- suppressMessages(sl3::sl3_Task$new(
       data = av_upshifted,
       covariates = covars,
       outcome = "y",
       outcome_type = "quasibinomial"
-    )
+    ))
 
-    av_task_upupshift <- sl3::sl3_Task$new(
+    av_task_upupshift <- suppressMessages(sl3::sl3_Task$new(
       data = av_upupshifted,
       covariates = covars,
       outcome = "y",
       outcome_type = "quasibinomial"
-    )
+    ))
 
-    av_task_downshift <- sl3::sl3_Task$new(
+    av_task_downshift <- suppressMessages(sl3::sl3_Task$new(
       data = av_downshifted,
       covariates = covars,
       outcome = "y",
       outcome_type = "quasibinomial"
-    )
+    ))
 
-    sl_fit <- sl$train(at_task_noshift)
+    sl_fit <- suppressMessages(sl$train(at_task_noshift))
 
     # fit new Super Learner to the natural (no shift) data and predict
     av_pred_star_qn <- bound_precision(sl_fit$predict(av_task_noshift))

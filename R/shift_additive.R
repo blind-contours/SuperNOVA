@@ -8,10 +8,11 @@
 #' @param w A \code{numeric} matrix of observed baseline covariate values.
 #' @param delta A \code{numeric} indicating the magnitude of the shift to be
 #'  computed for the treatment \code{A}.
+#' @param lower_bound Lower bound of expossure
+#' @param upper_bound Upper bound of exposure
 #'
 #' @return A \code{numeric} vector containing the shifted exposure values.
 shift_additive <- function(a, w = NULL, delta, lower_bound, upper_bound) {
-  a <- a[[1]]
   shifted_treatment <- ifelse(a + delta <= upper_bound & a + delta >= lower_bound,
     a + delta,
     ifelse(a + delta < lower_bound, lower_bound, upper_bound)

@@ -17,6 +17,10 @@ integrate_m_g(
 )
 }
 \arguments{
+\item{av}{Validation data}
+
+\item{at}{Training data}
+
 \item{covars}{The mediator variable}
 
 \item{w_names}{Covariate names}
@@ -28,10 +32,9 @@ integrate_m_g(
 \item{exposure}{A \code{numeric} indicating the magnitude of the shift to be
 computed for the exposure \code{A}. This is passed to the internal}
 
-\item{data}{A \code{character} vector of exposures to be shifted.}
+\item{g_delta}{Amount of delta applied to exposure in g model}
 
-\item{delta}{Object containing a set of instantiated learners from the
-\pkg{sl3}, to be used in fitting an ensemble model.}
+\item{m_delta}{Amount of delta applied to exposure in m model}
 }
 \value{
 A \code{data.table} with two columns, containing estimates of the

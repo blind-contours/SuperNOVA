@@ -26,9 +26,13 @@ integrate_psi_g_discrete(
 )
 }
 \arguments{
-\item{covars}{The mediator variable}
+\item{av}{Validation data}
 
-\item{w_names}{Covariate names}
+\item{at}{Training data}
+
+\item{covars}{Covars for the outcome regression model}
+
+\item{w_names}{w_names for A|W}
 
 \item{q_model}{A \code{character} vector covariates to adjust for.}
 
@@ -45,9 +49,19 @@ computed for the exposure \code{A}. This is passed to the internal}
 \item{delta}{Object containing a set of instantiated learners from the
 \pkg{sl3}, to be used in fitting an ensemble model.}
 
-\item{data}{A \code{character} vector of exposures to be shifted.}
+\item{n_bins}{Number of bins exposure is discretrized}
 
-\item{bins}{A \code{dataframe} of training data specific to the fold}
+\item{n_samples}{Number of samples used in MC integration}
+
+\item{method}{Integration method}
+
+\item{mediator_quantized}{If mediator is discretized}
+
+\item{density_type}{Type of density estimation}
+
+\item{upper_bound}{Upper bound of exposure}
+
+\item{use_multinomial}{if multinomial is used}
 }
 \value{
 A \code{data.table} with two columns, containing estimates of the

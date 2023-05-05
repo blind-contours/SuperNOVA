@@ -98,61 +98,61 @@ estimate_mediator <- function(mediator,
     metalearner = sl3::Lrnr_nnls$new()
   )
 
-  at_task_noshift <- sl3::sl3_Task$new(
+  at_task_noshift <- suppressMessages(sl3::sl3_Task$new(
     data = at,
     covariates = covars,
     outcome = mediator,
     outcome_type = "continuous"
-  )
+  ))
 
-  av_task_noshift <- sl3::sl3_Task$new(
+  av_task_noshift <- suppressMessages(sl3::sl3_Task$new(
     data = av,
     covariates = covars,
     outcome = mediator,
     outcome_type = "continuous"
-  )
+  ))
 
-  at_task_upshift <- sl3::sl3_Task$new(
+  at_task_upshift <- suppressMessages(sl3::sl3_Task$new(
     data = at_upshifted,
     covariates = covars,
     outcome = mediator,
     outcome_type = "continuous"
-  )
+  ))
 
-  av_task_upshift <- sl3::sl3_Task$new(
+  av_task_upshift <- suppressMessages(sl3::sl3_Task$new(
     data = av_upshifted,
     covariates = covars,
     outcome = mediator,
     outcome_type = "continuous"
-  )
+  ))
 
-  at_task_upupshift <- sl3::sl3_Task$new(
+  at_task_upupshift <- suppressMessages(sl3::sl3_Task$new(
     data = at_upupshifted,
     covariates = covars,
     outcome = mediator,
     outcome_type = "continuous"
-  )
+  ))
 
-  av_task_upupshift <- sl3::sl3_Task$new(
+  av_task_upupshift <- suppressMessages(sl3::sl3_Task$new(
     data = av_upupshifted,
     covariates = covars,
     outcome = mediator,
     outcome_type = "continuous"
-  )
+  ))
 
-  at_task_downshift <- sl3::sl3_Task$new(
+  at_task_downshift <- suppressMessages(sl3::sl3_Task$new(
     data = at_downshifted,
     covariates = covars,
     outcome = mediator,
     outcome_type = "continuous"
-  )
+  ))
 
-  av_task_downshift <- sl3::sl3_Task$new(
+  av_task_downshift <- suppressMessages(sl3::sl3_Task$new(
     data = av_downshifted,
     covariates = covars,
     outcome = mediator,
     outcome_type = "continuous"
-  )
+  ))
 
   sl_fit <- sl$train(at_task_noshift)
 

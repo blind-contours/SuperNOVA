@@ -17,6 +17,9 @@ calc_pooled_joint_med_shifts(
 )
 }
 \arguments{
+\item{joint_med_shift_results}{List of data frames of the mediation results across
+the parallelized CV procedure}
+
 \item{estimator}{The type of estimator to be fit, either \code{"tmle"} for
 targeted maximum likelihood estimation or \code{"onestep"} for a one-step
 estimator.}
@@ -35,9 +38,6 @@ procedure, as given by \code{\link{fit_fluctuation}}.}
 \item{y_name}{Outcome name}
 
 \item{fluctuation}{Type of fluctuation to be used}
-
-\item{med_shift_results}{List of data frames of the mediation results across
-the parallelized CV procedure}
 }
 \value{
 A \code{list} containing the parameter estimate, estimated variance

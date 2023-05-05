@@ -5,7 +5,7 @@
 #'  inference for the parameter estimate based on the nuisance parameters from
 #'  the fold specific results for the mediation parameter.
 #'
-#' @param med_shift_results List of data frames of the mediation results across
+#' @param joint_med_shift_results List of data frames of the mediation results across
 #' the parallelized CV procedure
 #' @param estimator The type of estimator to be fit, either \code{"tmle"} for
 #'  targeted maximum likelihood estimation or \code{"onestep"} for a one-step

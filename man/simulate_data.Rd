@@ -7,7 +7,7 @@
 simulate_data(
   n_obs = 1e+05,
   sigma_mod = matrix(c(1, 0.5, 0.8, 0.5, 1, 0.7, 0.8, 0.7, 1), nrow = 3, ncol = 3),
-  delta = 0.5
+  delta = 1
 )
 }
 \arguments{
@@ -15,9 +15,7 @@ simulate_data(
 
 \item{sigma_mod}{Sigma matrix of exposures}
 
-\item{delta}{Amount to shift exposure by}
-
-\item{shift_var_index}{for the exposure vector that indicates which
+\item{delta}{Amount to shift exposure by
 exposure to shift}
 }
 \value{

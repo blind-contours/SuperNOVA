@@ -2,9 +2,10 @@
 #'
 #' @details Does the double integration as described in lemma 1
 #'
-#' @param data A \code{character} vector of exposures to be shifted.
-#' @param covars The mediator variable
-#' @param w_names Covariate names
+#' @param at Training data
+#' @param av Validation
+#' @param covars Covariates used in the m model
+#' @param w_names Covariate used in the g model
 #' @param q_model A \code{character} vector covariates to adjust for.
 #' @param r_model Mediator density estimator
 #' @param g_model The training data
@@ -14,7 +15,9 @@
 #'  \code{\link{shift_additive}} and is currently limited to additive shifts.
 #' @param delta Object containing a set of instantiated learners from the
 #'  \pkg{sl3}, to be used in fitting an ensemble model.
-#' @param bins A \code{dataframe} of training data specific to the fold
+#' @param integration_method Type of integration method to be used
+#' @param n_samples Number of MC samples for MC integration
+#' @param density_type Type of density estimation
 #'
 #' @importFrom stats glm as.formula predict
 #' @importFrom data.table as.data.table setnames copy set

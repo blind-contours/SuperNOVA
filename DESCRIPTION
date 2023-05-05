@@ -9,7 +9,7 @@ Authors@R:
            comment = c(ORCID = "0000-0002-5515-6307"))
 Description: A methodology for mixed exposure analysis that leverages
     data-adaptive target parameters, CV-TMLE, stochastic interventions and basis function decomposition.
-License: MIT
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
@@ -38,7 +38,7 @@ Suggests:
     rmarkdown,
     knitr,
     testthat (>= 3.0.0),
-    kableExtra
+    kableExtra,
 VignetteBuilder: knitr
 Depends: 
     R (>= 2.10)

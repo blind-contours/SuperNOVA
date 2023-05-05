@@ -88,7 +88,7 @@ indiv_stoch_shift_est_Q <- function(exposure,
   data.table::set(av_downshifted,
     j = exposure,
     value = shift_additive(
-      a = subset(av, select = exposure),
+      a = av[[exposure]],
       delta = -delta,
       lower_bound = lower_bound,
       upper_bound = upper_bound
@@ -99,7 +99,7 @@ indiv_stoch_shift_est_Q <- function(exposure,
   data.table::set(at_downshifted,
     j = exposure,
     value = shift_additive(
-      a = subset(at, select = exposure),
+      a = at[[exposure]],
       delta = -delta,
       lower_bound = lower_bound,
       upper_bound = upper_bound
@@ -113,7 +113,7 @@ indiv_stoch_shift_est_Q <- function(exposure,
   data.table::set(av_upshifted,
     j = exposure,
     value = shift_additive(
-      a = subset(av, select = exposure),
+      a = av[[exposure]],
       delta = delta,
       lower_bound = lower_bound,
       upper_bound = upper_bound
@@ -124,7 +124,7 @@ indiv_stoch_shift_est_Q <- function(exposure,
   data.table::set(at_upshifted,
     j = exposure,
     value = shift_additive(
-      a = subset(at, select = exposure),
+      a = at[[exposure]],
       delta = delta,
       lower_bound = lower_bound,
       upper_bound = upper_bound
@@ -138,7 +138,7 @@ indiv_stoch_shift_est_Q <- function(exposure,
   data.table::set(av_upupshifted,
     j = exposure,
     value = shift_additive(
-      a = subset(av, select = exposure),
+      a = av[[exposure]],
       delta = 2 * delta,
       lower_bound = lower_bound,
       upper_bound = upper_bound
@@ -149,7 +149,7 @@ indiv_stoch_shift_est_Q <- function(exposure,
   data.table::set(at_upupshifted,
     j = exposure,
     value = shift_additive(
-      a = subset(at, select = exposure),
+      a = at[[exposure]],
       delta = 2 * delta,
       lower_bound = lower_bound,
       upper_bound = upper_bound
@@ -162,63 +162,63 @@ indiv_stoch_shift_est_Q <- function(exposure,
     metalearner = sl3::Lrnr_nnls$new()
   )
 
-  at_task_noshift <- sl3::sl3_Task$new(
+  at_task_noshift <- suppressMessages(sl3::sl3_Task$new(
     data = at,
     covariates = covars,
     outcome = "y",
     outcome_type = "quasibinomial"
-  )
+  ))
 
-  av_task_noshift <- sl3::sl3_Task$new(
+  av_task_noshift <- suppressMessages(sl3::sl3_Task$new(
     data = av,
     covariates = covars,
     outcome = "y",
     outcome_type = "quasibinomial"
-  )
+  ))
 
-  at_task_upshift <- sl3::sl3_Task$new(
+  at_task_upshift <- suppressMessages(sl3::sl3_Task$new(
     data = at_upshifted,
     covariates = covars,
     outcome = "y",
     outcome_type = "quasibinomial"
-  )
+  ))
 
-  av_task_upshift <- sl3::sl3_Task$new(
+  av_task_upshift <- suppressMessages(sl3::sl3_Task$new(
     data = av_upshifted,
     covariates = covars,
     outcome = "y",
     outcome_type = "quasibinomial"
-  )
+  ))
 
-  at_task_upupshift <- sl3::sl3_Task$new(
+  at_task_upupshift <- suppressMessages(sl3::sl3_Task$new(
     data = at_upupshifted,
     covariates = covars,
     outcome = "y",
     outcome_type = "quasibinomial"
-  )
+  ))
 
-  av_task_upupshift <- sl3::sl3_Task$new(
+  av_task_upupshift <- suppressMessages(sl3::sl3_Task$new(
     data = av_upupshifted,
     covariates = covars,
     outcome = "y",
     outcome_type = "quasibinomial"
-  )
+  ))
 
-  at_task_downshift <- sl3::sl3_Task$new(
+  at_task_downshift <- suppressMessages(sl3::sl3_Task$new(
     data = at_downshifted,
     covariates = covars,
     outcome = "y",
     outcome_type = "quasibinomial"
-  )
+  ))
 
-  av_task_downshift <- sl3::sl3_Task$new(
+  av_task_downshift <- suppressMessages(sl3::sl3_Task$new(
     data = av_downshifted,
     covariates = covars,
     outcome = "y",
     outcome_type = "quasibinomial"
-  )
+  ))
 
-  sl_fit <- sl$train(at_task_noshift)
+  sl_fit <- suppressWarnings(suppressMessages(sl$train(at_task_noshift)))
 
   # fit new Super Learner to the natural (no shift) data and predict
   at_q_pred <- bound_precision(sl_fit$predict(at_task_noshift))

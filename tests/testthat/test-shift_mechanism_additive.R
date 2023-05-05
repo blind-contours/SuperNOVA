@@ -39,7 +39,7 @@ gn_spec_fitted <- as.data.table(
   lapply(
     c(-delta_shift, 0, delta_shift, 2 * delta_shift),
     function(delta) {
-      SuperNOVA:::shift_additive(a = A, delta = delta)
+      SuperNOVA:::shift_additive(a = A, delta = delta, lower_bound = -Inf, upper_bound = Inf)
     }
   )
 )
@@ -60,3 +60,4 @@ test_that("Simple shifting function shifts upward by magnitude delta", {
 test_that("Simple shifting function shifts upward by twice magnitude delta", {
   expect_equal(unique(gn_spec_fitted$upupshift - A), 2 * delta_shift)
 })
+

@@ -2,16 +2,20 @@
 #'
 #' @details Does the double integration as described in lemma 1
 #'
-#' @param data A \code{character} vector of exposures to be shifted.
-#' @param covars The mediator variable
-#' @param w_names Covariate names
-#' @param q_model A \code{character} vector covariates to adjust for.
+#' @param at Training data
+#' @param av Validation data
+#' @param covars Covariates used in the pseudo model
+#' @param w_names Baseline covariates used in the g model
 #' @param g_model The training data
 #' @param exposure A \code{numeric} indicating the magnitude of the shift to be
 #'  computed for the exposure \code{A}. This is passed to the internal
 #' @param delta Object containing a set of instantiated learners from the
 #'  \pkg{sl3}, to be used in fitting an ensemble model.
-#'
+#' @param pseudo_model Pseudo regression model
+#' @param psi_aw Vector of predictions from pseudo regression model
+#' @param n_samples Number of MC samples for integration
+#' @param density_type Type of density estimation used
+#' @param integration_method Type of integration method to be used
 #' @importFrom stats glm as.formula predict
 #' @importFrom data.table as.data.table setnames copy set
 #' @importFrom stringr str_detect
@@ -66,11 +70,11 @@ integrate_psi_aw_g <- function(at, av, covars, w_names, pseudo_model, g_model, e
 
     if (integration_method == "MC") {
       sample_a <- runif(n_samples, lower, upper)
-      integral_values <- integrand_psi_g(sample_a, row_data, covars, pseudo_model, g_model, exposure, delta, upper, density_type, av)
+      integral_values <- integrand_psi_g(sample_a, row_data, covars, w_names, pseudo_model, g_model, exposure, delta, upper, density_type, av)
       integral_result <- mean(integral_values) * (max(sample_a) - min(sample_a))
     } else if (integration_method == "AQ") {
       integral_result <- stats::integrate(
-        function(a) integrand_psi_g(a, row_data, covars, pseudo_model, g_model, exposure, delta, upper, density_type, av),
+        function(a) integrand_psi_g(a, row_data, covars, w_names, pseudo_model, g_model, exposure, delta, upper, density_type, av),
         lower = lower,
         upper = upper,
         rel.tol = 0.001,

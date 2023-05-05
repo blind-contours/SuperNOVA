@@ -16,8 +16,6 @@
 #' @param fluctuation type of fluctuation to use
 #' @param w_names Names of covariates
 #' @param a_names Names of exposure
-#' @param em_learner Stack of decision trees to regress influence function
-#' onto covariate space
 #'
 #' @importFrom stats var
 #'
@@ -31,8 +29,7 @@ calc_pooled_em_shifts <- function(y,
                                   fluc_mod_out = NULL,
                                   w_names,
                                   a_names,
-                                  fluctuation,
-                                  em_learner) {
+                                  fluctuation) {
   # set TMLE as default estimator type
   estimator <- match.arg(estimator)
 
@@ -97,9 +94,7 @@ calc_pooled_em_shifts <- function(y,
         at = data,
         av = data,
         effect_m_name = effect_m_name,
-        fold_k = "Pooled TMLE",
-        em_learner = em_learner
-      )
+        fold_k = "Pooled TMLE")
 
       effect_mod_in_fold$Delta <- mean(deltas)
 

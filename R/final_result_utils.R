@@ -47,7 +47,6 @@ calc_final_ind_shift_param <- function(tmle_fit, exposure, fold_k) {
 #' @param av Validation dataset.
 #' @param effect_m_name The name of the effect modifier variable as a \code{character} string.
 #' @param fold_k The fold in which the effect modification was found.
-#' @param em_learner A list of learners for the Super Learner, specifically for decision trees.
 #' @importFrom partykit glmtree
 #' @importFrom stats median
 #' @importFrom dplyr mutate
@@ -60,8 +59,7 @@ calc_final_effect_mod_param <- function(tmle_fit_av,
                                         at,
                                         av,
                                         effect_m_name,
-                                        fold_k,
-                                        em_learner) {
+                                        fold_k) {
   # Calculate pseudo_outcome for training and validation datasets
   pseudo_outcome_at <- tmle_fit_at$qn_shift_star - tmle_fit_at$qn_noshift_star
   pseudo_outcome_av <- tmle_fit_av$qn_shift_star - tmle_fit_av$qn_noshift_star

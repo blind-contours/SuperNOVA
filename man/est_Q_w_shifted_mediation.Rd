@@ -34,7 +34,9 @@ computed for the exposure \code{A}. This is passed to the internal
 
 \item{at}{A \code{dataframe} of training data specific to the fold}
 
-\item{zn_estim}{Density estimates of the mediator under various shifts}
+\item{upper_bound}{Upper bound of exposure}
+
+\item{lower_bound}{Lower bound of exposure}
 }
 \value{
 A \code{data.table} with two columns, containing estimates of the

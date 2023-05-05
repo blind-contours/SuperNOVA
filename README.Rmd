@@ -115,23 +115,25 @@ n_obs <- 100000
 ```
 
 
-The `simulate_data` function creates simulated data with a multivariate exposure, covariates (confounders), and a continuous outcome.
+
+The `simulate_data` is a function for generating synthetic data with a complex structure to study the causal effects of shifting values in the mixtures of exposures The primary purpose of this simulation is to provide a controlled environment for testing and validating estimates given by the SuperNOVA package.
+
+The simulate_data function generates synthetic data for n_obs observations with a pre-specified covariance structure (sigma_mod) and a shift parameter (delta). It simulates four mixture components (M1, M2, M3, M4) and three covariates (W1, W2, W3) with specific relationships between them. The outcome variable Y is generated as a function of these mixtures and covariates.
+
+After generating the data, the function applies a shift (delta) to each mixture component separately and calculates the average treatment effect for each component. Additionally, it calculates the interaction effect of shifting two mixture components simultaneously (m14_intxn). These ground truth effects can be used for validating and comparing the performance of various causal inference methods on this synthetic dataset.
+
+The function returns a list containing the generated data and the ground truth effects of the shifts applied to each mixture component, the interaction effect, and the modified effect results based on a specific level in the W3 covariate.
+
 
 ```{r simulate data, eval = TRUE}
-data <- simulate_data(n_obs = n_obs, shift_var_index = c(3))
-effect <- data$effect
-data <- data$data
+sim_out <- simulate_data(n_obs = n_obs)
+data <- sim_out$data
 head(data) %>%
   kbl(caption = "Simulated Data") %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
 
-The `shift_var_index` parameter above shifts a variable set and gets the expected outcome under this shift. 
-Here, we shift our first exposure variable and true effect for this DGP is: 
 
-```{r effect, eval = TRUE}
-effect
-```
 
 And therefore, in `SuperNOVA` we would expect most of the fold CIs to cover
 this number and the pooled estimate to also cover this true effect. Let's
@@ -143,14 +145,14 @@ and interactions that drive the outcome. There is also effect modification
 between M3 and W1. 
 
 
-```{r run SuperNOVA, eval = TRUE}
-data_sample <- data[sample(nrow(data), 1000), ]
+```{r run SuperNOVA, eval = TRUE, message=FALSE, warning=FALSE}
+data_sample <- data[sample(nrow(data), 4000), ]
 
-w <- data_sample[, c("W1", "W2")]
-a <- data_sample[, c("M1", "M2", "M3")]
+w <- data_sample[, c("W1", "W2", "W3")]
+a <- data_sample[, c("M1", "M2", "M3", "M4")]
 y <- data_sample$Y
 
-deltas <- list("M1" = 1, "M2" = 1, "M3" = 1)
+deltas <- list("M1" = 1, "M2" = 1, "M3" = 1, "M4" = 1)
 
 ptm <- proc.time()
 sim_results <- SuperNOVA(
@@ -158,42 +160,74 @@ sim_results <- SuperNOVA(
   a = a,
   y = y,
   delta = deltas,
-  n_folds = 2,
+  n_folds = 3,
   num_cores = 6,
-  family = "continuous",
+  outcome_type = "continuous",
   quantile_thresh = 0,
   seed = 294580
 )
 proc.time() - ptm
 
+basis_in_folds <- sim_results$`Basis Fold Proportions`
 indiv_shift_results <- sim_results$`Indiv Shift Results`
 em_results <- sim_results$`Effect Mod Results`
 joint_shift_results <- sim_results$`Joint Shift Results`
 ```
 
+Let's first look at the variable relationships used in the folds: 
+
+```{r basis in folds}
+basis_in_folds
+```
+
+The above list shows that marginal effects for exposures M1 and M4 were found, an interaction for M1 and M4, and effect modification for M3 and W3 - all of which are correct as the outcome is generated from these relationships. There is no effect for M2 which we correctly reject.
+
 Let's first look at the results for individual stochastic shifts by delta compared to no shift:
 
 ```{r individual shift results}
-indiv_shift_results$M3 %>%
+indiv_shift_results$M1 %>%
   kbl(caption = "Individual Stochastic Intervention Results for M1") %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
 
+The true effect for a shifted M1 vs observed M1 is: 
+```{r m1 truth}
+sim_out$m1_effect
+```
+
+And so we see that we have proper coverage.
+
 Next we can look at effect modifications: 
 
 ```{r effect modification results}
-em_results$M3W1 %>%
-  kbl(caption = "Effect Modification Stochastic Intervention Results for M3 and W1") %>%
+em_results$M3W3 %>%
+  kbl(caption = "Effect Modification Stochastic Intervention Results for M3 and W3") %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
+
+Let's first look at the truth: 
+```{r em truth}
+sim_out$effect_mod
+```
+When W3 is greater than 0 the truth effect is 11, our estimates are 10 with CI coverage. When W3 is 0 the truth is 1, our estimate is 1.9 with CIs that cover the truth as well. 
 
 And finally results for the joint shift which is a joint shift compared to additive individual shifts.
 
 ```{r joint results}
-joint_shift_results$M1M3 %>%
-  kbl(caption = "Interactions Stochastic Intervention Results") %>%
+joint_shift_results$M1M4 %>%
+  kbl(caption = "Interactions Stochastic Intervention Results for M1 and M4") %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
+
+Let's look at the truth again: 
+
+```{r interaction truths}
+sim_out$m1_effect
+sim_out$m4_effect
+sim_out$m14_effect
+sim_out$m14_intxn
+```
+So comparing the results to the above table in the pooled section we can see all our estimates for the marginal shifts, dual shift, and difference between dual and sum of marginals have CIs that cover the truth. 
 
 ---
 

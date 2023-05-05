@@ -9,7 +9,7 @@ test_that("EIF function produces correct output", {
   )
 
   # call eif function
-  eif_out <- eif(y, qn, hn, estimator = "tmle", fluc_mod_out = fluc_mod_out)
+  eif_out <- eif(y, qn, qn_unscaled = qn, hn, estimator = "tmle", fluc_mod_out = fluc_mod_out)
 
   # test that psi is equal to 4.0
   expect_equal(eif_out$psi, 4.0)

@@ -155,13 +155,35 @@ set.seed(429153)
 n_obs <- 100000
 ```
 
-The `simulate_data` function creates simulated data with a multivariate
-exposure, covariates (confounders), and a continuous outcome.
+The `simulate_data` is a function for generating synthetic data with a
+complex structure to study the causal effects of shifting values in the
+mixtures of exposures The primary purpose of this simulation is to
+provide a controlled environment for testing and validating estimates
+given by the SuperNOVA package.
+
+The simulate_data function generates synthetic data for n_obs
+observations with a pre-specified covariance structure (sigma_mod) and a
+shift parameter (delta). It simulates four mixture components (M1, M2,
+M3, M4) and three covariates (W1, W2, W3) with specific relationships
+between them. The outcome variable Y is generated as a function of these
+mixtures and covariates.
+
+After generating the data, the function applies a shift (delta) to each
+mixture component separately and calculates the average treatment effect
+for each component. Additionally, it calculates the interaction effect
+of shifting two mixture components simultaneously (m14_intxn). These
+ground truth effects can be used for validating and comparing the
+performance of various causal inference methods on this synthetic
+dataset.
+
+The function returns a list containing the generated data and the ground
+truth effects of the shifts applied to each mixture component, the
+interaction effect, and the modified effect results based on a specific
+level in the W3 covariate.
 
 ``` r
-data <- simulate_data(n_obs = n_obs, shift_var_index = c(3))
-effect <- data$effect
-data <- data$data
+sim_out <- simulate_data(n_obs = n_obs)
+data <- sim_out$data
 head(data) %>%
   kbl(caption = "Simulated Data") %>%
   kable_classic(full_width = F, html_font = "Cambria")
@@ -183,29 +205,35 @@ M2
 M3
 </th>
 <th style="text-align:right;">
+M4
+</th>
+<th style="text-align:right;">
 W1
 </th>
 <th style="text-align:right;">
 W2
 </th>
 <th style="text-align:right;">
-Y
+W3
 </th>
 <th style="text-align:right;">
-Y_shifted
+Y
 </th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td style="text-align:right;">
-5.122589
+23.01099
 </td>
 <td style="text-align:right;">
-0.6810488
+3.864569
 </td>
 <td style="text-align:right;">
-3.098372
+4.461534
+</td>
+<td style="text-align:right;">
+4.747169
 </td>
 <td style="text-align:right;">
 7.873068
@@ -214,21 +242,24 @@ Y_shifted
 7.362137
 </td>
 <td style="text-align:right;">
-8.727373
+1
 </td>
 <td style="text-align:right;">
-8.796372
+72.76739
 </td>
 </tr>
 <tr>
 <td style="text-align:right;">
-5.752568
+23.70848
 </td>
 <td style="text-align:right;">
-3.9186685
+4.169044
 </td>
 <td style="text-align:right;">
-4.723786
+4.990670
+</td>
+<td style="text-align:right;">
+5.568766
 </td>
 <td style="text-align:right;">
 6.677126
@@ -237,21 +268,24 @@ Y_shifted
 7.302253
 </td>
 <td style="text-align:right;">
-8.549657
+1
 </td>
 <td style="text-align:right;">
-8.552309
+87.81536
 </td>
 </tr>
 <tr>
 <td style="text-align:right;">
-4.515052
+22.44274
 </td>
 <td style="text-align:right;">
-0.9926542
+2.922274
 </td>
 <td style="text-align:right;">
-2.979040
+4.885933
+</td>
+<td style="text-align:right;">
+3.347086
 </td>
 <td style="text-align:right;">
 7.598614
@@ -260,21 +294,24 @@ Y_shifted
 7.647076
 </td>
 <td style="text-align:right;">
-8.290229
+0
 </td>
 <td style="text-align:right;">
-8.369829
+42.33824
 </td>
 </tr>
 <tr>
 <td style="text-align:right;">
-3.816552
+22.99681
 </td>
 <td style="text-align:right;">
--0.1666900
+2.507461
 </td>
 <td style="text-align:right;">
-1.502374
+4.227508
+</td>
+<td style="text-align:right;">
+1.719390
 </td>
 <td style="text-align:right;">
 7.321127
@@ -283,21 +320,24 @@ Y_shifted
 6.907626
 </td>
 <td style="text-align:right;">
-6.539904
+1
 </td>
 <td style="text-align:right;">
-7.549933
+38.72763
 </td>
 </tr>
 <tr>
 <td style="text-align:right;">
-4.797729
+22.88541
 </td>
 <td style="text-align:right;">
-1.8740593
+3.349974
 </td>
 <td style="text-align:right;">
-4.024303
+4.369185
+</td>
+<td style="text-align:right;">
+6.618387
 </td>
 <td style="text-align:right;">
 6.203951
@@ -306,21 +346,24 @@ Y_shifted
 6.547683
 </td>
 <td style="text-align:right;">
-7.192016
+1
 </td>
 <td style="text-align:right;">
-7.200583
+90.86418
 </td>
 </tr>
 <tr>
 <td style="text-align:right;">
-4.380270
+22.88781
 </td>
 <td style="text-align:right;">
-0.2098730
+3.890133
 </td>
 <td style="text-align:right;">
-2.961153
+5.370329
+</td>
+<td style="text-align:right;">
+5.736624
 </td>
 <td style="text-align:right;">
 7.677073
@@ -329,23 +372,14 @@ Y_shifted
 8.250861
 </td>
 <td style="text-align:right;">
-8.473848
+0
 </td>
 <td style="text-align:right;">
-8.556300
+68.59041
 </td>
 </tr>
 </tbody>
 </table>
-
-The `shift_var_index` parameter above shifts a variable set and gets the
-expected outcome under this shift. Here, we shift our first exposure
-variable and true effect for this DGP is:
-
-``` r
-effect
-#> [1] 0.2057182
-```
 
 And therefore, in `SuperNOVA` we would expect most of the fold CIs to
 cover this number and the pooled estimate to also cover this true
@@ -358,13 +392,13 @@ individual effects and interactions that drive the outcome. There is
 also effect modification between M3 and W1.
 
 ``` r
-data_sample <- data[sample(nrow(data), 1000), ]
+data_sample <- data[sample(nrow(data), 4000), ]
 
-w <- data_sample[, c("W1", "W2")]
-a <- data_sample[, c("M1", "M2", "M3")]
+w <- data_sample[, c("W1", "W2", "W3")]
+a <- data_sample[, c("M1", "M2", "M3", "M4")]
 y <- data_sample$Y
 
-deltas <- list("M1" = 1, "M2" = 1, "M3" = 1)
+deltas <- list("M1" = 1, "M2" = 1, "M3" = 1, "M4" = 1)
 
 ptm <- proc.time()
 sim_results <- SuperNOVA(
@@ -372,59 +406,122 @@ sim_results <- SuperNOVA(
   a = a,
   y = y,
   delta = deltas,
-  n_folds = 2,
+  n_folds = 3,
   num_cores = 6,
-  family = "continuous",
+  outcome_type = "continuous",
   quantile_thresh = 0,
   seed = 294580
 )
 #> 
-#> Iter: 1 fn: 736.1309  Pars:  0.999990593 0.000009407
-#> Iter: 2 fn: 736.1309  Pars:  0.99999736 0.00000264
-#> solnp--> Completed in 2 iterations
-#> 
-#> Iter: 1 fn: 731.4051  Pars:  0.9995572 0.0004428
-#> Iter: 2 fn: 731.4051  Pars:  0.99992727 0.00007273
-#> solnp--> Completed in 2 iterations
-#> 
-#> Iter: 1 fn: 736.7229  Pars:  0.99996647 0.00003353
-#> Iter: 2 fn: 736.7229  Pars:  0.999992347 0.000007653
-#> solnp--> Completed in 2 iterations
-#> 
-#> Iter: 1 fn: 732.0024  Pars:  0.97476 0.02524
-#> Iter: 2 fn: 731.7276  Pars:  0.68600 0.31400
-#> Iter: 3 fn: 731.7276  Pars:  0.68600 0.31400
+#> Iter: 1 fn: 5617.4930     Pars:  0.83767 0.16233
+#> Iter: 2 fn: 5617.1485     Pars:  0.999991224 0.000008777
+#> Iter: 3 fn: 5617.1484     Pars:  0.999994372 0.000005628
 #> solnp--> Completed in 3 iterations
 #> 
-#> Iter: 1 fn: 733.1242  Pars:  0.9994124 0.0005876
-#> Iter: 2 fn: 733.1242  Pars:  0.9998624 0.0001376
+#> Iter: 1 fn: 3814.5345     Pars:  0.99998864 0.00001136
+#> Iter: 2 fn: 3814.5345     Pars:  0.999996147 0.000003853
 #> solnp--> Completed in 2 iterations
 #> 
-#> Iter: 1 fn: 738.3274  Pars:  0.99997363 0.00002637
-#> Iter: 2 fn: 738.3274  Pars:  0.99998491 0.00001509
+#> Iter: 1 fn: 3732.3492     Pars:  0.999994933 0.000005067
+#> Iter: 2 fn: 3732.3492     Pars:  0.999996634 0.000003366
 #> solnp--> Completed in 2 iterations
 #> 
-#> Iter: 1 fn: 734.5190  Pars:  0.99999247 0.00000753
-#> Iter: 2 fn: 734.5190  Pars:  0.999995305 0.000004695
+#> Iter: 1 fn: 3731.9982     Pars:  0.88391 0.11609
+#> Iter: 2 fn: 3731.8248     Pars:  0.999991263 0.000008737
+#> Iter: 3 fn: 3731.8248     Pars:  0.999994386 0.000005614
+#> solnp--> Completed in 3 iterations
+#> 
+#> Iter: 1 fn: 5615.8454     Pars:  0.43869 0.56131
+#> Iter: 2 fn: 5615.8454     Pars:  0.43869 0.56131
 #> solnp--> Completed in 2 iterations
 #> 
-#> Iter: 1 fn: 737.4888  Pars:  0.99998296 0.00001704
-#> Iter: 2 fn: 737.4888  Pars:  0.999996248 0.000003752
+#> Iter: 1 fn: 5620.9486     Pars:  0.44141 0.55859
+#> Iter: 2 fn: 5620.4981     Pars:  0.99997607 0.00002393
+#> Iter: 3 fn: 5620.4981     Pars:  0.99998463 0.00001537
+#> solnp--> Completed in 3 iterations
+#> 
+#> Iter: 1 fn: 5614.1167     Pars:  0.82113 0.17887
+#> Iter: 2 fn: 5614.1077     Pars:  0.9994545 0.0005455
+#> Iter: 3 fn: 5614.1077     Pars:  0.9996802 0.0003198
+#> solnp--> Completed in 3 iterations
+#> 
+#> Iter: 1 fn: 3845.2259     Pars:  0.99998184 0.00001816
+#> Iter: 2 fn: 3845.2259     Pars:  0.999993039 0.000006961
 #> solnp--> Completed in 2 iterations
+#> 
+#> Iter: 1 fn: 3815.6067     Pars:  0.69644 0.30356
+#> Iter: 2 fn: 3815.6067     Pars:  0.69650 0.30350
+#> solnp--> Completed in 2 iterations
+#> 
+#> Iter: 1 fn: 3840.8999     Pars:  0.89353 0.10647
+#> Iter: 2 fn: 3840.8999     Pars:  0.89353 0.10647
+#> solnp--> Completed in 2 iterations
+#> 
+#> Iter: 1 fn: 5615.8566     Pars:  0.73031 0.26969
+#> Iter: 2 fn: 5615.7797     Pars:  0.9992627 0.0007373
+#> Iter: 3 fn: 5615.7796     Pars:  0.9995925 0.0004075
+#> Iter: 4 fn: 5615.7795     Pars:  0.9998947 0.0001053
+#> Iter: 5 fn: 5615.7795     Pars:  0.99995525 0.00004475
+#> solnp--> Completed in 5 iterations
+#> 
+#> Iter: 1 fn: 5610.6494     Pars:  0.44630 0.55370
+#> Iter: 2 fn: 5610.6494     Pars:  0.44627 0.55373
+#> solnp--> Completed in 2 iterations
+#> 
+#> Iter: 1 fn: 5599.9737     Pars:  0.99997813 0.00002187
+#> Iter: 2 fn: 5599.9736     Pars:  0.999992193 0.000007807
+#> solnp--> Completed in 2 iterations
+#> 
+#> Iter: 1 fn: 3829.3779     Pars:  0.89231 0.10769
+#> Iter: 2 fn: 3829.1156     Pars:  0.61038 0.38962
+#> Iter: 3 fn: 3829.1156     Pars:  0.61031 0.38969
+#> solnp--> Completed in 3 iterations
+#> 
+#> Iter: 1 fn: 3802.6635     Pars:  0.999992896 0.000007104
+#> Iter: 2 fn: 3802.6635     Pars:  0.99999763 0.00000237
+#> solnp--> Completed in 2 iterations
+#> 
+#> Iter: 1 fn: 3831.5452     Pars:  0.47081 0.52919
+#> Iter: 2 fn: 3831.5452     Pars:  0.47082 0.52918
+#> solnp--> Completed in 2 iterations
+#> 
+#> Iter: 1 fn: 5598.6825     Pars:  0.99998629 0.00001371
+#> Iter: 2 fn: 5598.6825     Pars:  0.999994535 0.000005465
+#> solnp--> Completed in 2 iterations
+#> 
+#> Iter: 1 fn: 5600.0257     Pars:  0.82318 0.17682
+#> Iter: 2 fn: 5599.8034     Pars:  0.99998028 0.00001972
+#> Iter: 3 fn: 5599.8034     Pars:  0.99998732 0.00001268
+#> solnp--> Completed in 3 iterations
 proc.time() - ptm
-#>     user   system  elapsed 
-#>   60.293    4.658 1066.582
+#>    user  system elapsed 
+#>  27.248   1.843 460.624
 
+basis_in_folds <- sim_results$`Basis Fold Proportions`
 indiv_shift_results <- sim_results$`Indiv Shift Results`
 em_results <- sim_results$`Effect Mod Results`
 joint_shift_results <- sim_results$`Joint Shift Results`
 ```
 
+Let’s first look at the variable relationships used in the folds:
+
+``` r
+basis_in_folds
+#> 
+#>   M1 M1M4 M3M4 M3W3   M4   W3 
+#> 1.00 0.33 0.67 1.00 1.00 1.00
+```
+
+The above list shows that marginal effects for exposures M1 and M4 were
+found, an interaction for M1 and M4, and effect modification for M3 and
+W3 - all of which are correct as the outcome is generated from these
+relationships. There is no effect for M2 which we correctly reject.
+
 Let’s first look at the results for individual stochastic shifts by
 delta compared to no shift:
 
 ``` r
-indiv_shift_results$M3 %>%
+indiv_shift_results$M1 %>%
   kbl(caption = "Individual Stochastic Intervention Results for M1") %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
@@ -476,25 +573,25 @@ Delta
 <tbody>
 <tr>
 <td style="text-align:left;">
-M3
+M1
 </td>
 <td style="text-align:right;">
-0.4781234
+2.594282
 </td>
 <td style="text-align:right;">
-0.0187581
+0.7612363
 </td>
 <td style="text-align:right;">
-0.1369602
+0.8724886
 </td>
 <td style="text-align:right;">
-0.2097
+0.8842
 </td>
 <td style="text-align:right;">
-0.7466
+4.3043
 </td>
 <td style="text-align:right;">
-0.0004813
+0.0029449
 </td>
 <td style="text-align:left;">
 1
@@ -503,10 +600,10 @@ M3
 Indiv Shift
 </td>
 <td style="text-align:left;">
-M3
+M1
 </td>
 <td style="text-align:right;">
-500
+1334
 </td>
 <td style="text-align:right;">
 1
@@ -514,25 +611,25 @@ M3
 </tr>
 <tr>
 <td style="text-align:left;">
-M3
+M1
 </td>
 <td style="text-align:right;">
-0.2560727
+1.907373
 </td>
 <td style="text-align:right;">
-0.1685680
+0.5215788
 </td>
 <td style="text-align:right;">
-0.4105704
+0.7222041
 </td>
 <td style="text-align:right;">
--0.5486
+0.4919
 </td>
 <td style="text-align:right;">
-1.0608
+3.3229
 </td>
 <td style="text-align:right;">
-0.5328247
+0.0082651
 </td>
 <td style="text-align:left;">
 2
@@ -541,10 +638,10 @@ M3
 Indiv Shift
 </td>
 <td style="text-align:left;">
-M3
+M1
 </td>
 <td style="text-align:right;">
-500
+1333
 </td>
 <td style="text-align:right;">
 1
@@ -552,25 +649,63 @@ M3
 </tr>
 <tr>
 <td style="text-align:left;">
-M3
+M1
 </td>
 <td style="text-align:right;">
-0.3098747
+2.256934
 </td>
 <td style="text-align:right;">
-0.0347372
+0.5683514
 </td>
 <td style="text-align:right;">
-0.1863791
+0.7538909
 </td>
 <td style="text-align:right;">
--0.0554
+0.7793
 </td>
 <td style="text-align:right;">
-0.6752
+3.7345
 </td>
 <td style="text-align:right;">
-0.0963916
+0.0027560
+</td>
+<td style="text-align:left;">
+3
+</td>
+<td style="text-align:left;">
+Indiv Shift
+</td>
+<td style="text-align:left;">
+M1
+</td>
+<td style="text-align:right;">
+1333
+</td>
+<td style="text-align:right;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+M1
+</td>
+<td style="text-align:right;">
+1.522048
+</td>
+<td style="text-align:right;">
+0.1679864
+</td>
+<td style="text-align:right;">
+0.4098615
+</td>
+<td style="text-align:right;">
+0.7187
+</td>
+<td style="text-align:right;">
+2.3254
+</td>
+<td style="text-align:right;">
+0.0002044
 </td>
 <td style="text-align:left;">
 Pooled TMLE
@@ -579,10 +714,10 @@ Pooled TMLE
 Indiv Shift
 </td>
 <td style="text-align:left;">
-M3
+M1
 </td>
 <td style="text-align:right;">
-1000
+4000
 </td>
 <td style="text-align:right;">
 1
@@ -591,17 +726,402 @@ M3
 </tbody>
 </table>
 
+The true effect for a shifted M1 vs observed M1 is:
+
+``` r
+sim_out$m1_effect
+#> [1] 1.603984
+```
+
+And so we see that we have proper coverage.
+
 Next we can look at effect modifications:
 
 ``` r
-em_results$M3W1 %>%
-  kbl(caption = "Effect Modification Stochastic Intervention Results for M3 and W1") %>%
+em_results$M3W3 %>%
+  kbl(caption = "Effect Modification Stochastic Intervention Results for M3 and W3") %>%
   kable_classic(full_width = F, html_font = "Cambria")
 ```
 
 <table class=" lightable-classic" style="font-family: Cambria; width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>
-Effect Modification Stochastic Intervention Results for M3 and W1
+Effect Modification Stochastic Intervention Results for M3 and W3
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Condition
+</th>
+<th style="text-align:right;">
+Psi
+</th>
+<th style="text-align:right;">
+Variance
+</th>
+<th style="text-align:right;">
+SE
+</th>
+<th style="text-align:right;">
+Lower_CI
+</th>
+<th style="text-align:right;">
+Upper_CI
+</th>
+<th style="text-align:right;">
+P_value
+</th>
+<th style="text-align:left;">
+Fold
+</th>
+<th style="text-align:left;">
+Type
+</th>
+<th style="text-align:left;">
+Variables
+</th>
+<th style="text-align:right;">
+N
+</th>
+<th style="text-align:right;">
+Delta
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Level 1 Shift Diff in W3 \<= 0
+</td>
+<td style="text-align:right;">
+-3.248960
+</td>
+<td style="text-align:right;">
+3.3836568
+</td>
+<td style="text-align:right;">
+1.8394719
+</td>
+<td style="text-align:right;">
+-6.8543
+</td>
+<td style="text-align:right;">
+0.3563
+</td>
+<td style="text-align:right;">
+0.0773546
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:left;">
+Effect Mod
+</td>
+<td style="text-align:left;">
+M3W3
+</td>
+<td style="text-align:right;">
+1334
+</td>
+<td style="text-align:right;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Level 0 Shift Diff in W3 \<= 0
+</td>
+<td style="text-align:right;">
+4.308103
+</td>
+<td style="text-align:right;">
+8.9139246
+</td>
+<td style="text-align:right;">
+2.9856196
+</td>
+<td style="text-align:right;">
+-1.5436
+</td>
+<td style="text-align:right;">
+10.1598
+</td>
+<td style="text-align:right;">
+0.1490342
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:left;">
+Effect Mod
+</td>
+<td style="text-align:left;">
+M3W3
+</td>
+<td style="text-align:right;">
+1334
+</td>
+<td style="text-align:right;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Level 1 Shift Diff in W3 \<= 0
+</td>
+<td style="text-align:right;">
+3.458559
+</td>
+<td style="text-align:right;">
+4.2797587
+</td>
+<td style="text-align:right;">
+2.0687578
+</td>
+<td style="text-align:right;">
+-0.5961
+</td>
+<td style="text-align:right;">
+7.5132
+</td>
+<td style="text-align:right;">
+0.0945629
+</td>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:left;">
+Effect Mod
+</td>
+<td style="text-align:left;">
+M3W3
+</td>
+<td style="text-align:right;">
+1333
+</td>
+<td style="text-align:right;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Level 0 Shift Diff in W3 \<= 0
+</td>
+<td style="text-align:right;">
+11.950912
+</td>
+<td style="text-align:right;">
+3.4042433
+</td>
+<td style="text-align:right;">
+1.8450592
+</td>
+<td style="text-align:right;">
+8.3347
+</td>
+<td style="text-align:right;">
+15.5672
+</td>
+<td style="text-align:right;">
+0.0000000
+</td>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:left;">
+Effect Mod
+</td>
+<td style="text-align:left;">
+M3W3
+</td>
+<td style="text-align:right;">
+1333
+</td>
+<td style="text-align:right;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Level 1 Shift Diff in W3 \<= 0
+</td>
+<td style="text-align:right;">
+4.819357
+</td>
+<td style="text-align:right;">
+38.8875342
+</td>
+<td style="text-align:right;">
+6.2359870
+</td>
+<td style="text-align:right;">
+-7.4030
+</td>
+<td style="text-align:right;">
+17.0417
+</td>
+<td style="text-align:right;">
+0.4396231
+</td>
+<td style="text-align:left;">
+3
+</td>
+<td style="text-align:left;">
+Effect Mod
+</td>
+<td style="text-align:left;">
+M3W3
+</td>
+<td style="text-align:right;">
+1333
+</td>
+<td style="text-align:right;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Level 0 Shift Diff in W3 \<= 0
+</td>
+<td style="text-align:right;">
+11.272408
+</td>
+<td style="text-align:right;">
+6.9938039
+</td>
+<td style="text-align:right;">
+2.6445801
+</td>
+<td style="text-align:right;">
+6.0891
+</td>
+<td style="text-align:right;">
+16.4557
+</td>
+<td style="text-align:right;">
+0.0000202
+</td>
+<td style="text-align:left;">
+3
+</td>
+<td style="text-align:left;">
+Effect Mod
+</td>
+<td style="text-align:left;">
+M3W3
+</td>
+<td style="text-align:right;">
+1333
+</td>
+<td style="text-align:right;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Level 1 Shift Diff in W3 \<= 0
+</td>
+<td style="text-align:right;">
+1.704760
+</td>
+<td style="text-align:right;">
+0.9422027
+</td>
+<td style="text-align:right;">
+0.9706713
+</td>
+<td style="text-align:right;">
+-0.1977
+</td>
+<td style="text-align:right;">
+3.6072
+</td>
+<td style="text-align:right;">
+0.0790424
+</td>
+<td style="text-align:left;">
+Pooled TMLE
+</td>
+<td style="text-align:left;">
+Effect Mod
+</td>
+<td style="text-align:left;">
+M3W3
+</td>
+<td style="text-align:right;">
+4000
+</td>
+<td style="text-align:right;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Level 0 Shift Diff in W3 \<= 0
+</td>
+<td style="text-align:right;">
+10.180014
+</td>
+<td style="text-align:right;">
+1.3675158
+</td>
+<td style="text-align:right;">
+1.1694083
+</td>
+<td style="text-align:right;">
+7.8880
+</td>
+<td style="text-align:right;">
+12.4720
+</td>
+<td style="text-align:right;">
+0.0000000
+</td>
+<td style="text-align:left;">
+Pooled TMLE
+</td>
+<td style="text-align:left;">
+Effect Mod
+</td>
+<td style="text-align:left;">
+M3W3
+</td>
+<td style="text-align:right;">
+4000
+</td>
+<td style="text-align:right;">
+1
+</td>
+</tr>
+</tbody>
+</table>
+
+Let’s first look at the truth:
+
+``` r
+sim_out$effect_mod
+#> $`Level 0 Shift Diff in W3 <= 0`
+#> [1] 10.99749
+#> 
+#> $`Level 1 Shift Diff in W3 <= 0`
+#> [1] 1
+```
+
+When W3 is greater than 0 the truth effect is 11, our estimates are 10
+with CI coverage. When W3 is 0 the truth is 1, our estimate is 1.9 with
+CIs that cover the truth as well.
+
+And finally results for the joint shift which is a joint shift compared
+to additive individual shifts.
+
+``` r
+joint_shift_results$M1M4 %>%
+  kbl(caption = "Interactions Stochastic Intervention Results for M1 and M4") %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+```
+
+<table class=" lightable-classic" style="font-family: Cambria; width: auto !important; margin-left: auto; margin-right: auto;">
+<caption>
+Interactions Stochastic Intervention Results for M1 and M4
 </caption>
 <thead>
 <tr>
@@ -639,44 +1159,50 @@ Variables
 N
 </th>
 <th style="text-align:right;">
-Delta
+Delta M1
+</th>
+<th style="text-align:right;">
+Delta M4
 </th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td style="text-align:left;">
-Level 1 Shift Diff in W1 \<= 4.79548872632324
+M1
 </td>
 <td style="text-align:right;">
-6.608877
+2.599696
 </td>
 <td style="text-align:right;">
-9.8017436
+0.7610882
 </td>
 <td style="text-align:right;">
-3.1307736
+0.8724037
 </td>
 <td style="text-align:right;">
-0.4727
+0.8898
 </td>
 <td style="text-align:right;">
-12.7451
+4.3096
 </td>
 <td style="text-align:right;">
-0.0347774
+0.0053805
 </td>
 <td style="text-align:left;">
 1
 </td>
 <td style="text-align:left;">
-Effect Mod
+Interaction
 </td>
 <td style="text-align:left;">
-M3W1
+M1&M4
 </td>
 <td style="text-align:right;">
-500
+1334
+</td>
+<td style="text-align:right;">
+1
 </td>
 <td style="text-align:right;">
 1
@@ -684,22 +1210,22 @@ M3W1
 </tr>
 <tr>
 <td style="text-align:left;">
-Level 0 Shift Diff in W1 \<= 4.79548872632324
+M4
 </td>
 <td style="text-align:right;">
-7.497494
+10.263304
 </td>
 <td style="text-align:right;">
-0.0369747
+0.3342128
 </td>
 <td style="text-align:right;">
-0.1922882
+0.5781114
 </td>
 <td style="text-align:right;">
-7.1206
+9.1302
 </td>
 <td style="text-align:right;">
-7.8744
+11.3964
 </td>
 <td style="text-align:right;">
 0.0000000
@@ -708,13 +1234,16 @@ Level 0 Shift Diff in W1 \<= 4.79548872632324
 1
 </td>
 <td style="text-align:left;">
-Effect Mod
+Interaction
 </td>
 <td style="text-align:left;">
-M3W1
+M1&M4
 </td>
 <td style="text-align:right;">
-500
+1334
+</td>
+<td style="text-align:right;">
+1
 </td>
 <td style="text-align:right;">
 1
@@ -722,37 +1251,40 @@ M3W1
 </tr>
 <tr>
 <td style="text-align:left;">
-Level 1 Shift Diff in W1 \<= 6.01707155372336
+M1&M4
 </td>
 <td style="text-align:right;">
-6.522368
+11.587589
 </td>
 <td style="text-align:right;">
-0.5981337
+0.3370926
 </td>
 <td style="text-align:right;">
-0.7733910
+0.5805968
 </td>
 <td style="text-align:right;">
-5.0065
+10.4496
 </td>
 <td style="text-align:right;">
-8.0382
+12.7255
 </td>
 <td style="text-align:right;">
 0.0000000
 </td>
 <td style="text-align:left;">
-2
+1
 </td>
 <td style="text-align:left;">
-Effect Mod
+Interaction
 </td>
 <td style="text-align:left;">
-M3W1
+M1&M4
 </td>
 <td style="text-align:right;">
-500
+1334
+</td>
+<td style="text-align:right;">
+1
 </td>
 <td style="text-align:right;">
 1
@@ -760,37 +1292,40 @@ M3W1
 </tr>
 <tr>
 <td style="text-align:left;">
-Level 0 Shift Diff in W1 \<= 6.01707155372336
+Psi
 </td>
 <td style="text-align:right;">
-8.303153
+-1.275411
 </td>
 <td style="text-align:right;">
-2.5621008
+0.7560428
 </td>
 <td style="text-align:right;">
-1.6006564
+0.8695072
 </td>
 <td style="text-align:right;">
-5.1659
+-2.9796
 </td>
 <td style="text-align:right;">
-11.4404
+0.4288
 </td>
 <td style="text-align:right;">
-0.0000002
+0.1713836
 </td>
 <td style="text-align:left;">
-2
+1
 </td>
 <td style="text-align:left;">
-Effect Mod
+Interaction
 </td>
 <td style="text-align:left;">
-M3W1
+M1&M4
 </td>
 <td style="text-align:right;">
-500
+1334
+</td>
+<td style="text-align:right;">
+1
 </td>
 <td style="text-align:right;">
 1
@@ -798,22 +1333,63 @@ M3W1
 </tr>
 <tr>
 <td style="text-align:left;">
-Level 1 Shift Diff in W1 \<= 6.02939925010252
+M1
 </td>
 <td style="text-align:right;">
-6.695511
+2.599696
 </td>
 <td style="text-align:right;">
-0.3626356
+0.7610882
 </td>
 <td style="text-align:right;">
-0.6021923
+0.8724037
 </td>
 <td style="text-align:right;">
-5.5152
+0.8898
 </td>
 <td style="text-align:right;">
-7.8758
+4.3096
+</td>
+<td style="text-align:right;">
+0.0053805
+</td>
+<td style="text-align:left;">
+Pooled TMLE
+</td>
+<td style="text-align:left;">
+Interaction
+</td>
+<td style="text-align:left;">
+M1&M4
+</td>
+<td style="text-align:right;">
+1334
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+M4
+</td>
+<td style="text-align:right;">
+10.263304
+</td>
+<td style="text-align:right;">
+0.3342128
+</td>
+<td style="text-align:right;">
+0.5781114
+</td>
+<td style="text-align:right;">
+9.1302
+</td>
+<td style="text-align:right;">
+11.3964
 </td>
 <td style="text-align:right;">
 0.0000000
@@ -822,13 +1398,16 @@ Level 1 Shift Diff in W1 \<= 6.02939925010252
 Pooled TMLE
 </td>
 <td style="text-align:left;">
-Effect Mod
+Interaction
 </td>
 <td style="text-align:left;">
-M3W1
+M1&M4
 </td>
 <td style="text-align:right;">
-1000
+1334
+</td>
+<td style="text-align:right;">
+1
 </td>
 <td style="text-align:right;">
 1
@@ -836,22 +1415,22 @@ M3W1
 </tr>
 <tr>
 <td style="text-align:left;">
-Level 0 Shift Diff in W1 \<= 6.02939925010252
+M1&M4
 </td>
 <td style="text-align:right;">
-8.399997
+11.587589
 </td>
 <td style="text-align:right;">
-0.4258269
+0.3370926
 </td>
 <td style="text-align:right;">
-0.6525541
+0.5805968
 </td>
 <td style="text-align:right;">
-7.1210
+10.4496
 </td>
 <td style="text-align:right;">
-9.6790
+12.7255
 </td>
 <td style="text-align:right;">
 0.0000000
@@ -860,13 +1439,57 @@ Level 0 Shift Diff in W1 \<= 6.02939925010252
 Pooled TMLE
 </td>
 <td style="text-align:left;">
-Effect Mod
+Interaction
 </td>
 <td style="text-align:left;">
-M3W1
+M1&M4
 </td>
 <td style="text-align:right;">
-1000
+1334
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Psi
+</td>
+<td style="text-align:right;">
+-1.275411
+</td>
+<td style="text-align:right;">
+0.7560428
+</td>
+<td style="text-align:right;">
+0.8695072
+</td>
+<td style="text-align:right;">
+-2.9796
+</td>
+<td style="text-align:right;">
+0.4288
+</td>
+<td style="text-align:right;">
+0.1713836
+</td>
+<td style="text-align:left;">
+Pooled TMLE
+</td>
+<td style="text-align:left;">
+Interaction
+</td>
+<td style="text-align:left;">
+M1&M4
+</td>
+<td style="text-align:right;">
+1334
+</td>
+<td style="text-align:right;">
+1
 </td>
 <td style="text-align:right;">
 1
@@ -875,24 +1498,23 @@ M3W1
 </tbody>
 </table>
 
-And finally results for the joint shift which is a joint shift compared
-to additive individual shifts.
+Let’s look at the truth again:
 
 ``` r
-joint_shift_results$M1M3 %>%
-  kbl(caption = "Interactions Stochastic Intervention Results") %>%
-  kable_classic(full_width = F, html_font = "Cambria")
+sim_out$m1_effect
+#> [1] 1.603984
+sim_out$m4_effect
+#> [1] 10.41265
+sim_out$m14_effect
+#> [1] 12.41664
+sim_out$m14_intxn
+#> [1] 0.4
 ```
 
-<table class=" lightable-classic" style="font-family: Cambria; width: auto !important; margin-left: auto; margin-right: auto;">
-<caption>
-Interactions Stochastic Intervention Results
-</caption>
-<tbody>
-<tr>
-</tr>
-</tbody>
-</table>
+So comparing the results to the above table in the pooled section we can
+see all our estimates for the marginal shifts, dual shift, and
+difference between dual and sum of marginals have CIs that cover the
+truth.
 
 ------------------------------------------------------------------------
 

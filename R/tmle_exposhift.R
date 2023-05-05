@@ -70,8 +70,7 @@ tmle_exposhift <- function(data_internal,
     qn_unscaled = Qn_unscaled,
     hn = Hn,
     estimator = estimator,
-    fluc_mod_out = fitted_fluc_mod,
-    data
+    fluc_mod_out = fitted_fluc_mod
   )
 
   # create output object

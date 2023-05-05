@@ -16,7 +16,8 @@
 #'  \pkg{sl3}, to be used in fitting an ensemble model.
 #' @param av A \code{dataframe} of validation data specific to the fold
 #' @param at A \code{dataframe} of training data specific to the fold
-#' @param zn_estim Density estimates of the mediator under various shifts
+#' @param upper_bound Upper bound of exposure
+#' @param lower_bound Lower bound of exposure
 #'
 #' @importFrom stats glm as.formula predict
 #' @importFrom data.table as.data.table setnames copy set
@@ -55,7 +56,7 @@ est_Q_w_shifted_mediation <- function(exposure,
   data.table::set(av_a_upshifted,
     j = exposure,
     value = shift_additive(
-      a = subset(av, select = exposure),
+      a = av[[exposure]],
       delta = delta,
       lower_bound = lower_bound,
       upper_bound = upper_bound
@@ -65,7 +66,7 @@ est_Q_w_shifted_mediation <- function(exposure,
   data.table::set(at_a_upshifted,
     j = exposure,
     value = shift_additive(
-      a = subset(at, select = exposure),
+      a = at[[exposure]],
       delta = delta,
       lower_bound = lower_bound,
       upper_bound = upper_bound
@@ -75,7 +76,7 @@ est_Q_w_shifted_mediation <- function(exposure,
   # need a data set with the exposure stochastically shifted DOWNWARDS A-delta
   av_a_downshifted <- data.table::copy(av)
   data.table::set(av_a_downshifted, j = exposure, value = shift_additive(
-    a = subset(av, select = exposure),
+    a = av[[exposure]],
     delta = -delta,
     lower_bound = lower_bound,
     upper_bound = upper_bound
@@ -84,7 +85,7 @@ est_Q_w_shifted_mediation <- function(exposure,
   # need a data set with the exposure stochastically shifted UPWARDS A+2delta
   av_a_upupshifted <- data.table::copy(av)
   data.table::set(av_a_upupshifted, j = exposure, value = shift_additive(
-    a = subset(av, select = exposure),
+    a = av[[exposure]],
     delta = 2 * delta,
     lower_bound = lower_bound,
     upper_bound = upper_bound
@@ -97,49 +98,49 @@ est_Q_w_shifted_mediation <- function(exposure,
     metalearner = make_learner(sl3::Lrnr_nnls)
   )
 
-  at_task_noshift <- sl3::sl3_Task$new(
+  at_task_noshift <- suppressMessages(sl3::sl3_Task$new(
     data = at,
     covariates = covars,
     outcome = "y",
     outcome_type = "continuous"
-  )
+  ))
 
-  at_task_upshift <- sl3::sl3_Task$new(
+  at_task_upshift <- suppressMessages(sl3::sl3_Task$new(
     data = at_a_upshifted,
     covariates = covars,
     outcome = "y",
     outcome_type = "continuous"
-  )
+  ))
 
-  av_task_noshift <- sl3::sl3_Task$new(
+  av_task_noshift <- suppressMessages(sl3::sl3_Task$new(
     data = av,
     covariates = covars,
     outcome = "y",
     outcome_type = "continuous"
-  )
+  ))
 
-  av_task_a_upshift <- sl3::sl3_Task$new(
+  av_task_a_upshift <- suppressMessages(sl3::sl3_Task$new(
     data = av_a_upshifted,
     covariates = covars,
     outcome = "y",
     outcome_type = "continuous"
-  )
+  ))
 
-  av_task_a_upupshift <- sl3::sl3_Task$new(
+  av_task_a_upupshift <- suppressMessages(sl3::sl3_Task$new(
     data = av_a_upupshifted,
     covariates = covars,
     outcome = "y",
     outcome_type = "continuous"
-  )
+  ))
 
-  av_task_a_downshift <- sl3::sl3_Task$new(
+  av_task_a_downshift <- suppressMessages(sl3::sl3_Task$new(
     data = av_a_downshifted,
     covariates = covars,
     outcome = "y",
     outcome_type = "continuous"
-  )
+  ))
 
-  sl_fit <- sl$train(at_task_noshift)
+  sl_fit <- suppressMessages(sl$train(at_task_noshift))
 
   # fit new Super Learner to the natural (no shift) data and predict
   at_q_pred <- sl_fit$predict(at_task_noshift)

@@ -8,6 +8,7 @@ integrand_q_g(
   sample_a,
   row_data,
   covars,
+  w_names,
   q_model,
   g_model,
   exposure,
@@ -22,7 +23,9 @@ integrand_q_g(
 
 \item{row_data}{dataframe containing the current row data}
 
-\item{covars}{vector of covariate names}
+\item{covars}{vector of covariate names for outcome regression}
+
+\item{w_names}{Names of covariates}
 
 \item{q_model}{sl3 learner object for the q model}
 

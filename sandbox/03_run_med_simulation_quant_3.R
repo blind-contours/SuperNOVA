@@ -20,7 +20,8 @@ n_fold <- 10
 # Generate simulated data -----------------
 
 full_data <- simulate_mediation_data(n_obs = 100000,
-                                     delta = 1)
+                                     delta = 1,
+                                     breaks = 10)
 p0_data <- full_data$data
 
 nde_a1_quant <- full_data$nde_a1_quant

@@ -54,7 +54,7 @@ for (sample_size in n_obs) {
     z <- data_sim[, mediators]
     y <- data_sim[, outcome]
 
-    est_out_discrete_m <- fit_estimators_mediation(
+    est_out_discrete_e <- fit_estimators_mediation(
       w = w,
       a = a,
       z = z,
@@ -76,9 +76,9 @@ for (sample_size in n_obs) {
       use_multinomial = FALSE
     )
 
-    est_out_discrete_m$n_obs <- sample_size
+    est_out_discrete_e$n_obs <- sample_size
 
-    results[[this_iter]] <- est_out_discrete_m
+    results[[this_iter]] <- est_out_discrete_e
   }
   # concatenate iterations
   results_out <- bind_rows(results, .id = "sim_iter")

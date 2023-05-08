@@ -33,7 +33,10 @@ license](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://open
 The `SuperNOVA` R package provides users with the tools necessary to
 identify the most predictive variable sets for a given outcome and
 develop efficient estimators for the counterfactual mean of the outcome
-under stochastic interventions on those variables. These interventions
+under stochastic interventions on those variables as described fully in our 
+paper: https://arxiv.org/abs/2305.01849. 
+
+These interventions
 are shifts to the exposures that are dependent on naturally observed
 values (Dı́az and van der Laan 2012; Haneuse and Rotnitzky 2013).
 Building on the `txshift` package, which implements the TML estimator

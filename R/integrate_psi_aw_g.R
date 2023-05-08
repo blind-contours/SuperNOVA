@@ -31,7 +31,7 @@ integrate_psi_aw_g <- function(at, av, covars, w_names, pseudo_model, g_model, e
   lower <- min(av[exposure])
   upper <- max(av[exposure])
 
-  integrand_psi_g <- function(sample_a, row_data, covars, pseudo_model, g_model, exposure, delta, upper, density_type, av) {
+  integrand_psi_g <- function(sample_a, row_data, covars, w_names, pseudo_model, g_model, exposure, delta, upper, density_type, av) {
     row_data <- do.call("rbind", replicate(length(sample_a), row_data, simplify = FALSE))
     new_data_m <- new_data_g <- row_data
     new_data_m[exposure] <- ifelse(sample_a + delta >= upper, upper, sample_a + delta)

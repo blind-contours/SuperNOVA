@@ -19,7 +19,8 @@ n_fold <- 10
 # Generate simulated data -----------------
 
 full_data <- simulate_mediation_data(n_obs = 100000,
-                                     delta = 1)
+                                     delta = 1,
+                                     breaks = 10)
 p0_data <- full_data$data
 
 nde_a1 <- full_data$nde_a1
@@ -70,7 +71,9 @@ for (sample_size in n_obs) {
       mediator_quantized = FALSE,
       n_mc_sample = sample_size * 2,
       density_type = "sl",
-      integration_method = "MC"
+      integration_method = "MC",
+      use_multinomial = FALSE,
+      n_bins = 10
     )
 
     est_out_mc$integration_method <- "MC"

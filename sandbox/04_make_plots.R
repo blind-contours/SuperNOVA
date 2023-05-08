@@ -25,26 +25,9 @@ sim_results_5 <- readRDS(
   here("sandbox/data/SuperNOVA_mediation_quant_5.rds")
 )
 
-sim_results_6 <- readRDS(
-  here("sandbox/data/SuperNOVA_mediation_quant_6.rds")
-)
 
 
-sim_results_8 <- readRDS(
-  here("sandbox/data/SuperNOVA_mediation_quant_8.rds")
-)
-
-sim_results_9 <- readRDS(
-  here("sandbox/data/SuperNOVA_mediation_quant_9.rds")
-)
-
-
-sim_results_10 <- readRDS(
-  here("sandbox/data/SuperNOVA_mediation_quant_10.rds")
-)
-
-
-sim_results <- rbind(sim_results_1, sim_results_2, sim_results_3, sim_results_4, sim_results_5, sim_results_6, sim_results_8, sim_results_9, sim_results_10)
+sim_results <- rbind(sim_results_1, sim_results_2, sim_results_3, sim_results_4, sim_results_5)
 
 
 sim_statistics <- sim_results %>%
@@ -149,8 +132,8 @@ make_sim_statistics_plot <- function(sim_statistics_long, stats, title, legend_l
   # Create the plot with the "inferno" color scale
   ggplot(filtered_sim_stats,
          aes(x = n_obs, y = value, group = statistic, color = statistic)) +
-    # geom_line() +
-    stat_smooth(aes(y=value, x=n_obs), method = lm, formula = y ~ poly(x, 2), se = FALSE) +
+    geom_line() +
+    # stat_smooth(aes(y=value, x=n_obs), method = lm, formula = y ~ poly(x, 2), se = FALSE) +
 
     scale_colour_viridis_d(option = "G", labels = legend_labels) +
     ggtitle(title) +
@@ -229,7 +212,7 @@ pseudo_cov_plot <- make_sim_statistics_plot(sim_statistics_long, names(pseudo_co
 
 # Integration
 integration_cov_plot <- make_sim_statistics_plot(sim_statistics_long, names(int_coverage_stats),
-                                            "MSE for In(Direct) Effects", int_coverage_stats)
+                                            "Coverage for In(Direct) Effects using Integration", int_coverage_stats)
 
 # Save the plots to files
 # Save the plots to files

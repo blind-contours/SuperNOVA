@@ -879,9 +879,11 @@ SuperNOVA <- function(w,
               pseudo_model,
               g_model,
               exposure,
+              delta = 0,
               psi_aw = psi_aw_av,
               n_samples = n_mc_sample,
               density_type = density_type
+
             )
           }
 

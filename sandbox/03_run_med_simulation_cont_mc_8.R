@@ -67,7 +67,7 @@ for (sample_size in n_obs) {
       var_sets = "a-z",
       exposure_quantized = FALSE,
       mediator_quantized = FALSE,
-      n_mc_sample = sample_size * 2,
+      n_mc_sample = sample_size * 4,
       density_type = "sl",
       integration_method = "MC"
     )

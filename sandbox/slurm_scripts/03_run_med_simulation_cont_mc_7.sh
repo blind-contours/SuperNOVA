@@ -1,6 +1,6 @@
 #!/bin/bash
 # Job name:
-#SBATCH --job-name=mc_cont_mediation_supernova_7
+#SBATCH --job-name=7_mc_cont_mediation_supernova
 #
 # Partition:
 #SBATCH --partition=savio3

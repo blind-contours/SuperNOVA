@@ -69,7 +69,9 @@ for (sample_size in n_obs) {
       mediator_quantized = FALSE,
       n_mc_sample = sample_size * 4,
       density_type = "sl",
-      integration_method = "MC"
+      integration_method = "MC",
+      use_multinomial = FALSE,
+      n_bins = 10
     )
 
     est_out_mc$integration_method <- "MC"

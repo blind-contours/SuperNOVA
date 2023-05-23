@@ -118,8 +118,7 @@ is used in this regression to avoid density estimation (default: FALSE).}
 \item{density_type}{Type of density estimation to be used: "sl" for Super Learner
 (default) or "hal" for highly adaptive lasso.}
 
-\item{n_bins}{Number of bins for quantizing the outcome if highly adaptive lasso
-is used for the density type (default: 10).}
+\item{n_bins}{Number of bins for quantizing the exposure if mediation is detected (default: 10).}
 
 \item{max_degree}{Maximum degree of interactions used in the highly adaptive lasso
 density estimator if used (default: 1).}

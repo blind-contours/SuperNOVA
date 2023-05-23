@@ -54,7 +54,7 @@ for (sample_size in n_obs) {
     z <- data_sim[, mediators]
     y <- data_sim[, outcome]
 
-    est_out_discrete_e <- fit_estimators_mediation(
+    est_out_discrete <- fit_estimators_mediation(
       w = w,
       a = a,
       z = z,
@@ -67,7 +67,7 @@ for (sample_size in n_obs) {
       cv_folds = n_fold,
       num_cores = n_core,
       var_sets = "a-z",
-      exposure_quantized = TRUE,
+      quantize_exposure = TRUE,
       mediator_quantized = FALSE,
       n_mc_sample = 2*sample_size,
       density_type = "sl",

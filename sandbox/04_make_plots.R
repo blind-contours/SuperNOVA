@@ -26,8 +26,7 @@ sim_results_5 <- readRDS(
 )
 
 
-
-sim_results <- rbind(sim_results_1, sim_results_2, sim_results_3, sim_results_4, sim_results_5)
+sim_results <- rbind(sim_results_1, sim_results_2, sim_results_3, sim_results_4)
 
 
 sim_statistics <- sim_results %>%
@@ -58,7 +57,9 @@ sim_statistics <- sim_results %>%
     ate_est_MSE = mean_ate_bias^2 + ate_est_sd^2,
     ate_CI_coverage = mean(ate_cov)
     #
-  ) %>%
+  )
+
+sim_statistics <- sim_statistics %>%
   mutate(
     abs_nde_pseudo_bias = abs(mean_nde_bias_pseudo),
     abs_nde_int_bias = abs(mean_nde_bias_int),
@@ -78,8 +79,7 @@ sim_statistics <- sim_results %>%
     nie_int_n_MSE = n_obs * nie_est_MSE_int,
     ate_n_MSE = n_obs * ate_est_MSE
 
-  ) %>%
-  ungroup()
+  )
 
 
 sim_statistics_long <- sim_statistics %>%
@@ -135,7 +135,7 @@ make_sim_statistics_plot <- function(sim_statistics_long, stats, title, legend_l
     geom_line() +
     # stat_smooth(aes(y=value, x=n_obs), method = lm, formula = y ~ poly(x, 2), se = FALSE) +
 
-    scale_colour_viridis_d(option = "G", labels = legend_labels) +
+    scale_colour_viridis_d(option = "F", labels = legend_labels) +
     ggtitle(title) +
     theme_bw() +
     theme(plot.title = element_text(hjust = 0.5),
@@ -174,8 +174,8 @@ int_mse_stats <- c(nde_int_n_MSE = "NDE MSE using Integration",
                    nie_int_n_MSE = "NIE MSE using Integration",
                    ate_n_mSE = "ATE n * MSE")
 
-pseudo_coverage_stats <- c(nde_pseudo_CI_coverage = "NDE Coverage using Integration",
-                    nie_pseudo_CI_coverage = "NIE Coverage using Integration",
+pseudo_coverage_stats <- c(nde_pseudo_CI_coverage = "NDE Coverage using Pseudo Regression",
+                    nie_pseudo_CI_coverage = "NIE Coverage using Pseudo Regression",
                     ate_CI_coverage = "ATE Coverage")
 
 int_coverage_stats <- c(nde_int_CI_coverage = "NDE Coverage using Integration",
@@ -196,12 +196,12 @@ integration_bias_plot <- make_sim_statistics_plot(sim_statistics_long, names(int
 # Sqrt(N) * bias
 
 # Pseudo-Regression
-pseudo_regression_sqrt_n_bias <- make_sim_statistics_plot(sim_statistics_long, names(pseudo_sqrt_n_bias_stats),
-                                                  "Sqrt(n) * Bias Pseudo Regression Results for In(Direct) Effects", pseudo_sqrt_n_bias_stats)
+pseudo_regression_sqrt_n_bias <- make_sim_statistics_plot(sim_statistics_long, stats = names(pseudo_sqrt_n_bias_stats),
+                                                  title = "Sqrt(n) * Bias Pseudo Regression Results for In(Direct) Effects", legend_labels = pseudo_sqrt_n_bias_stats)
 
 # Integration
-int_regression_sqrt_n_bias <- make_sim_statistics_plot(sim_statistics_long, names(int_sqrt_n_bias_stats),
-                                            "Sqrt(n) * Bias Integration Results for In(Direct) Effects", int_sqrt_n_bias_stats)
+int_regression_sqrt_n_bias <- make_sim_statistics_plot(sim_statistics_long, stats = names(int_sqrt_n_bias_stats),
+                                                       title = "Sqrt(n) * Bias Integration Results for In(Direct) Effects", legend_labels = int_sqrt_n_bias_stats)
 
 
 # Coverage

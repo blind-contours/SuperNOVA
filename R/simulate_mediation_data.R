@@ -11,7 +11,7 @@
 
 simulate_mediation_data <- function(n_obs = 100000,
                                     delta = 1,
-                                    breaks = breaks)  {
+                                    n_bins = 10)  {
   # simulate some baseline covariates
   w_1 <- rnorm(n_obs, mean = 20, 2)
   w_2 <- rbinom(n_obs, 1, 0.5)
@@ -20,7 +20,8 @@ simulate_mediation_data <- function(n_obs = 100000,
   w_5 <- rpois(n_obs, 1.2)
 
   a_1 <- rnorm(n_obs, 1 + 0.5 * w_1, 1)
-  a_1_quant <- cut(a_1, breaks, labels = FALSE, include.lowest = TRUE)
+  a_1_breaks <- quantile(a_1, probs = seq(0, 1, length.out = n_bins + 1), na.rm = TRUE)
+  a_1_quant <- as.numeric(cut(a_1, breaks = a_1_breaks, labels = FALSE, include.lowest = TRUE))
 
   a_1_shift <- ifelse(a_1 + delta <= max(a_1), a_1 + delta, max(a_1))
   a_1_quant_shift <- ifelse(a_1_quant + delta <= max(a_1_quant), a_1_quant + delta, max(a_1_quant))

@@ -6,20 +6,18 @@ library(SuperNOVA)
 
 nhanes_data <- readRDS(here("sandbox/NHANES/output/NHANES_data.RDS"))
 
-nhanes_data_measles <- nhanes_data[!is.na(nhanes_data$measles), ]
-nhanes_data_measles_pfas <- nhanes_data_measles[!is.na(nhanes_data_measles$pfas_pfdoa_ng_ml), ]
+nhanes_data_asthma <- nhanes_data[!is.na(nhanes_data$asthma), ]
+nhanes_data_asthma_telomere <- nhanes_data_asthma[!is.na(nhanes_data_asthma$mean_telomere), ]
+nhanes_data_asthma_telomere_cesium <- nhanes_data_asthma_telomere[!is.na(nhanes_data_asthma_telomere$cesium), ]
 
-nhanes_data_measles_na_thresh <- nhanes_data_measles[, colSums(is.na(nhanes_data_measles)) < nrow(nhanes_data_measles)]
+nhanes_data_asthma_telomere_cesium <- nhanes_data_asthma_telomere_cesium[, colSums(is.na(nhanes_data_asthma_telomere_cesium)) < nrow(nhanes_data_asthma_telomere_cesium)]
 
-nhanes_data_measles_na_thresh <- as.data.frame(unclass(nhanes_data_measles_na_thresh), stringsAsFactors = TRUE)
+nhanes_data_asthma_telomere_cesium <- as.data.frame(unclass(nhanes_data_asthma_telomere_cesium), stringsAsFactors = TRUE)
 
-pfas <- c("pfas_pfhxs_ng_ml", "pfas_me_pfosa_acoh_ng_ml", "pfas_pfdea_ng_ml", "pfas_pfna_ng_ml", "pfas_pfua_ng_ml", "pfas_pfdoa_ng_ml")
-pfas_deltas <- list("pfas_pfhxs_ng_ml" = 1, "pfas_me_pfosa_acoh_ng_ml" = 1, "pfas_pfdea_ng_ml" = 1, "pfas_pfna_ng_ml" = 1, "pfas_pfua_ng_ml" = 1, "pfas_pfdoa_ng_ml" = 1)
+metals <- c("barium", "cadmium", "cobalt", "cesium", "molybdenum", "lead", "antimony", "thallium","tungsten" )
+metal_deltas <- list("barium" = 1, "cadmium" = 1, "cobalt" = 1, "cesium" = 1, "molybdenum" = 1, "lead" = 1, "antimony" = 1, "thallium" = 1, "tungsten" = 1 )
 
-nhanes_data_measles_na_thresh <- nhanes_data_measles_na_thresh[complete.cases(nhanes_data_measles_na_thresh[, c("pfas_pfhxs_ng_ml")]), ]
-
-
-outcome <- "measles"
+outcome <- "asthma"
 
 covariates <- c(
   "age_screen_years", "gender", "race", "educ_level",
@@ -30,19 +28,21 @@ covariates <- c(
   "two_year_exam_weight", "two_year_interview_weight"
 )
 
-w <- nhanes_data_measles_na_thresh[, covariates]
-a <- nhanes_data_measles_na_thresh[, pfas]
-y <- nhanes_data_measles_na_thresh$measles
-
+w <- nhanes_data_asthma_telomere_cesium[, covariates]
+a <- nhanes_data_asthma_telomere_cesium[, metals]
+z <- nhanes_data_asthma_telomere_cesium[, "mean_telomere"]
+y <- nhanes_data_asthma_telomere_cesium$asthma
+y <- ifelse(y ==1, 1, 0)
 
 nhanes_results <- SuperNOVA(
   w = w,
   a = a,
+  z = z,
   y = y,
-  delta = pfas_deltas,
+  delta = metal_deltas,
   n_folds = 2,
   num_cores = 6,
-  family = "continuous",
+  outcome_type = "binary",
   quantile_thresh = 0,
   seed = 294580
 )

@@ -40,6 +40,7 @@ fit_basis_estimators <- function(at,
                                  w_names,
                                  outcome,
                                  outcome_type,
+                                 mediator_type,
                                  quantile_thresh,
                                  zeta_learner,
                                  fold,
@@ -56,7 +57,7 @@ fit_basis_estimators <- function(at,
         data = at,
         covariates = c(a_names, w_names),
         outcome = mediator,
-        outcome_type = outcome_type
+        outcome_type = mediator_type
       )
 
       discrete_sl_metalrn <- sl3::Lrnr_cv_selector$new(sl3::loss_squared_error)

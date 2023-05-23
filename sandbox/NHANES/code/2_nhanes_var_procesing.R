@@ -341,7 +341,8 @@ full_data <-
          diastolic_2                      = BPXDI2,
          measles                          = LBXME,
          rubella                          = LBDRUIU,
-         varicella                        = LBXVAR
+         varicella                        = LBXVAR,
+         asthma                           = MCQ010
 
 
          ) %>%

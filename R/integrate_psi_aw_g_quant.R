@@ -35,11 +35,11 @@ integrate_psi_aw_g_quant <- function(at, av, covars, w_names, pseudo_model, g_mo
     task_m <- sl3::sl3_Task$new(
       data = new_data_m,
       covariates = covars,
-      outcome = "pseudo_outcome_scaled"
+      outcome = "pseudo_outcome"
     )
 
-    m_preds <- pseudo_model$predict(task_m)
-    m_val <- scale_to_original(m_preds, min_orig = min(av$pseudo_outcome), max_orig = max(av$pseudo_outcome))
+    m_val <- pseudo_model$predict(task_m)
+    # m_val <- scale_to_original(m_preds, min_orig = min(av$pseudo_outcome), max_orig = max(av$pseudo_outcome))
 
     if (density_type == "sl") {
       task_g <- sl3::sl3_Task$new(

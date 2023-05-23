@@ -37,7 +37,7 @@ integrate_q_g <- function(av, at, covars, w_names, q_model, g_model, exposure, g
     results <- sapply(1:nrow(av), function(i) {
       row_data <- av[i, ]
 
-      mc_integrands <- integrand_q_g(sample_a, row_data, covars, w_names, q_model, g_model, exposure, g_delta, m_delta, upper_bound, density_type)
+      mc_integrands <- integrand_q_g(sample_a = sample_a, row_data = row_data, covars = covars, w_names = w_names, q_model = q_model, g_model = g_model, exposure = exposure, g_delta = g_delta, m_delta = m_delta, upper_bound = upper_bound, density_type = density_type)
 
       integral_result <- (max(sample_a) - min(sample_a)) * mean(mc_integrands)
       return(integral_result)
@@ -47,7 +47,7 @@ integrate_q_g <- function(av, at, covars, w_names, q_model, g_model, exposure, g
       row_data <- av[i, ]
 
       integral_result <- stats::integrate(
-        function(sample_a) integrand_q_g(sample_a, row_data, covars, q_model, g_model, exposure, g_delta, m_delta, upper_bound, density_type),
+        function(sample_a) integrand_q_g(sample_a = sample_a, row_data = row_data, covars = covars, w_names = w_names, q_model = q_model, g_model = g_model, exposure = exposure, g_delta = g_delta, m_delta = m_delta, upper_bound = upper_bound, density_type = density_type),
         lower = lower_bound,
         upper = upper_bound,
         rel.tol = 0.001,

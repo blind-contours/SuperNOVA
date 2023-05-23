@@ -1,54 +1,3 @@
-@article{Bobb2014,
-abstract = {Because humans are invariably exposed to complex chemical mixtures, estimating the health effects of multi-pollutant exposures is of critical concern in environmental epidemiology, and to regulatory agencies such as the U.S. Environmental Protection Agency. However, most health effects studies focus on single agents or consider simple two-way interaction models, in part because we lack the statistical methodology to more realistically capture the complexity of mixed exposures. We introduce Bayesian kernel machine regression (BKMR) as a new approach to study mixtures, in which the health outcome is regressed on a flexible function of the mixture (e.g. air pollution or toxic waste) components that is specified using a kernel function. In high-dimensional settings, a novel hierarchical variable selection approach is incorporated to identify important mixture components and account for the correlated structure of the mixture. Simulation studies demonstrate the success of BKMR in estimating the exposure-response function and in identifying the individual components of the mixture responsible for health effects. We demonstrate the features of the method through epidemiology and toxicology applications.},
-author = {Bobb, Jennifer F. and Valeri, Linda and {Claus Henn}, Birgit and Christiani, David C. and Wright, Robert O. and Mazumdar, Maitreyi and Godleski, John J. and Coull, Brent A.},
-doi = {10.1093/biostatistics/kxu058},
-file = {:Users/davidmccoy/Library/Application Support/Mendeley Desktop/Downloaded/Bobb et al. - 2014 - Bayesian kernel machine regression for estimating the health effects of multi-pollutant mixtures.pdf:pdf},
-issn = {14684357},
-journal = {Biostatistics},
-keywords = {Air pollution,Bayesian variable selection,Environmental health,Gaussian process regression,Metal mixtures.},
-number = {3},
-pages = {493--508},
-pmid = {25532525},
-title = {{Bayesian kernel machine regression for estimating the health effects of multi-pollutant mixtures}},
-volume = {16},
-year = {2014}
-}
-@article{Keil2019,
-abstract = {Background: Exposure mixtures frequently occur in data across many domains, particularly in the fields of environmental and nutritional epidemiology. Various strategies have arisen to answer questions about exposure mixtures, including methods such as weighted quantile sum (WQS) regression that estimate a joint effect of the mixture components. Objectives: We demonstrate a new approach to estimating the joint effects of a mixture: quantile g-computation. This approach combines the inferential simplicity of WQS regression with the flexibility of g-computation, a method of causal effect estimation. We use simulations to examine whether quantile g-computation and WQS regression can accurately and precisely estimate effects of mixtures in a variety of common scenarios. Methods: We examine the bias, confidence interval coverage, and bias-variance tradeoff of quantile g-computation and WQS regression, and how these quantities are impacted by the presence of non-causal exposures, exposure correlation, unmeasured confounding, and non-linearity of exposure effects. Results: Quantile g-computation, unlike WQS regression allows inference on mixture effects that is unbiased with appropriate confidence interval coverage at sample sizes typically encountered in epidemiologic studies, and when the assumptions of WQS regression are not met. Further, WQS regression can magnify bias from unmeasured confounding that might occur if important components of the mixture are omitted from analysis. Discussion: Unlike inferential approaches that examine effects of individual exposures, while holding other exposures constant, methods like quantile g-computation that can estimate the effect of a mixture are essential for understanding effects of potential public health actions that act on exposure sources. Our approach may serve to help bridge gaps between epidemiologic analysis and interventions such as regulations on industrial emissions or mining processes, dietary changes, or consumer behavioral changes that act on multiple exposures simultaneously.},
-archivePrefix = {arXiv},
-arxivId = {1902.04200},
-author = {Keil, Alexander P. and Buckley, Jessie P. and O'Brien, Katie M. and Ferguson, Kelly K. and Zhao, Shanshan and White, Alexandra J.},
-doi = {10.1097/01.ee9.0000606120.58494.9d},
-eprint = {1902.04200},
-file = {:Users/davidmccoy/Library/Application Support/Mendeley Desktop/Downloaded/Keil et al. - 2019 - A quantile-based g-computation approach to addressing the effects of exposure mixtures.pdf:pdf},
-issn = {23318422},
-journal = {arXiv},
-number = {April},
-pages = {1--10},
-title = {{A quantile-based g-computation approach to addressing the effects of exposure mixtures}},
-volume = {128},
-year = {2019}
-}
-
-@article{Athey2016,
-abstract = {In this paper we propose methods for estimating heterogeneity in causal effects in experimental and observational studies and for conducting hypothesis tests about the magnitude of differences in treatment effects across subsets of the population. We provide a data-driven approach to partition the data into subpopulations that differ in the magnitude of their treatment effects. The approach enables the construction of valid confidence intervals for treatment effects, even with many covariates relative to the sample size, and without "sparsity" assumptions. We propose an "honest" approach to estimation, whereby one sample is used to construct the partition and another to estimate treatment effects for each subpopulation. Our approach builds on regression tree methods, modified to optimize for goodness of fit in treatment effects and to account for honest estimation. Our model selection criterion anticipates that bias will be eliminated by honest estimation and also accounts for the effect of making additional splits on the variance of treatment effect estimates within each subpopulation. We address the challenge that the "ground truth" for a causal effect is not observed for any individual unit, so that standard approaches to cross-validation must be modified. Through a simulation study, we show that for our preferred method honest estimation results in nominal coverage for 90% confidence intervals, whereas coverage ranges between 74% and 84% for nonhonest approaches. Honest estimation requires estimating the model with a smaller sample size; the cost in terms of mean squared error of treatment effects for our preferred method ranges between 7-22%.},
-archivePrefix = {arXiv},
-arxivId = {1504.01132},
-author = {Athey, Susan and Imbens, Guido},
-doi = {10.1073/pnas.1510489113},
-eprint = {1504.01132},
-file = {:Users/davidmccoy/Downloads/pnas.1510489113.pdf:pdf},
-issn = {10916490},
-journal = {Proceedings of the National Academy of Sciences of the United States of America},
-keywords = {Causal inference,Cross-validation,Heterogeneous treatment effects,Potential outcomes,Supervised machine learning},
-number = {27},
-pages = {7353--7360},
-pmid = {27382149},
-title = {{Recursive partitioning for heterogeneous causal effects}},
-volume = {113},
-year = {2016}
-}
-
 @article{Hubbard2016,
 abstract = {Consider one observes n i.i.d. copies of a random variable with a probability distribution that is known to be an element of a particular statistical model. In order to define our statistical target we partition the sample in V equal size sub-samples, and use this partitioning to define V splits in an estimation sample (one of the V subsamples) and corresponding complementary parameter-generating sample. For each of the V parameter-generating samples, we apply an algorithm that maps the sample to a statistical target parameter. We define our sample-split data adaptive statistical target parameter as the average of these V-sample specific target parameters. We present an estimator (and corresponding central limit theorem) of this type of data adaptive target parameter. This general methodology for generating data adaptive target parameters is demonstrated with a number of practical examples that highlight new opportunities for statistical learning from data. This new framework provides a rigorous statistical methodology for both exploratory and confirmatory analysis within the same data. Given that more research is becoming "data-driven", the theory developed within this paper provides a new impetus for a greater involvement of statistical inference into problems that are being increasingly addressed by clever, yet ad hoc pattern finding methods. To suggest such potential, and to verify the predictions of the theory, extensive simulation studies, along with a data analysis based on adaptively determined intervention rules are shown and give insight into how to structure such an approach. The results show that the data adaptive target parameter approach provides a general framework and resulting methodology for data-driven science.},
 author = {Hubbard, Alan E. and Kherad-Pajouh, Sara and {Van Der Laan}, Mark J.},
@@ -236,13 +185,12 @@ year = {2010}
   doi = {10.5281/zenodo.3558313}
 }
 
-@manual{hejazi2020haldensify,
-  title = {{haldensify}: Conditional density estimation with the highly
-    adaptive lasso},
-  author = {Hejazi, Nima S and Benkeser, David C and {van der Laan}, Mark J},
-  year  = {2020},
-  howpublished = {\url{https://CRAN.R-project.org/package=haldensify}},
-  note = {{R} package version 0.0.5},
-  url = {https://doi.org/10.5281/zenodo.3698329},
-  doi = {10.5281/zenodo.3698329}
+
+@misc{mccoy2023semiparametric,
+      title={Semi-Parametric Identification and Estimation of Interaction and Effect Modification in Mixed Exposures using Stochastic Interventions},
+      author={David B. McCoy and Alan E. Hubbard and Alejandro Schuler and Mark J. van der Laan},
+      year={2023},
+      eprint={2305.01849},
+      archivePrefix={arXiv},
+      primaryClass={stat.ME}
 }

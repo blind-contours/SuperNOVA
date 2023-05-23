@@ -70,7 +70,9 @@ for (sample_size in n_obs) {
       mediator_quantized = FALSE,
       n_mc_sample = n_mc_sample,
       density_type = "sl",
-      integration_method = "AQ"
+      integration_method = "AQ",
+      n_bins = 10,
+      use_multinomial = FALSE
     )
 
     est_out_aq$integration_method <- "AQ"

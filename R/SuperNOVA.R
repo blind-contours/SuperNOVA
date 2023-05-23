@@ -60,8 +60,7 @@
 #' is used in this regression to avoid density estimation (default: FALSE).
 #' @param density_type Type of density estimation to be used: "sl" for Super Learner
 #' (default) or "hal" for highly adaptive lasso.
-#' @param n_bins Number of bins for quantizing the outcome if highly adaptive lasso
-#' is used for the density type (default: 10).
+#' @param n_bins Number of bins for quantizing the exposure if mediation is detected (default: 10).
 #' @param max_degree Maximum degree of interactions used in the highly adaptive lasso
 #' density estimator if used (default: 1).
 #' @param integration_method Type of integration to be used in the continuous exposure
@@ -100,7 +99,8 @@ SuperNOVA <- function(w,
                       zeta_learner = NULL,
                       n_folds = 2,
                       outcome_type = "continuous",
-                      quantile_thresh = 0.5,
+                      mediator_type = "continuous",
+                      quantile_thresh = 0,
                       verbose = FALSE,
                       parallel = TRUE,
                       parallel_type = "multi_session",
@@ -109,11 +109,11 @@ SuperNOVA <- function(w,
                       hn_trunc_thresh = 10,
                       adaptive_delta = FALSE,
                       n_mc_sample = 1000,
-                      exposure_quantized = FALSE,
+                      exposure_quantized = TRUE,
                       mediator_quantized = FALSE,
                       density_type = "sl",
                       n_bins = 10,
-                      max_degree = 1,
+                      max_degree = 2,
                       integration_method = "MC",
                       use_multinomial = FALSE) {
   # check arguments and set up some objects for programmatic convenience
@@ -233,7 +233,6 @@ SuperNOVA <- function(w,
         at <- data_internal[data_internal$folds != fold_k, ]
         av <- data_internal[data_internal$folds == fold_k, ]
 
-
         basis_results <- fit_basis_estimators(
           at = at,
           a_names = a_names,
@@ -241,6 +240,7 @@ SuperNOVA <- function(w,
           w_names = w_names,
           outcome = "y",
           outcome_type = outcome_type,
+          mediator_type = mediator_type,
           quantile_thresh = quantile_thresh,
           zeta_learner = zeta_learner,
           fold = fold_k,
@@ -271,8 +271,6 @@ SuperNOVA <- function(w,
 
   fold_SuperNOVA_results <- furrr::future_map(
     unique(data_internal$folds), function(fold_k) {
-      at <- data_internal[data_internal$folds != fold_k, ]
-      av <- data_internal[data_internal$folds == fold_k, ]
 
       basis_variables <- fold_basis_results[[fold_k]]
 
@@ -294,6 +292,10 @@ SuperNOVA <- function(w,
         if (length(matches) == 1 & any(grepl(paste(c(a_names),
           collapse = "|"
         ), matches))) {
+
+          at <- data_internal[data_internal$folds != fold_k, ]
+          av <- data_internal[data_internal$folds == fold_k, ]
+
           exposure <- target
 
           delta <- deltas[[exposure]]
@@ -370,6 +372,10 @@ SuperNOVA <- function(w,
           # Check if basis is one exposure and baseline covariates ---------
         } else if (sum(stringr::str_count(matches, paste(c(a_names), collapse = "|"))) == 1 &
           sum(stringr::str_count(matches, paste(c(w_names), collapse = "|"))) >= 1) {
+
+          at <- data_internal[data_internal$folds != fold_k, ]
+          av <- data_internal[data_internal$folds == fold_k, ]
+
           exposure <- stringr::str_extract(
             matches,
             paste(c(a_names), collapse = "|")
@@ -475,6 +481,11 @@ SuperNOVA <- function(w,
           ),
           matches
         ))) {
+
+          at <- data_internal[data_internal$folds != fold_k, ]
+          av <- data_internal[data_internal$folds == fold_k, ]
+
+
           exposures <- as.list(matches)
           delta <- deltas[unlist(exposures)]
           exposures[[3]] <- matches
@@ -559,6 +570,10 @@ SuperNOVA <- function(w,
           )
         } else if (sum(stringr::str_count(matches, paste(c(a_names), collapse = "|"))) == 1 &
           sum(stringr::str_count(matches, paste(c(z_names), collapse = "|"))) == 1) {
+
+          at <- data_internal[data_internal$folds != fold_k, ]
+          av <- data_internal[data_internal$folds == fold_k, ]
+
           ## get the exposure and mediator variables
           exposure <- stringr::str_extract(
             matches,
@@ -571,6 +586,22 @@ SuperNOVA <- function(w,
           mediator <- mediator[!is.na(mediator)]
 
           ## get delta from the list
+
+
+          # num_unique <- length(unique(data_internal[[exposure]]))
+          # num_total <- length(data_internal[[exposure]])
+          # exposure_numeric <- is.numeric(data_internal[[exposure]]) && !is.factor(data_internal[[exposure]]) && num_unique / num_total > 0.5
+
+          # if (exposure_numeric == TRUE & exposure_quantized == FALSE) {
+          #   data_internal_c <- data_internal
+          #   quantile_breaks <- quantile(data_internal_c[[exposure]], probs = seq(0, 1, length.out = n_bins + 1), na.rm = TRUE)
+          #   data_internal_c[[exposure]] <- as.numeric(cut(data_internal_c[[exposure]], breaks = quantile_breaks, labels = FALSE, include.lowest = TRUE))
+          #
+          #   at <- data_internal_c[data_internal_c$folds != fold_k, ]
+          #   av <- data_internal_c[data_internal_c$folds == fold_k, ]
+          # }else{
+
+          # }
 
           delta <- deltas[[exposure]]
 
@@ -662,7 +693,7 @@ SuperNOVA <- function(w,
             mediator = mediator,
             delta = delta_updated,
             mu_learner = mu_learner,
-            covars = c(w_names, exposure, mediator),
+            covars = c(w_names, a_names, mediator),
             av = av,
             at = at,
             upper_bound = upper_bound,
@@ -688,12 +719,13 @@ SuperNOVA <- function(w,
           ## calculate dy part of EIF
           d_y <- g_shift_e_ratio_av * (av$y - qn_estim$av_predictions$noshift)
 
-          if (exposure_quantized == TRUE) {
-            if (use_multinomial == TRUE) {
+
+          ## calculate dzw part of EIF
+          if (exposure_quantized == TRUE & use_multinomial == TRUE) {
               d_z_w <- integrate_q_g_quant(
                 av = av,
                 at = at,
-                covars = c(w_names, exposure, mediator),
+                covars = c(w_names, a_names, mediator),
                 w_names = w_names,
                 q_model = q_model,
                 g_model = g_model,
@@ -704,11 +736,13 @@ SuperNOVA <- function(w,
                 density_type =  density_type,
                 upper_bound = upper_bound
               )
-            }else{
+          }
+
+          if (exposure_quantized == TRUE & use_multinomial == FALSE) {
             d_z_w <- integrate_q_g_quant(
               av = av,
               at = at,
-              covars = c(w_names, exposure, mediator),
+              covars = c(w_names, a_names, mediator),
               w_names = w_names,
               q_model = q_model,
               g_model = g_model,
@@ -720,11 +754,11 @@ SuperNOVA <- function(w,
               upper_bound = upper_bound
             )
             }
-          } else {
+          if (exposure_quantized == FALSE) {
             d_z_w <- integrate_q_g(
               av = av,
               at = at,
-              covars = c(w_names, exposure, mediator),
+              covars = c(w_names, a_names, mediator),
               w_names = w_names,
               q_model = q_model,
               g_model = g_model,
@@ -739,32 +773,13 @@ SuperNOVA <- function(w,
             )
           }
 
-          if (exposure_quantized == TRUE) {
-            if (use_multinomial == TRUE) {
+          ## calculate da part of EIF using double integration
+
+          if (exposure_quantized == TRUE & use_multinomial == TRUE) {
               d_a_int <- integrate_psi_g_discrete(
                 av = av,
                 at = at,
-                covars = c(w_names, exposure, mediator),
-                w_names = w_names,
-                q_model = q_model,
-                r_model = r_model,
-                g_model = g_model,
-                exposure = exposure,
-                mediator = mediator,
-                delta = delta_updated,
-                n_samples = n_mc_sample,
-                n_bins = n_bins,
-                method = integration_method,
-                mediator_quantized = mediator_quantized,
-                density_type = density_type,
-                upper_bound = upper_bound,
-                use_multinomial = use_multinomial
-              )
-            }else{
-              d_a_int <- integrate_psi_g_discrete(
-                av = av,
-                at = at,
-                covars = c(w_names, exposure, mediator),
+                covars = c(w_names, a_names, mediator),
                 w_names = w_names,
                 q_model = q_model,
                 r_model = r_model,
@@ -782,11 +797,33 @@ SuperNOVA <- function(w,
               )
             }
 
-          } else {
+          if (exposure_quantized == TRUE & use_multinomial == FALSE) {
+              d_a_int <- integrate_psi_g_discrete(
+                av = av,
+                at = at,
+                covars = c(w_names, a_names, mediator),
+                w_names = w_names,
+                q_model = q_model,
+                r_model = r_model,
+                g_model = g_model,
+                exposure = exposure,
+                mediator = mediator,
+                delta = delta_updated,
+                n_samples = n_mc_sample,
+                n_bins = n_bins,
+                method = integration_method,
+                mediator_quantized = mediator_quantized,
+                density_type = density_type,
+                upper_bound = upper_bound,
+                use_multinomial = use_multinomial
+              )
+            }
+
+          if (exposure_quantized == FALSE){
             d_a_int <- integrate_psi_g_cont(
               av = av,
               at = at,
-              covars = c(w_names, exposure, mediator),
+              covars = c(w_names, a_names, mediator),
               w_names = w_names,
               q_model = q_model,
               r_model = r_model,
@@ -813,23 +850,23 @@ SuperNOVA <- function(w,
           pseudo_regression_av <- g_e_shift_ratio_av * qn_estim$av_predictions$upshift
 
 
-          at$pseudo_outcome_scaled <- scale_to_unit(pseudo_regression_at)
-          av$pseudo_outcome_scaled <- scale_to_unit(pseudo_regression_av)
+          # at$pseudo_outcome_scaled <- scale_to_unit(pseudo_regression_at)
+          # av$pseudo_outcome_scaled <- scale_to_unit(pseudo_regression_av)
 
           at$pseudo_outcome <- pseudo_regression_at
           av$pseudo_outcome <- pseudo_regression_av
 
           sl_pseudo_task_at <- sl3::sl3_Task$new(
             data = at,
-            outcome = "pseudo_outcome_scaled",
-            covariates = c(exposure, w_names),
+            outcome = "pseudo_outcome",
+            covariates = c(a_names, w_names),
             outcome_type = "continuous"
           )
 
           sl_pseudo_task_av <- sl3::sl3_Task$new(
             data = av,
-            outcome = "pseudo_outcome_scaled",
-            covariates = c(exposure, w_names),
+            outcome = "pseudo_outcome",
+            covariates = c(a_names, w_names),
             outcome_type = "continuous"
           )
 
@@ -842,14 +879,13 @@ SuperNOVA <- function(w,
           psi_aw_av <- pseudo_model$predict(sl_pseudo_task_av)
           psi_aw_at <- pseudo_model$predict(sl_pseudo_task_at)
 
-          psi_aw_av <- scale_to_original(psi_aw_av, max_orig = max(av$pseudo_outcome), min_orig = min(av$pseudo_outcome))
+          # psi_aw_av <- scale_to_original(psi_aw_av, max_orig = max(av$pseudo_outcome), min_orig = min(av$pseudo_outcome))
 
-          if (exposure_quantized == TRUE) {
-            if (use_multinomial == TRUE) {
+          if (exposure_quantized == TRUE & use_multinomial == TRUE) {
             d_a_pseudo <- integrate_psi_aw_g_quant(
               at = at,
               av = av,
-              covars = c(exposure, w_names),
+              covars = c(a_names, w_names),
               w_names,
               pseudo_model,
               g_model,
@@ -858,11 +894,13 @@ SuperNOVA <- function(w,
               n_bins = n_bins,
               use_multinomial = TRUE,
               density_type = density_type)
-            }else{
+            }
+
+          if (exposure_quantized == TRUE & use_multinomial == FALSE) {
               d_a_pseudo <- integrate_psi_aw_g_quant(
                 at = at,
                 av = av,
-                covars = c(exposure, w_names),
+                covars = c(a_names, w_names),
                 w_names,
                 pseudo_model,
                 g_model,
@@ -870,11 +908,14 @@ SuperNOVA <- function(w,
                 psi_aw = psi_aw_av,
                 use_multinomial = FALSE,
                 density_type = density_type)
-          }}else {
+          }
+
+          if (exposure_quantized == FALSE) {
+
             d_a_pseudo <- integrate_psi_aw_g(
               at = at,
               av = av,
-              covars = c(exposure, w_names),
+              covars = c(a_names, w_names),
               w_names = w_names,
               pseudo_model,
               g_model,
@@ -882,7 +923,8 @@ SuperNOVA <- function(w,
               delta = 0,
               psi_aw = psi_aw_av,
               n_samples = n_mc_sample,
-              density_type = density_type
+              density_type = density_type,
+              integration_method = integration_method
 
             )
           }
@@ -953,11 +995,12 @@ SuperNOVA <- function(w,
           p_value_nde_pseudo <- calc_p_value(psi_nde_pseudo, se_est_nde_pseudo)
           p_value_nde_double_int <- calc_p_value(psi_nde_double_int, se_est_nde_double_int)
 
+
           ind_qn_estim <- indiv_stoch_shift_est_Q(
             exposure = exposure,
             delta = delta_updated,
             mu_learner = mu_learner,
-            covars = c(w_names, exposure),
+            covars = c(w_names, a_names, z_names[z_names != mediator]),
             av = av,
             at = at,
             upper_bound = upper_bound,

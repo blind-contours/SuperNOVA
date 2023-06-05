@@ -115,7 +115,8 @@ SuperNOVA <- function(w,
                       n_bins = 10,
                       max_degree = 2,
                       integration_method = "MC",
-                      use_multinomial = FALSE) {
+                      use_multinomial = FALSE,
+                      discover_only = FALSE) {
   # check arguments and set up some objects for programmatic convenience
   call <- match.call(expand.dots = TRUE)
   estimator <- match.arg(estimator)
@@ -261,6 +262,10 @@ SuperNOVA <- function(w,
   } else {
     fold_basis_results <- rep(list(var_sets), n_folds)
     basis_prop_in_fold <- calc_basis_freq(fold_basis_results, n_folds)
+  }
+
+  if (discover_only == TRUE) {
+    return(basis_prop_in_fold)
   }
 
   fold_results_indiv <- list()

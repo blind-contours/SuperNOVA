@@ -8,7 +8,7 @@ source(here("sandbox/02_fit_estimators.R"))
 load_all()
 
 # simulation parameters
-n_sim <- 10 # number of simulations
+n_sim <- 2 # number of simulations
 n_obs <- c(250, 500, 1000, 1500, 2500, 3000)
 p0_obs <- 100000
 n_mc_sample <- 1000

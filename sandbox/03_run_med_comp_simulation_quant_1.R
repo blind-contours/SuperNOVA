@@ -58,29 +58,23 @@ for (sample_size in n_obs) {
     z <- data_sim[, mediators]
     y <- data_sim[, outcome]
 
-    est_out_discrete_e <- fit_estimators_mediation_complicated(
+    sim_results <- SuperNOVA(
       w = w,
       a = a,
       z = z,
       y = y,
+      deltas = deltas,
+      estimator = "tmle",
+      fluctuation = "standard",
+      n_folds = n_fold,
+      outcome_type = "continuous",
+      quantile_thresh = 0,
+      verbose = TRUE,
+      parallel = TRUE,
       seed = seed,
-      nde_a1 = nde_a1,
-      nie_a1 = nie_a1,
-      ate_a1 = ate_a1,
-      nde_a2 = nde_a2,
-      nie_a2 = nie_a2,
-      ate_a2 = ate_a2,
-      deltas = list("a_1_quant" = 1, "a_2_quant" = 1, "a_3_quant" = 1, "a_4_quant" = 1),
-      cv_folds = n_fold,
       num_cores = n_core,
-      var_sets = NULL,
-      exposure_quantized = TRUE,
-      mediator_quantized = FALSE,
-      n_mc_sample = 2*sample_size,
-      density_type = "sl",
-      integration_method = "MC",
-      n_bins = 10,
-      use_multinomial = FALSE
+      n_mc_sample = n_mc_sample,
+      discover_only = TRUE
     )
 
     est_out_discrete_e$n_obs <- sample_size

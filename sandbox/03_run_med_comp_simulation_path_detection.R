@@ -9,11 +9,11 @@ source(here("R/simulate_complicated_mediation_data.R"))
 load_all()
 
 # simulation parameters
-n_sim <- 2 # number of simulations
+n_sim <- 50 # number of simulations
 n_obs <- c(250, 500, 1000, 1500, 2500, 3000)
 p0_obs <- 100000
 
-n_core <- 5
+n_core <- 20
 n_fold <- 10
 
 # Generate simulated data -----------------

@@ -37,7 +37,8 @@ est_Q_w_shifted_mediation <- function(exposure,
                                       av,
                                       at,
                                       upper_bound = upper_bound,
-                                      lower_bound = lower_bound) {
+                                      lower_bound = lower_bound,
+                                      outcome_type = outcome_type) {
   future::plan(future::sequential, gc = TRUE)
 
   # # scale the outcome for logit transform
@@ -102,42 +103,42 @@ est_Q_w_shifted_mediation <- function(exposure,
     data = at,
     covariates = covars,
     outcome = "y",
-    outcome_type = "continuous"
+    outcome_type = outcome_type
   ))
 
   at_task_upshift <- suppressMessages(sl3::sl3_Task$new(
     data = at_a_upshifted,
     covariates = covars,
     outcome = "y",
-    outcome_type = "continuous"
+    outcome_type = outcome_type
   ))
 
   av_task_noshift <- suppressMessages(sl3::sl3_Task$new(
     data = av,
     covariates = covars,
     outcome = "y",
-    outcome_type = "continuous"
+    outcome_type = outcome_type
   ))
 
   av_task_a_upshift <- suppressMessages(sl3::sl3_Task$new(
     data = av_a_upshifted,
     covariates = covars,
     outcome = "y",
-    outcome_type = "continuous"
+    outcome_type = outcome_type
   ))
 
   av_task_a_upupshift <- suppressMessages(sl3::sl3_Task$new(
     data = av_a_upupshifted,
     covariates = covars,
     outcome = "y",
-    outcome_type = "continuous"
+    outcome_type = outcome_type
   ))
 
   av_task_a_downshift <- suppressMessages(sl3::sl3_Task$new(
     data = av_a_downshifted,
     covariates = covars,
     outcome = "y",
-    outcome_type = "continuous"
+    outcome_type = outcome_type
   ))
 
   sl_fit <- suppressMessages(sl$train(at_task_noshift))

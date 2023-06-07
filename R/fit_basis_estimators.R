@@ -190,13 +190,17 @@ fit_basis_estimators <- function(at,
   basis_used <- unique(apply(matches, 1, paste, collapse = ""))
   basis_used <- basis_used[basis_used != ""]
 
-
+  exposure_mediator_pairs <- list()
   for (basis_name_i in seq(basis_used)) {
     basis_check <- basis_used[basis_name_i]
     if (basis_check %in% names(mediator_exposures)) {
-      basis_used[basis_name_i] <- paste(append(mediator_exposures[[basis_check]], basis_check), collapse = "-")
+      for (exposure_i in mediator_exposures[[basis_check]]) {
+        exposure_mediator_pairs <- append(exposure_mediator_pairs, paste(append(exposure_i, basis_check), collapse = "-"))
+      }
     }
   }
+
+  basis_used <- c(basis_used, unlist(exposure_mediator_pairs))
 
   results <- list(
     "learner" = selected_learner,

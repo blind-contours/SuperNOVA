@@ -77,7 +77,7 @@ integrate_psi_g_cont <- function(av, at, covars, w_names, q_model, r_model, g_mo
         ymin = lower_z,
         xmax = upper_a,
         ymax = upper_z,
-        reltol = 0.001
+        reltol = 0.01
       )$Q
     }
 

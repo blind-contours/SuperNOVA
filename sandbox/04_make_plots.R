@@ -5,77 +5,77 @@ library(viridis)
 library(cividis)
 library(hrbrthemes)
 
-## Sim results for continuous A using MC integration
-sim_results_1 <- readRDS(
-  here("sandbox/data/SuperNOVA_mediation_cont_mc_1.rds")
-)
 
-sim_results_2 <- readRDS(
-  here("sandbox/data/SuperNOVA_mediation_cont_mc_2.rds")
-)
-
-sim_results_3 <- readRDS(
-  here("sandbox/data/SuperNOVA_mediation_cont_mc_3.rds")
-)
-#
-sim_results_4 <- readRDS(
-  here("sandbox/data/SuperNOVA_mediation_cont_mc_4.rds")
-)
-
-sim_results_5 <- readRDS(
-  here("sandbox/data/SuperNOVA_mediation_cont_mc_5.rds")
-)
-
-sim_results_6 <- readRDS(
-  here("sandbox/data/SuperNOVA_mediation_cont_mc_6.rds")
-)
-
-sim_results_7 <- readRDS(
-  here("sandbox/data/SuperNOVA_mediation_cont_mc_7.rds")
-)
-
-sim_results_8 <- readRDS(
-  here("sandbox/data/SuperNOVA_mediation_cont_mc_8.rds")
-)
-
-sim_results_9 <- readRDS(
-  here("sandbox/data/SuperNOVA_mediation_cont_mc_9.rds")
-)
-
-sim_results_10 <- readRDS(
-  here("sandbox/data/SuperNOVA_mediation_cont_mc_10.rds")
-)
-
-## Sim results for discrete A
-sim_results_1 <- readRDS(
+## simulation results under discrete exposure
+quant_sim_results_1 <- readRDS(
   here("sandbox/data/SuperNOVA_mediation_quant_1.rds")
 )
 
-sim_results_2 <- readRDS(
+quant_sim_results_2 <- readRDS(
   here("sandbox/data/SuperNOVA_mediation_quant_2.rds")
 )
 
-sim_results_3 <- readRDS(
+quant_sim_results_3 <- readRDS(
   here("sandbox/data/SuperNOVA_mediation_quant_3.rds")
 )
 #
-sim_results_4 <- readRDS(
+quant_sim_results_4 <- readRDS(
   here("sandbox/data/SuperNOVA_mediation_quant_4.rds")
 )
 
-sim_results_5 <- readRDS(
+quant_sim_results_5 <- readRDS(
   here("sandbox/data/SuperNOVA_mediation_quant_5.rds")
 )
 
+## simulation results under continuous exposure using MC integration
 
-sim_results <- rbind(sim_results_1, sim_results_2,
-                     sim_results_3, sim_results_4,
-                     sim_results_5, sim_results_6,
-                     sim_results_7, sim_results_8,
-                     sim_results_9, sim_results_10)
+cont_sim_mc_results_1 <- readRDS(
+  here("sandbox/data/SuperNOVA_mediation_cont_mc_1.rds")
+)
+
+cont_sim_mc_results_2 <- readRDS(
+  here("sandbox/data/SuperNOVA_mediation_cont_mc_2.rds")
+)
+
+cont_sim_mc_results_3 <- readRDS(
+  here("sandbox/data/SuperNOVA_mediation_cont_mc_3.rds")
+)
+#
+cont_sim_mc_results_4 <- readRDS(
+  here("sandbox/data/SuperNOVA_mediation_cont_mc_4.rds")
+)
+
+cont_sim_mc_results_5 <- readRDS(
+  here("sandbox/data/SuperNOVA_mediation_cont_mc_5.rds")
+)
+
+cont_sim_mc_results_6 <- readRDS(
+  here("sandbox/data/SuperNOVA_mediation_cont_mc_6.rds")
+)
+
+cont_sim_mc_results_7 <- readRDS(
+  here("sandbox/data/SuperNOVA_mediation_cont_mc_7.rds")
+)
+
+cont_sim_mc_results_8 <- readRDS(
+  here("sandbox/data/SuperNOVA_mediation_cont_mc_8.rds")
+)
+
+cont_sim_mc_results_9 <- readRDS(
+  here("sandbox/data/SuperNOVA_mediation_cont_mc_9.rds")
+)
+
+cont_sim_mc_results_10 <- readRDS(
+  here("sandbox/data/SuperNOVA_mediation_cont_mc_10.rds")
+)
 
 
-sim_statistics <- sim_results %>%
+cont_sim_mc_results <- rbind(cont_sim_mc_results_1, cont_sim_mc_results_2, cont_sim_mc_results_3, cont_sim_mc_results_4, cont_sim_mc_results_5, cont_sim_mc_results_6, cont_sim_mc_results_7, cont_sim_mc_results_8, cont_sim_mc_results_9, cont_sim_mc_results_10)
+
+data_to_plot <- cont_sim_mc_results
+
+
+sim_statistics <- data_to_plot %>%
   group_by(n_obs) %>%
   summarize(
     mean_nde_bias_pseudo = mean(pseudo_reg_nde_bias),
@@ -232,12 +232,12 @@ int_coverage_stats <- c(nde_int_CI_coverage = "NDE Coverage using Integration",
 # Bias
 
 # Pseudo-Regression
-pseudo_bias_plot <- make_sim_statistics_plot(sim_statistics_long, names(pseudo_bias_stats),
-                                             "Bias Pseudo Regressions Results for In(Direct) Effects", pseudo_bias_stats)
+pseudo_bias_plot <- make_sim_statistics_plot(sim_statistics_long, stats = names(pseudo_bias_stats),
+                                             title = "Bias Pseudo Regressions Results for In(Direct) Effects", legend_labels = pseudo_bias_stats)
 
 # Integration
-integration_bias_plot <- make_sim_statistics_plot(sim_statistics_long, names(int_bias_stats),
-                                             "Bias Integration Results for In(Direct) Effects", int_bias_stats)
+integration_bias_plot <- make_sim_statistics_plot(sim_statistics_long, stats = names(int_bias_stats),
+                                                  title = "Bias Integration Results for In(Direct) Effects", legend_labels = int_bias_stats)
 
 # Sqrt(N) * bias
 
@@ -253,12 +253,12 @@ int_regression_sqrt_n_bias <- make_sim_statistics_plot(sim_statistics_long, stat
 # Coverage
 
 # Pseudo-Regression
-pseudo_cov_plot <- make_sim_statistics_plot(sim_statistics_long, names(pseudo_coverage_stats),
-                                            title = "MSE for In(Direct) Effects", legend_labels = pseudo_coverage_stats)
+pseudo_cov_plot <- make_sim_statistics_plot(sim_statistics_long, stats = names(pseudo_coverage_stats),
+                                     title = "Coverage for In(Direct) Effects", legend_labels = pseudo_coverage_stats)
 
 # Integration
 integration_cov_plot <- make_sim_statistics_plot(sim_statistics_long, names(int_coverage_stats),
-                                                 title = "Coverage for In(Direct) Effects using Integration", legend_labels = int_coverage_stats)
+                                      title = "Coverage for In(Direct) Effects using Integration", legend_labels = int_coverage_stats)
 
 # Save the plots to files
 # Save the plots to files

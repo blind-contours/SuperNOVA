@@ -173,7 +173,15 @@ names(insulin_data_array) <- c('2007-2008','2009-2010',
                             '2011-2012', '2013-2014', '2015-2016')
 
 
-df_list <- c(insulin_data_array)
+c_reactive_p_data_array <- list('L11_B.xpt', 'L11_C.xpt', 'CRP_D.xpt', 'CRP_E.xpt', 'CRP_F.xpt')
+
+names(c_reactive_p_data_array) <- c('2001-2002', '2003-2004', '2005-2006', '2007-2008', '2009-2010')
+
+vit_a_e_carotene_data_array <- list('L06VIT_B.xpt', 'L45VIT_C.xpt', 'VITAEC_D.xpt')
+
+names(vit_a_e_carotene_data_array) <- c('2001-2002', '2003-2004', '2005-2006')
+
+df_list <- c(vit_a_e_carotene_data_array)
 
 path <- '../input/'
 ```

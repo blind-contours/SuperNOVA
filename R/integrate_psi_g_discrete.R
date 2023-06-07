@@ -167,7 +167,7 @@ integrate_psi_g_discrete <- function(av, at, covars, w_names, q_model, r_model, 
       }
     }
 
-    integral_outer_results_i <- numeric(n_bins)
+    integral_outer_results_i <- numeric(length(unique(av[[exposure]])))
     for (a_val in unique(av[[exposure]])) {
       if (mediator_quantized) {
         integral_outer <- sum(sapply(1:n_bins, function(z_val) {

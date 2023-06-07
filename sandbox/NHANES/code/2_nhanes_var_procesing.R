@@ -342,9 +342,17 @@ full_data <-
          measles                          = LBXME,
          rubella                          = LBDRUIU,
          varicella                        = LBXVAR,
-         asthma                           = MCQ010
-
-
+         asthma                           = MCQ010,
+         c_reactive_p                     = LBXCRP,
+         alpha_carotene                   = LBXALC,
+         beta_carotene                    = LBXBEC,
+         vitamin_a                        = LBXVIA,
+         vitamin_e                        = LBXVIE,
+         trans_lycopene                   = LBXLYC,
+         total_lycopene                   = LBDTLY,
+         lutein_and_zeaxanthin            = LBXLUZ,
+         b_Cryptoxanthin                  = LBXCRY,
+         g_Tocopherol                     = LBXGTC
          ) %>%
   dplyr::mutate(year_end = year_begin + 1)
 

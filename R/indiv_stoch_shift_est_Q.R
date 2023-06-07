@@ -70,15 +70,19 @@ indiv_stoch_shift_est_Q <- function(exposure,
                                     av,
                                     at,
                                     lower_bound = lower_bound,
-                                    upper_bound = upper_bound) {
+                                    upper_bound = upper_bound,
+                                    outcome_type = "continuous") {
   future::plan(future::sequential, gc = TRUE)
 
   # scale the outcome for logit transform
-  y_star_av <- scale_to_unit(vals = av$y)
-  y_star_at <- scale_to_unit(vals = at$y)
+  if (outcome_type != "binary") {
+    y_star_av <- scale_to_unit(vals = av$y)
+    y_star_at <- scale_to_unit(vals = at$y)
 
-  av$y <- y_star_av
-  at$y <- y_star_at
+    av$y <- y_star_av
+    at$y <- y_star_at
+  }
+
 
   # need a data set with the exposure stochastically shifted DOWNWARDS A-delta
   # do this for both AV and AT as AT is used in mediation

@@ -96,8 +96,8 @@ nhanes_results <- SuperNOVA(
   z = z_imputed,
   y = y,
   deltas = metal_deltas,
-  n_folds = 6,
-  num_cores = 6,
+  n_folds = 10,
+  num_cores = 20,
   outcome_type = "binary",
   quantile_thresh = 0,
   seed = 294580,
@@ -108,5 +108,5 @@ nhanes_results <- SuperNOVA(
 
 saveRDS(
   object = nhanes_results,
-  file = here("sandbox/NHANES/output/", paste0("SuperNOVA_", "sim", ".rds"))
+  file = here("sandbox/NHANES/output/", paste0("SuperNOVA_", "NHANES", ".rds"))
 )

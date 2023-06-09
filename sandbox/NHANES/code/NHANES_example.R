@@ -99,6 +99,7 @@ nhanes_results <- SuperNOVA(
   n_folds = 10,
   num_cores = 20,
   outcome_type = "binary",
+  mediator_type = "continuous",
   quantile_thresh = 0,
   seed = 294580,
   exposure_quantized = TRUE,

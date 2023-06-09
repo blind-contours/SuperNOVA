@@ -2,21 +2,18 @@ library(stringr)
 library(zoo)
 library(imputeTS)
 library(here)
-library(SuperNOVA)
+library(devtools)
+load_all()
+# File paths
+input_path <- here("sandbox/NHANES/output/NHANES_data.RDS")
+output_path <- here("sandbox/NHANES/output/", paste0("SuperNOVA_", "NHANES", ".rds"))
 
-nhanes_data <- readRDS(here("sandbox/NHANES/output/NHANES_data.RDS"))
+# Load data
+nhanes_data <- readRDS(input_path)
 
-nhanes_data_asthma <- nhanes_data[!is.na(nhanes_data$asthma), ]
-nhanes_data_asthma_telomere <- nhanes_data_asthma[!is.na(nhanes_data_asthma$mean_telomere), ]
-nhanes_data_asthma_telomere_cesium <- nhanes_data_asthma_telomere[!is.na(nhanes_data_asthma_telomere$cesium), ]
-
-nhanes_data_asthma_telomere_cesium <- nhanes_data_asthma_telomere_cesium[, colSums(is.na(nhanes_data_asthma_telomere_cesium)) < .2 * nrow(nhanes_data_asthma_telomere_cesium)]
-
-nhanes_data_asthma_telomere_cesium <- as.data.frame(unclass(nhanes_data_asthma_telomere_cesium), stringsAsFactors = TRUE)
-
-metals <- c("barium", "cadmium", "cobalt", "cesium", "molybdenum", "lead", "antimony", "thallium","tungsten" )
-metal_deltas <- list("barium" = 1, "cadmium" = 1, "cobalt" = 1, "cesium" = 1, "molybdenum" = 1, "lead" = 1, "antimony" = 1, "thallium" = 1, "tungsten" = 1 )
-
+# Variables
+metals <- c("barium", "cadmium", "cobalt", "cesium", "molybdenum", "lead", "antimony", "thallium","tungsten")
+metal_deltas <- setNames(rep(1, length(metals)), metals)
 outcome <- "asthma"
 
 covariates <- c(
@@ -52,49 +49,44 @@ mediators <- c(
   "lutein_and_zeaxanthin"
 )
 
+# Preprocessing data
+df <- nhanes_data[, c(outcome, covariates, metals, mediators), drop = FALSE]
+df <- df[complete.cases(df[, c(outcome, "mean_telomere", metals)]), ]
 
+# Retain only columns where less than 20% data is missing
+df <- df[, colSums(is.na(df)) < .2 * nrow(df)]
 
-w <- nhanes_data_asthma_telomere_cesium[, covariates]
-a <- nhanes_data_asthma_telomere_cesium[, metals]
-z <- nhanes_data_asthma_telomere_cesium[, mediators]
-y <- nhanes_data_asthma_telomere_cesium$asthma
-y <- ifelse(y ==1, 1, 0)
-
-a_imputed <- data.frame(apply(a, 2, function(x) ifelse(is.na(x), mean(x, na.rm = TRUE), x)))
-z_imputed <- data.frame(apply(z, 2, function(x) ifelse(is.na(x), mean(x, na.rm = TRUE), x)))
-
-
-impute_mean_or_mode <- function(w) {
-
-  for (i in seq_along(w)) {
-    if(is.numeric(w[[i]])) {
-      w[[i]][is.na(w[[i]])] <- mean(w[[i]], na.rm = TRUE)
-    } else if(is.factor(w[[i]])) {
-      mode_val <- names(which.max(table(w[[i]])))
-      w[[i]][is.na(w[[i]])] <- mode_val
-    }
+# Imputation function
+impute_mean_or_mode <- function(x) {
+  if (is.numeric(x)) {
+    ifelse(is.na(x), mean(x, na.rm = TRUE), x)
+  } else {
+    ifelse(is.na(x), names(which.max(table(x))), x)
   }
-
-  return(w)
 }
 
-w_imputed <- impute_mean_or_mode(w)
+# Impute missing values
+df_imputed <- data.frame(lapply(df, impute_mean_or_mode))
 
-# Define a function to jitter and discretize a variable into quantiles
-discretize <- function(x, n_quantiles) {
-  x <- jitter(x, factor = 1e-10)  # Jitter the data to break ties
-  cut(x, breaks = quantile(x, probs = seq(0, 1, 1/n_quantiles)),
+# Discretize exposures
+discretize <- function(x) {
+  if (length(unique(x)) < 10) {
+    return(x)  # or other action
+  }
+  jittered_x <- jitter(x, factor = 1e-5)  # Increase the jitter factor
+  cut(jittered_x,
+      breaks = quantile(jittered_x, probs = seq(0, 1, 1/10), na.rm = TRUE),
       labels = FALSE, include.lowest = TRUE)
 }
 
-# Apply this function to each column in the data frame
-a_imputed_discretized <- as.data.frame(lapply(a_imputed, discretize, n_quantiles = 10))  # Replace 4 with the desired number of quantiles
+df_imputed[, metals] <- lapply(df_imputed[, metals], discretize)
 
+# Run SuperNOVA
 nhanes_results <- SuperNOVA(
-  w = w_imputed,
-  a = a_imputed_discretized,
-  z = z_imputed,
-  y = y,
+  w = df_imputed[, covariates],
+  a = df_imputed[, metals],
+  z = df_imputed[, mediators],
+  y = ifelse(df_imputed[, outcome] ==1, 1, 0),
   deltas = metal_deltas,
   n_folds = 10,
   num_cores = 20,
@@ -107,7 +99,5 @@ nhanes_results <- SuperNOVA(
   var_sets = NULL
 )
 
-saveRDS(
-  object = nhanes_results,
-  file = here("sandbox/NHANES/output/", paste0("SuperNOVA_", "NHANES", ".rds"))
-)
+# Save results
+saveRDS(nhanes_results, output_path)

@@ -23,74 +23,99 @@ license](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://open
 <!-- badges: end -->
 
 > Efficient Estimation of the Causal Effects of Non-Parametric
-> Interactions and Effect Modifications using Stochastic Interventions
-> **Authors:** [David McCoy](https://davidmccoy.org)
+> Interactions, Effect Modifications and Mediation using Stochastic
+> Interventions **Authors:** [David McCoy](https://davidmccoy.org)
 
 ------------------------------------------------------------------------
 
 ## What’s `SuperNOVA`?
 
-The `SuperNOVA` R package provides users with the tools necessary to
-identify the most predictive variable sets for a given outcome and
-develop efficient estimators for the counterfactual mean of the outcome
-under stochastic interventions on those variables as described fully in our 
-paper: https://arxiv.org/abs/2305.01849. 
+The `SuperNOVA` R package offers a comprehensive toolset for identifying
+predictive variable sets, be it subsets of exposures,
+exposure-covariates, or exposure-mediators, for a specified outcome. It
+further assists in creating efficient estimators for the counterfactual
+mean of the outcome under stochastic interventions on these variable
+sets. This means making exposure changes that depend on naturally
+observed values, as described in past literature (Dı́az and van der Laan
+2012; Haneuse and Rotnitzky 2013).
 
-These interventions
-are shifts to the exposures that are dependent on naturally observed
-values (Dı́az and van der Laan 2012; Haneuse and Rotnitzky 2013).
-Building on the `txshift` package, which implements the TML estimator
-for a stochastic shift causal parameter, `SuperNOVA` extends this
-methodology to include joint stochastic interventions on two variables,
-allowing for the construction of a non-parametric interaction parameter
-and mediation (in development). Additionally, `SuperNOVA` estimates
-individual stochastic intervention outcomes under some delta shift
-compared to the outcome under no intervention, and a target parameter
-for effect modification, which is the mean outcome under intervention in
-regions of the covariate space that are also data-adaptively determined.
+`SuperNOVA` introduces several estimators, constructed based on the
+patterns found in the data. At present, semi-parametric estimators are
+available for various contexts: interaction, effect modification,
+marginal impacts, and mediation. The target parameters that this package
+calculates are grounded in previously published works: one regarding
+interaction and effect modification (McCoy et al. 2023) and another
+dedicated to mediation \[McCoy2023mediation\].
 
-The `SuperNOVA` package provides a comprehensive solution for
-identifying variable sets that interact or modify effects in the context
-of mixed exposures. To achieve this, we use a k-fold cross-validation
-framework to estimate a data-adaptive parameter, namely, stochastic
-shift target parameters for variable sets that are discovered to be
-predictive of the outcome. We ensure unbiased estimation of the
-data-adaptive parameter by employing cross-validated targeted maximum
-likelihood estimation. In this approach, we split the data into
-parameter-generating and estimation samples. In the parameter-generating
-sample, we fit an ensemble of basis function estimators to the data and
-select the estimator with the lowest cross-validated mean squared error.
-We then extract important variable sets using ANOVA-like variance
-decomposition of the linear combination of basis functions. In the
-estimation fold, we use targeted learning to estimate causal target
-parameters for interaction, effect modification, and individual variable
-shifts. That is, we estimate the counterfactual mean different of these
-discovered variable sets under a shift of $\delta$ (an amount to shift
-an exposure by) compared to the observed outcome under observed
-exposure. `SuperNOVA` is a versatile tool that provides researchers with
-k-fold specific and pooled results for each target parameter. More
-details are available in the accompanying vignette.
+The `SuperNOVA` package builds upon the capabilities of the `txshift`
+package, which implements the TML estimator for a stochastic shift
+causal parameter (Dı́az and van der Laan 2012). A notable extension in
+SuperNOVA is its support for joint stochastic interventions on two
+exposures. This allows for the creation of a non-parametric interaction
+parameter, shedding light on the combined effect of concurrently
+shifting two variables relative to the cumulative effect of individual
+shifts. At this stage, the focus is on two-way shifts.
 
-Users simply input a vector for exposures, covariates, and an outcome.
-The user also specifies the respective $\delta$ for each exposure (the
-amount to shift by) and if this delta should be adaptive based on
-positivity violations (see vignette). `SuperNOVA` comes with flexible
-default machine learning algorithms used in the data-adaptive procedure
-and for estimation of each of the nuisance parameters. Given these
-inputs `SuperNOVA` outputs tables for fold specific results (say
-exposure 1 under shifts for each fold it was found predictive) and
-pooled results which uses a pooled TMLE fluctuation across the folds to
-esimate an average effect.
+Various parameters are calculated based on identified patterns:
 
-`SuperNOVA` integrates with the [`sl3`
-package](https://github.com/tlverse/sl3) (Coyle, Hejazi, Malenica, et
-al. 2022) to allow for ensemble machine learning to be leveraged in the
-estimation procedure for each nuisance parameter and estimation of the
-data-adaptive parameters. There are several stacks of machine learning
-algorithms used that are constructed from `sl3` automatically. If the
-stack parameters are NULL, SuperNOVA automatically builds ensembles of
-machine learning algorithms that are flexible yet not overly
-computationally taxing.
+- Interaction Parameter: When two exposures show signs of interaction,
+  this parameter is calculated.
+
+- Individual Stochastic Interventions: When marginal effects are
+  identified, this estimates the difference in outcomes upon making a
+  specific shift compared to no intervention.
+
+- Effect Modification: In scenarios where effect modification is
+  evident, the target parameter for it is the mean outcome under
+  intervention within specific regions of the covariate space that the
+  data suggests. This contrasts with the marginal effect by diving
+  deeper into strata of covariates, for example, gauging the effects of
+  exposure shifts among distinct genders.
+
+- Mediation: In scenarios where mediation is found, the target parameter
+  are the natural direct and indirect effects as defined by stochastic
+  intervention. That is, for the natural indirect effect, `SuperNOVA`
+  estimates the impact of shifting an exposure through a mediator and
+  the direct effect which is not through the mediator.
+
+Mediation in `SuperNOVA` is a new feature. Here, `SuperNOVA` brings to
+the table estimates initially conceived in another work (Díaz and Hejazi
+2020), while also supporting mediation estimates for continuous
+exposures.
+
+The package ensures robustness by employing a k-fold cross-validation
+framework. This framework helps in estimating a data-adaptive parameter,
+which is the stochastic shift target parameters for the variable sets
+identified as influential for the outcome. The process begins by
+partitioning the data into parameter-generating and estimation samples.
+The former sample assists in fitting a collection of basis function
+estimators to the data. The one with the lowest cross-validated mean
+squared error is selected. Key variable sets are then extracted using an
+ANOVA-like variance decomposition methodology. For the estimation
+sample, targeted learning is harnessed to gauge causal target parameters
+across different contexts: interaction, mediation, effect modification,
+and individual variable shifts.
+
+By using SuperNOVA, users get access to a tool that offers both k-fold
+specific and aggregated results for each target parameter, ensuring that
+researchers can glean the most information from their data. For a more
+in-depth exploration, there’s an accompanying vignette.
+
+To utilize the package, users need to provide vectors for exposures,
+covariates, mediators, and outcomes. They also specify the respective
+$\delta$ for each exposure (indicating the degree of shift) and if this
+delta should be adaptive in response to positivity violations. A
+detailed guide is provided in the vignette. With these inputs,
+`SuperNOVA` processes the data and delivers tables showcasing
+fold-specific results and aggregated outcomes, allowing users to glean
+insights effectively.
+
+`SuperNOVA` also incorporates features from the `sl3` package (Coyle,
+Hejazi, Malenica, et al. 2022), facilitating ensemble machine learning
+in the estimation process. If the user does not specify any stack
+parameters, `SuperNOVA` will automatically create an ensemble of machine
+learning algorithms that strike a balance between flexibility and
+computational efficiency.
 
 ------------------------------------------------------------------------
 
@@ -160,9 +185,9 @@ n_obs <- 100000
 
 The `simulate_data` is a function for generating synthetic data with a
 complex structure to study the causal effects of shifting values in the
-mixtures of exposures The primary purpose of this simulation is to
+mixtures of exposures. The primary purpose of this simulation is to
 provide a controlled environment for testing and validating estimates
-given by the SuperNOVA package.
+given by the `SuperNOVA` package.
 
 The simulate_data function generates synthetic data for n_obs
 observations with a pre-specified covariance structure (sigma_mod) and a
@@ -416,89 +441,90 @@ sim_results <- SuperNOVA(
   seed = 294580
 )
 #> 
-#> Iter: 1 fn: 5617.4930     Pars:  0.83767 0.16233
-#> Iter: 2 fn: 5617.1485     Pars:  0.999991224 0.000008777
-#> Iter: 3 fn: 5617.1484     Pars:  0.999994372 0.000005628
+#> Iter: 1 fn: 5616.2821     Pars:  0.83768 0.16232
+#> Iter: 2 fn: 5615.9460     Pars:  0.99996649 0.00003351
+#> Iter: 3 fn: 5615.9460     Pars:  0.99997849 0.00002151
 #> solnp--> Completed in 3 iterations
 #> 
-#> Iter: 1 fn: 3814.5345     Pars:  0.99998864 0.00001136
-#> Iter: 2 fn: 3814.5345     Pars:  0.999996147 0.000003853
+#> Iter: 1 fn: 3815.7486     Pars:  0.99998993 0.00001007
+#> Iter: 2 fn: 3815.7486     Pars:  0.999998834 0.000001166
 #> solnp--> Completed in 2 iterations
 #> 
-#> Iter: 1 fn: 3732.3492     Pars:  0.999994933 0.000005067
-#> Iter: 2 fn: 3732.3492     Pars:  0.999996634 0.000003366
+#> Iter: 1 fn: 3737.1413     Pars:  0.999996084 0.000003915
+#> Iter: 2 fn: 3737.1412     Pars:  0.9999991151 0.0000008849
 #> solnp--> Completed in 2 iterations
 #> 
-#> Iter: 1 fn: 3731.9982     Pars:  0.88391 0.11609
-#> Iter: 2 fn: 3731.8248     Pars:  0.999991263 0.000008737
-#> Iter: 3 fn: 3731.8248     Pars:  0.999994386 0.000005614
+#> Iter: 1 fn: 3731.8788     Pars:  0.88038 0.11962
+#> Iter: 2 fn: 3731.8383     Pars:  0.99995226 0.00004774
+#> Iter: 3 fn: 3731.8383     Pars:  0.99997338 0.00002662
 #> solnp--> Completed in 3 iterations
 #> 
-#> Iter: 1 fn: 5615.8454     Pars:  0.43869 0.56131
-#> Iter: 2 fn: 5615.8454     Pars:  0.43869 0.56131
-#> solnp--> Completed in 2 iterations
-#> 
-#> Iter: 1 fn: 5620.9486     Pars:  0.44141 0.55859
-#> Iter: 2 fn: 5620.4981     Pars:  0.99997607 0.00002393
-#> Iter: 3 fn: 5620.4981     Pars:  0.99998463 0.00001537
+#> Iter: 1 fn: 5615.8427     Pars:  0.37837 0.62163
+#> Iter: 2 fn: 5615.7080     Pars:  0.61125 0.38875
+#> Iter: 3 fn: 5615.7080     Pars:  0.61254 0.38746
 #> solnp--> Completed in 3 iterations
 #> 
-#> Iter: 1 fn: 5614.1167     Pars:  0.82113 0.17887
-#> Iter: 2 fn: 5614.1077     Pars:  0.9994545 0.0005455
-#> Iter: 3 fn: 5614.1077     Pars:  0.9996802 0.0003198
+#> Iter: 1 fn: 5621.0789     Pars:  0.84929 0.15071
+#> Iter: 2 fn: 5620.8684     Pars:  0.00007712 0.99992288
+#> Iter: 3 fn: 5620.8684     Pars:  0.000002771 0.999997229
 #> solnp--> Completed in 3 iterations
 #> 
-#> Iter: 1 fn: 3845.2259     Pars:  0.99998184 0.00001816
-#> Iter: 2 fn: 3845.2259     Pars:  0.999993039 0.000006961
-#> solnp--> Completed in 2 iterations
-#> 
-#> Iter: 1 fn: 3815.6067     Pars:  0.69644 0.30356
-#> Iter: 2 fn: 3815.6067     Pars:  0.69650 0.30350
-#> solnp--> Completed in 2 iterations
-#> 
-#> Iter: 1 fn: 3840.8999     Pars:  0.89353 0.10647
-#> Iter: 2 fn: 3840.8999     Pars:  0.89353 0.10647
-#> solnp--> Completed in 2 iterations
-#> 
-#> Iter: 1 fn: 5615.8566     Pars:  0.73031 0.26969
-#> Iter: 2 fn: 5615.7797     Pars:  0.9992627 0.0007373
-#> Iter: 3 fn: 5615.7796     Pars:  0.9995925 0.0004075
-#> Iter: 4 fn: 5615.7795     Pars:  0.9998947 0.0001053
-#> Iter: 5 fn: 5615.7795     Pars:  0.99995525 0.00004475
-#> solnp--> Completed in 5 iterations
-#> 
-#> Iter: 1 fn: 5610.6494     Pars:  0.44630 0.55370
-#> Iter: 2 fn: 5610.6494     Pars:  0.44627 0.55373
-#> solnp--> Completed in 2 iterations
-#> 
-#> Iter: 1 fn: 5599.9737     Pars:  0.99997813 0.00002187
-#> Iter: 2 fn: 5599.9736     Pars:  0.999992193 0.000007807
-#> solnp--> Completed in 2 iterations
-#> 
-#> Iter: 1 fn: 3829.3779     Pars:  0.89231 0.10769
-#> Iter: 2 fn: 3829.1156     Pars:  0.61038 0.38962
-#> Iter: 3 fn: 3829.1156     Pars:  0.61031 0.38969
+#> Iter: 1 fn: 5612.7158     Pars:  0.82116 0.17884
+#> Iter: 2 fn: 5612.5096     Pars:  0.9999838 0.0000162
+#> Iter: 3 fn: 5612.5096     Pars:  0.99998959 0.00001041
 #> solnp--> Completed in 3 iterations
 #> 
-#> Iter: 1 fn: 3802.6635     Pars:  0.999992896 0.000007104
-#> Iter: 2 fn: 3802.6635     Pars:  0.99999763 0.00000237
+#> Iter: 1 fn: 3842.7726     Pars:  0.999856 0.000144
+#> Iter: 2 fn: 3842.7726     Pars:  0.99995859 0.00004141
 #> solnp--> Completed in 2 iterations
 #> 
-#> Iter: 1 fn: 3831.5452     Pars:  0.47081 0.52919
-#> Iter: 2 fn: 3831.5452     Pars:  0.47082 0.52918
+#> Iter: 1 fn: 3811.0844     Pars:  0.67596 0.32404
+#> Iter: 2 fn: 3811.0844     Pars:  0.67601 0.32399
 #> solnp--> Completed in 2 iterations
 #> 
-#> Iter: 1 fn: 5598.6825     Pars:  0.99998629 0.00001371
-#> Iter: 2 fn: 5598.6825     Pars:  0.999994535 0.000005465
+#> Iter: 1 fn: 3841.7125     Pars:  0.997439 0.002561
+#> Iter: 2 fn: 3841.7125     Pars:  0.9993128 0.0006872
 #> solnp--> Completed in 2 iterations
 #> 
-#> Iter: 1 fn: 5600.0257     Pars:  0.82318 0.17682
-#> Iter: 2 fn: 5599.8034     Pars:  0.99998028 0.00001972
-#> Iter: 3 fn: 5599.8034     Pars:  0.99998732 0.00001268
+#> Iter: 1 fn: 5612.7076     Pars:  0.43156 0.56844
+#> Iter: 2 fn: 5612.3977     Pars:  0.999891 0.000109
+#> Iter: 3 fn: 5612.3977     Pars:  0.99992987 0.00007013
 #> solnp--> Completed in 3 iterations
+#> 
+#> Iter: 1 fn: 5621.1314     Pars:  0.51060 0.48940
+#> Iter: 2 fn: 5621.1314     Pars:  0.51078 0.48922
+#> solnp--> Completed in 2 iterations
+#> 
+#> Iter: 1 fn: 5600.7646     Pars:  0.99997834 0.00002166
+#> Iter: 2 fn: 5600.7645     Pars:  0.999995592 0.000004408
+#> solnp--> Completed in 2 iterations
+#> 
+#> Iter: 1 fn: 3831.8447     Pars:  0.45887 0.54113
+#> Iter: 2 fn: 3831.8447     Pars:  0.45886 0.54114
+#> solnp--> Completed in 2 iterations
+#> 
+#> Iter: 1 fn: 3799.4818     Pars:  0.02808 0.97192
+#> Iter: 2 fn: 3797.3950     Pars:  0.9998439 0.0001561
+#> Iter: 3 fn: 3797.3948     Pars:  0.99998699 0.00001301
+#> Iter: 4 fn: 3797.3948     Pars:  0.999993236 0.000006764
+#> solnp--> Completed in 4 iterations
+#> 
+#> Iter: 1 fn: 3830.8913     Pars:  0.84699 0.15301
+#> Iter: 2 fn: 3830.8719     Pars:  0.75597 0.24403
+#> Iter: 3 fn: 3830.8719     Pars:  0.75597 0.24403
+#> solnp--> Completed in 3 iterations
+#> 
+#> Iter: 1 fn: 5600.6732     Pars:  0.13089 0.86911
+#> Iter: 2 fn: 5600.6602     Pars:  0.007388 0.992612
+#> Iter: 3 fn: 5600.6602     Pars:  0.007384 0.992616
+#> solnp--> Completed in 3 iterations
+#> 
+#> Iter: 1 fn: 5600.7959     Pars:  0.9998956 0.0001044
+#> Iter: 2 fn: 5600.7958     Pars:  0.99998238 0.00001762
+#> solnp--> Completed in 2 iterations
 proc.time() - ptm
 #>    user  system elapsed 
-#>  27.248   1.843 460.624
+#>  51.213   4.756 824.470
 
 basis_in_folds <- sim_results$`Basis Fold Proportions`
 indiv_shift_results <- sim_results$`Indiv Shift Results`
@@ -579,22 +605,22 @@ Delta
 M1
 </td>
 <td style="text-align:right;">
-2.594282
+2.664497
 </td>
 <td style="text-align:right;">
-0.7612363
+0.7389329
 </td>
 <td style="text-align:right;">
-0.8724886
+0.8596120
 </td>
 <td style="text-align:right;">
-0.8842
+0.9797
 </td>
 <td style="text-align:right;">
-4.3043
+4.3493
 </td>
 <td style="text-align:right;">
-0.0029449
+0.0019375
 </td>
 <td style="text-align:left;">
 1
@@ -617,22 +643,22 @@ M1
 M1
 </td>
 <td style="text-align:right;">
-1.907373
+1.752571
 </td>
 <td style="text-align:right;">
-0.5215788
+0.5247758
 </td>
 <td style="text-align:right;">
-0.7222041
+0.7244141
 </td>
 <td style="text-align:right;">
-0.4919
+0.3327
 </td>
 <td style="text-align:right;">
-3.3229
+3.1724
 </td>
 <td style="text-align:right;">
-0.0082651
+0.0155506
 </td>
 <td style="text-align:left;">
 2
@@ -655,22 +681,22 @@ M1
 M1
 </td>
 <td style="text-align:right;">
-2.256934
+2.214215
 </td>
 <td style="text-align:right;">
-0.5683514
+0.5609105
 </td>
 <td style="text-align:right;">
-0.7538909
+0.7489396
 </td>
 <td style="text-align:right;">
-0.7793
+0.7463
 </td>
 <td style="text-align:right;">
-3.7345
+3.6821
 </td>
 <td style="text-align:right;">
-0.0027560
+0.0031119
 </td>
 <td style="text-align:left;">
 3
@@ -693,22 +719,22 @@ M1
 M1
 </td>
 <td style="text-align:right;">
-1.522048
+1.496780
 </td>
 <td style="text-align:right;">
-0.1679864
+0.1667218
 </td>
 <td style="text-align:right;">
-0.4098615
+0.4083158
 </td>
 <td style="text-align:right;">
-0.7187
+0.6965
 </td>
 <td style="text-align:right;">
-2.3254
+2.2971
 </td>
 <td style="text-align:right;">
-0.0002044
+0.0002466
 </td>
 <td style="text-align:left;">
 Pooled TMLE
@@ -796,22 +822,22 @@ Delta
 Level 1 Shift Diff in W3 \<= 0
 </td>
 <td style="text-align:right;">
--3.248960
+-3.335721
 </td>
 <td style="text-align:right;">
-3.3836568
+3.3306066
 </td>
 <td style="text-align:right;">
-1.8394719
+1.8249950
 </td>
 <td style="text-align:right;">
--6.8543
+-6.9126
 </td>
 <td style="text-align:right;">
-0.3563
+0.2412
 </td>
 <td style="text-align:right;">
-0.0773546
+0.0675799
 </td>
 <td style="text-align:left;">
 1
@@ -834,22 +860,22 @@ M3W3
 Level 0 Shift Diff in W3 \<= 0
 </td>
 <td style="text-align:right;">
-4.308103
+4.242965
 </td>
 <td style="text-align:right;">
-8.9139246
+8.7593547
 </td>
 <td style="text-align:right;">
-2.9856196
+2.9596207
 </td>
 <td style="text-align:right;">
--1.5436
+-1.5578
 </td>
 <td style="text-align:right;">
-10.1598
+10.0437
 </td>
 <td style="text-align:right;">
-0.1490342
+0.1516814
 </td>
 <td style="text-align:left;">
 1
@@ -872,22 +898,22 @@ M3W3
 Level 1 Shift Diff in W3 \<= 0
 </td>
 <td style="text-align:right;">
-3.458559
+3.485335
 </td>
 <td style="text-align:right;">
-4.2797587
+4.2329425
 </td>
 <td style="text-align:right;">
-2.0687578
+2.0574116
 </td>
 <td style="text-align:right;">
--0.5961
+-0.5471
 </td>
 <td style="text-align:right;">
-7.5132
+7.5178
 </td>
 <td style="text-align:right;">
-0.0945629
+0.0902579
 </td>
 <td style="text-align:left;">
 2
@@ -910,19 +936,19 @@ M3W3
 Level 0 Shift Diff in W3 \<= 0
 </td>
 <td style="text-align:right;">
-11.950912
+11.881071
 </td>
 <td style="text-align:right;">
-3.4042433
+3.4080300
 </td>
 <td style="text-align:right;">
-1.8450592
+1.8460850
 </td>
 <td style="text-align:right;">
-8.3347
+8.2628
 </td>
 <td style="text-align:right;">
-15.5672
+15.4993
 </td>
 <td style="text-align:right;">
 0.0000000
@@ -948,22 +974,22 @@ M3W3
 Level 1 Shift Diff in W3 \<= 0
 </td>
 <td style="text-align:right;">
-4.819357
+4.945589
 </td>
 <td style="text-align:right;">
-38.8875342
+41.1813216
 </td>
 <td style="text-align:right;">
-6.2359870
+6.4172675
 </td>
 <td style="text-align:right;">
--7.4030
+-7.6320
 </td>
 <td style="text-align:right;">
-17.0417
+17.5232
 </td>
 <td style="text-align:right;">
-0.4396231
+0.4409031
 </td>
 <td style="text-align:left;">
 3
@@ -986,22 +1012,22 @@ M3W3
 Level 0 Shift Diff in W3 \<= 0
 </td>
 <td style="text-align:right;">
-11.272408
+11.089110
 </td>
 <td style="text-align:right;">
-6.9938039
+6.3564564
 </td>
 <td style="text-align:right;">
-2.6445801
+2.5212014
 </td>
 <td style="text-align:right;">
-6.0891
+6.1476
 </td>
 <td style="text-align:right;">
-16.4557
+16.0306
 </td>
 <td style="text-align:right;">
-0.0000202
+0.0000109
 </td>
 <td style="text-align:left;">
 3
@@ -1024,22 +1050,22 @@ M3W3
 Level 1 Shift Diff in W3 \<= 0
 </td>
 <td style="text-align:right;">
-1.704760
+1.689869
 </td>
 <td style="text-align:right;">
-0.9422027
+0.9935718
 </td>
 <td style="text-align:right;">
-0.9706713
+0.9967807
 </td>
 <td style="text-align:right;">
--0.1977
+-0.2638
 </td>
 <td style="text-align:right;">
-3.6072
+3.6435
 </td>
 <td style="text-align:right;">
-0.0790424
+0.0900134
 </td>
 <td style="text-align:left;">
 Pooled TMLE
@@ -1062,19 +1088,19 @@ M3W3
 Level 0 Shift Diff in W3 \<= 0
 </td>
 <td style="text-align:right;">
-10.180014
+10.114451
 </td>
 <td style="text-align:right;">
-1.3675158
+1.4270177
 </td>
 <td style="text-align:right;">
-1.1694083
+1.1945785
 </td>
 <td style="text-align:right;">
-7.8880
+7.7731
 </td>
 <td style="text-align:right;">
-12.4720
+12.4558
 </td>
 <td style="text-align:right;">
 0.0000000
@@ -1109,9 +1135,9 @@ sim_out$effect_mod
 #> [1] 1
 ```
 
-When W3 is greater than 0 the truth effect is 11, our estimates are 10
-with CI coverage. When W3 is 0 the truth is 1, our estimate is 1.9 with
-CIs that cover the truth as well.
+When W3 is 1 the truth effect is 11, our estimates are 11 with CI
+coverage. When W3 is 0 the truth is 1, our estimate is 1.9 with CIs that
+cover the truth as well.
 
 And finally results for the joint shift which is a joint shift compared
 to additive individual shifts.
@@ -1175,22 +1201,22 @@ Delta M4
 M1
 </td>
 <td style="text-align:right;">
-2.599696
+2.701885
 </td>
 <td style="text-align:right;">
-0.7610882
+0.7471848
 </td>
 <td style="text-align:right;">
-0.8724037
+0.8643985
 </td>
 <td style="text-align:right;">
-0.8898
+1.0077
 </td>
 <td style="text-align:right;">
-4.3096
+4.3961
 </td>
 <td style="text-align:right;">
-0.0053805
+0.0036597
 </td>
 <td style="text-align:left;">
 1
@@ -1216,19 +1242,19 @@ M1&M4
 M4
 </td>
 <td style="text-align:right;">
-10.263304
+10.236543
 </td>
 <td style="text-align:right;">
-0.3342128
+0.3365067
 </td>
 <td style="text-align:right;">
-0.5781114
+0.5800920
 </td>
 <td style="text-align:right;">
-9.1302
+9.0996
 </td>
 <td style="text-align:right;">
-11.3964
+11.3735
 </td>
 <td style="text-align:right;">
 0.0000000
@@ -1257,19 +1283,19 @@ M1&M4
 M1&M4
 </td>
 <td style="text-align:right;">
-11.587589
+11.832085
 </td>
 <td style="text-align:right;">
-0.3370926
+0.3484322
 </td>
 <td style="text-align:right;">
-0.5805968
+0.5902815
 </td>
 <td style="text-align:right;">
-10.4496
+10.6752
 </td>
 <td style="text-align:right;">
-12.7255
+12.9890
 </td>
 <td style="text-align:right;">
 0.0000000
@@ -1298,22 +1324,22 @@ M1&M4
 Psi
 </td>
 <td style="text-align:right;">
--1.275411
+-1.106343
 </td>
 <td style="text-align:right;">
-0.7560428
+0.7334625
 </td>
 <td style="text-align:right;">
-0.8695072
+0.8564242
 </td>
 <td style="text-align:right;">
--2.9796
+-2.7849
 </td>
 <td style="text-align:right;">
-0.4288
+0.5722
 </td>
 <td style="text-align:right;">
-0.1713836
+0.2318963
 </td>
 <td style="text-align:left;">
 1
@@ -1339,22 +1365,22 @@ M1&M4
 M1
 </td>
 <td style="text-align:right;">
-2.599696
+2.701885
 </td>
 <td style="text-align:right;">
-0.7610882
+0.7471848
 </td>
 <td style="text-align:right;">
-0.8724037
+0.8643985
 </td>
 <td style="text-align:right;">
-0.8898
+1.0077
 </td>
 <td style="text-align:right;">
-4.3096
+4.3961
 </td>
 <td style="text-align:right;">
-0.0053805
+0.0036597
 </td>
 <td style="text-align:left;">
 Pooled TMLE
@@ -1380,19 +1406,19 @@ M1&M4
 M4
 </td>
 <td style="text-align:right;">
-10.263304
+10.236543
 </td>
 <td style="text-align:right;">
-0.3342128
+0.3365067
 </td>
 <td style="text-align:right;">
-0.5781114
+0.5800920
 </td>
 <td style="text-align:right;">
-9.1302
+9.0996
 </td>
 <td style="text-align:right;">
-11.3964
+11.3735
 </td>
 <td style="text-align:right;">
 0.0000000
@@ -1421,19 +1447,19 @@ M1&M4
 M1&M4
 </td>
 <td style="text-align:right;">
-11.587589
+11.832085
 </td>
 <td style="text-align:right;">
-0.3370926
+0.3484322
 </td>
 <td style="text-align:right;">
-0.5805968
+0.5902815
 </td>
 <td style="text-align:right;">
-10.4496
+10.6752
 </td>
 <td style="text-align:right;">
-12.7255
+12.9890
 </td>
 <td style="text-align:right;">
 0.0000000
@@ -1462,22 +1488,22 @@ M1&M4
 Psi
 </td>
 <td style="text-align:right;">
--1.275411
+-1.106343
 </td>
 <td style="text-align:right;">
-0.7560428
+0.7334625
 </td>
 <td style="text-align:right;">
-0.8695072
+0.8564242
 </td>
 <td style="text-align:right;">
--2.9796
+-2.7849
 </td>
 <td style="text-align:right;">
-0.4288
+0.5722
 </td>
 <td style="text-align:right;">
-0.1713836
+0.2318963
 </td>
 <td style="text-align:left;">
 Pooled TMLE
@@ -1611,8 +1637,8 @@ See below for details:
 <div id="ref-coyle-sl3-rpkg" class="csl-entry">
 
 Coyle, Jeremy R, Nima S Hejazi, Ivana Malenica, Rachael V Phillips, and
-Oleg Sofrygin. 2022. *<span class="nocase">sl3</span>: Modern Machine
-Learning Pipelines for Super Learning*.
+Oleg Sofrygin. 2022. “<span class="nocase">sl3</span>: Modern Machine
+Learning Pipelines for Super Learning.”
 <https://doi.org/10.5281/zenodo.1342293>.
 
 </div>
@@ -1620,9 +1646,18 @@ Learning Pipelines for Super Learning*.
 <div id="ref-coyle-hal9001-rpkg" class="csl-entry">
 
 Coyle, Jeremy R, Nima S Hejazi, Rachael V Phillips, Lars W van der Laan,
-and Mark J van der Laan. 2022. *<span class="nocase">hal9001</span>: The
-Scalable Highly Adaptive Lasso*.
+and Mark J van der Laan. 2022. “<span class="nocase">hal9001</span>: The
+Scalable Highly Adaptive Lasso.”
 <https://doi.org/10.5281/zenodo.3558313>.
+
+</div>
+
+<div id="ref-Diaz2020a" class="csl-entry">
+
+Díaz, Iván, and Nima S. Hejazi. 2020. “<span class="nocase">Causal
+mediation analysis for stochastic interventions</span>.” *Journal of the
+Royal Statistical Society. Series B: Statistical Methodology* 82 (3):
+661–83. <https://doi.org/10.1111/rssb.12362>.
 
 </div>
 
@@ -1660,10 +1695,19 @@ in Medicine* 32 (30): 5260–77.
 
 <div id="ref-hejazi2020hal9001-joss" class="csl-entry">
 
-Hejazi, Nima S, Jeremy R Coyle, and Mark J van der Laan. 2020. “<span
-class="nocase">hal9001</span>: Scalable Highly Adaptive Lasso Regression
-in R.” *Journal of Open Source Software* 5 (53): 2526.
+Hejazi, Nima S, Jeremy R Coyle, and Mark J van der Laan. 2020.
+“<span class="nocase">hal9001</span>: Scalable Highly Adaptive Lasso
+Regression in R.” *Journal of Open Source Software* 5 (53): 2526.
 <https://doi.org/10.21105/joss.02526>.
+
+</div>
+
+<div id="ref-mccoy2023semiparametric" class="csl-entry">
+
+McCoy, David B., Alan E. Hubbard, Alejandro Schuler, and Mark J. van der
+Laan. 2023. “Semi-Parametric Identification and Estimation of
+Interaction and Effect Modification in Mixed Exposures Using Stochastic
+Interventions.” <https://arxiv.org/abs/2305.01849>.
 
 </div>
 

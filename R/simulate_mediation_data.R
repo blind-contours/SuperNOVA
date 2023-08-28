@@ -2,7 +2,7 @@
 #'
 #' @param n_obs Number of observations
 #' @param delta Delta for M1 Exposure
-#' @param breaks Number of bins to discretize exposure
+#' @param n_bins Number of bins to discretize exposure
 #'
 #' @return A data frame of simulated mediation data
 #' @export

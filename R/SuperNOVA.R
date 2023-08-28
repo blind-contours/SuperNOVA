@@ -40,6 +40,7 @@
 #' @param zeta_learner Learners for fitting Super Learner ensembles to the outcome model via \pkg{sl3}..
 #' @param n_folds Number of folds to use in cross-validation, default is 2.
 #' @param outcome_type Data type of the outcome, default is "continuous".
+#' @param mediator_type Data type of the mediator, default is "continuous".
 #' @param quantile_thresh Threshold based on quantiles of the F-statistic, used to
 #' identify "important" basis functions in the data-adaptive procedure.
 #' @param verbose Whether to run verbosely (default: FALSE).
@@ -67,6 +68,9 @@
 #' case: "MC" for Monte Carlo integration (default) or "AQ" for adaptive quadrature.
 #' @param use_multinomial Whether to use multinomial regression for binned exposures
 #' (default: FALSE).
+#' @param discover_only TRUE/FALSE. If TRUE, only the data-adaptive path discovery
+#' is done. No estimates are delivered only exposure mediator sets. If FALSE paths
+#' are both discovered and estimated.
 #'
 #' @return An S3 object of class \code{SuperNOVA} containing the results of the
 #' procedure to compute a TML or one-step estimate of the counterfactual mean
@@ -81,7 +85,7 @@
 #' @importFrom rlang :=
 #' @importFrom stringr str_count
 #' @import furrr
-#' @import purrr
+#' @importFrom purrr map
 #' @importFrom data.table rbindlist
 
 SuperNOVA <- function(w,
@@ -220,7 +224,7 @@ SuperNOVA <- function(w,
   `%notin%` <- Negate(`%in%`)
 
 
-  if (outcome_type == "binomial") {
+  if (outcome_type == "binary") {
     ## create the CV folds
     data_internal$folds <- create_cv_folds(n_folds, data_internal$y)
   } else {
@@ -725,7 +729,6 @@ SuperNOVA <- function(w,
             ## calculate dy part of EIF
             d_y <- g_shift_e_ratio_av * (av$y - qn_estim$av_predictions$noshift)
 
-
             ## calculate dzw part of EIF
             if (exposure_quantized == TRUE & use_multinomial == TRUE) {
               d_z_w <- integrate_q_g_quant(
@@ -897,7 +900,6 @@ SuperNOVA <- function(w,
                 g_model,
                 exposure,
                 psi_aw = psi_aw_av,
-                n_bins = n_bins,
                 use_multinomial = TRUE,
                 density_type = density_type
               )

@@ -12,6 +12,7 @@
 #'   'shift_additive' function and is currently limited to additive shifts.
 #' @param mu_learner An object containing a set of instantiated learners from the
 #'   'sl3' package, to be used in fitting an ensemble model.
+#' @param outcome_type Variable type of the outcome.
 #' @param covars A character vector of covariates to adjust for.
 #' @param av A dataframe containing the validation data specific to the fold.
 #' @param at A dataframe containing the training data specific to the fold.

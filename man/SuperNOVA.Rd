@@ -26,7 +26,8 @@ SuperNOVA(
   zeta_learner = NULL,
   n_folds = 2,
   outcome_type = "continuous",
-  quantile_thresh = 0.5,
+  mediator_type = "continuous",
+  quantile_thresh = 0,
   verbose = FALSE,
   parallel = TRUE,
   parallel_type = "multi_session",
@@ -35,13 +36,14 @@ SuperNOVA(
   hn_trunc_thresh = 10,
   adaptive_delta = FALSE,
   n_mc_sample = 1000,
-  exposure_quantized = FALSE,
+  exposure_quantized = TRUE,
   mediator_quantized = FALSE,
   density_type = "sl",
   n_bins = 10,
-  max_degree = 1,
+  max_degree = 2,
   integration_method = "MC",
-  use_multinomial = FALSE
+  use_multinomial = FALSE,
+  discover_only = FALSE
 )
 }
 \arguments{
@@ -86,6 +88,8 @@ g(A|Z,W) (a probability estimator, not a density estimator) for mediation via \p
 
 \item{outcome_type}{Data type of the outcome, default is "continuous".}
 
+\item{mediator_type}{Data type of the mediator, default is "continuous".}
+
 \item{quantile_thresh}{Threshold based on quantiles of the F-statistic, used to
 identify "important" basis functions in the data-adaptive procedure.}
 
@@ -128,6 +132,10 @@ case: "MC" for Monte Carlo integration (default) or "AQ" for adaptive quadrature
 
 \item{use_multinomial}{Whether to use multinomial regression for binned exposures
 (default: FALSE).}
+
+\item{discover_only}{TRUE/FALSE. If TRUE, only the data-adaptive path discovery
+is done. No estimates are delivered only exposure mediator sets. If FALSE paths
+are both discovered and estimated.}
 }
 \value{
 An S3 object of class \code{SuperNOVA} containing the results of the

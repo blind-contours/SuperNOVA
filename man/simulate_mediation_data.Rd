@@ -4,14 +4,14 @@
 \alias{simulate_mediation_data}
 \title{DGP for testing SuperNOVA with mediation}
 \usage{
-simulate_mediation_data(n_obs = 1e+05, delta = 1, breaks = breaks)
+simulate_mediation_data(n_obs = 1e+05, delta = 1, n_bins = 10)
 }
 \arguments{
 \item{n_obs}{Number of observations}
 
 \item{delta}{Delta for M1 Exposure}
 
-\item{breaks}{Number of bins to discretize exposure}
+\item{n_bins}{Number of bins to discretize exposure}
 }
 \value{
 A data frame of simulated mediation data

@@ -13,7 +13,8 @@ est_Q_w_shifted_mediation(
   av,
   at,
   upper_bound = upper_bound,
-  lower_bound = lower_bound
+  lower_bound = lower_bound,
+  outcome_type = outcome_type
 )
 }
 \arguments{
@@ -37,6 +38,8 @@ computed for the exposure \code{A}. This is passed to the internal
 \item{upper_bound}{Upper bound of exposure}
 
 \item{lower_bound}{Lower bound of exposure}
+
+\item{outcome_type}{Variable type of the outcome}
 }
 \value{
 A \code{data.table} with two columns, containing estimates of the

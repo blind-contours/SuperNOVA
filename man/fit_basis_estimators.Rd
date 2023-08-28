@@ -11,6 +11,7 @@ fit_basis_estimators(
   w_names,
   outcome,
   outcome_type,
+  mediator_type,
   quantile_thresh,
   zeta_learner,
   fold,
@@ -28,7 +29,9 @@ fit_basis_estimators(
 
 \item{outcome}{Variable name for the outcome}
 
-\item{outcome_type}{Type of the outcome variable (e.g., "continuous", "binary")}
+\item{outcome_type}{Variable type of the outcome}
+
+\item{mediator_type}{Variable type of the mediator}
 
 \item{quantile_thresh}{Quantile level to set the F-statistic threshold for determining
 basis functions for estimation}

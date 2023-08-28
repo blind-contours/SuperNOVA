@@ -12,7 +12,8 @@ indiv_stoch_shift_est_Q(
   av,
   at,
   lower_bound = lower_bound,
-  upper_bound = upper_bound
+  upper_bound = upper_bound,
+  outcome_type = "continuous"
 )
 }
 \arguments{
@@ -34,6 +35,8 @@ computed for the exposure 'A'. This is passed to the internal
 \item{lower_bound}{A numeric value representing the lower bound for the shifted exposure (optional).}
 
 \item{upper_bound}{A numeric value representing the upper bound for the shifted exposure (optional).}
+
+\item{outcome_type}{Variable type of the outcome.}
 }
 \value{
 A data.table with two columns, containing estimates of the

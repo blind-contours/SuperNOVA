@@ -14,6 +14,7 @@
 #'  \pkg{sl3}, to be used in fitting an ensemble model.
 #' @param av A \code{dataframe} of validation data specific to the fold
 #' @param at A \code{dataframe} of training data specific to the fold
+#' @param outcome_type Variable type of the outcome
 #' @importFrom stats glm as.formula predict
 #' @importFrom data.table as.data.table setnames copy set
 #' @importFrom stringr str_detect

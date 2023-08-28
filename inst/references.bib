@@ -1,3 +1,25 @@
+@misc{mccoy2023semiparametric,
+      title={Semi-Parametric Identification and Estimation of Interaction and Effect Modification in Mixed Exposures using Stochastic Interventions},
+      author={David B. McCoy and Alan E. Hubbard and Alejandro Schuler and Mark J. van der Laan},
+      year={2023},
+      eprint={2305.01849},
+      archivePrefix={arXiv},
+      primaryClass={stat.ME}
+}
+
+@article{McCoy2023mediation,
+abstract = {Mediation analysis in causal inference typically concentrates on one binary exposure, using deterministic interventions to split the average treatment effect into direct and indirect effects through a single mediator. Yet, real-world exposure scenarios often involve multiple continuous exposures impacting health outcomes through varied mediation pathways, which remain unknown a priori. Addressing this complexity, we introduce NOVAPathways, a methodological framework that identifies exposure-mediation pathways and yields unbiased estimates of direct and indirect effects when intervening on these pathways. By pairing data-adaptive target parameters with stochastic interventions, we offer a semi-parametric approach for estimating causal effects in the context of high-dimensional, continuous, binary, and categorical exposures and mediators. In our proposed cross-validation procedure, we apply sequential semi-parametric regressions to a parameter-generating fold of the data, discovering exposure-mediation pathways. We then use stochastic interventions on these pathways in an estimation fold of the data to construct efficient estimators of natural direct and indirect effects using flexible machine learning techniques. Our estimator proves to be asymptotically linear under conditions necessitating n to the negative quarter consistency of nuisance function estimation. Simulation studies demonstrate the square root n consistency of our estimator when the exposure is quantized, whereas for truly continuous data, approximations in numerical integration prevent square root n consistency. Our NOVAPathways framework, part of the open-source SuperNOVA package in R, makes our proposed methodology for high-dimensional mediation analysis available to researchers, paving the way for the application of modified exposure policies which can delivery more informative statistical results for public policy.},
+archivePrefix = {arXiv},
+arxivId = {2307.02667},
+author = {McCoy, David B. and Hubbard, Alan E. and van der Laan, Mark and Schuler, Alejandro},
+eprint = {2307.02667},
+file = {:Users/davidmccoy/Downloads/2307.02667.pdf:pdf},
+pages = {1--32},
+title = {{Unveiling Causal Mediation Pathways in High-Dimensional Mixed Exposures: A Data-Adaptive Target Parameter Strategy}},
+url = {http://arxiv.org/abs/2307.02667},
+year = {2023}
+}
+
 @software{coyle-sl3-rpkg,
   author = {Coyle, Jeremy R and Hejazi, Nima S and Malenica, Ivana and
     Phillips, Rachael V and Sofrygin, Oleg},
@@ -38,6 +60,24 @@
   pages={541--549},
   year={2012},
   publisher={Wiley Online Library}
+}
+
+@article{Diaz2020a,
+abstract = {Mediation analysis in causal inference has traditionally focused on binary exposures and deterministic interventions, and a decomposition of the average treatment effect in terms of direct and indirect effects. We present an analogous decomposition of the population intervention effect, defined through stochastic interventions on the exposure. Population intervention effects provide a generalized framework in which a variety of interesting causal contrasts can be defined, including effects for continuous and categorical exposures. We show that identification of direct and indirect effects for the population intervention effect requires weaker assumptions than its average treatment effect counterpart, under the assumption of no mediator–outcome confounders affected by exposure. In particular, identification of direct effects is guaranteed in experiments that randomize the exposure and the mediator. We propose various estimators of the direct and indirect effects, including substitution, reweighted and efficient estimators based on flexible regression techniques, allowing for multivariate mediators. Our efficient estimator is asymptotically linear under a condition requiring n1/4-consistency of certain regression functions. We perform a simulation study in which we assess the finite sample properties of our proposed estimators. We present the results of an illustrative study where we assess the effect of participation in a sports team on the body mass index among children, using mediators such as exercise habits, daily consumption of snacks and overweight status.},
+archivePrefix = {arXiv},
+arxivId = {1901.02776},
+author = {D{\'{i}}az, Iv{\'{a}}n and Hejazi, Nima S.},
+doi = {10.1111/rssb.12362},
+eprint = {1901.02776},
+file = {:Users/davidmccoy/Downloads/jrsssb_82_3_661.pdf:pdf},
+issn = {14679868},
+journal = {Journal of the Royal Statistical Society. Series B: Statistical Methodology},
+keywords = {Continuous exposures,Cross-world independence,Efficient estimation,Intermediate confounders,Non-parametric mediation analysis,Stochastic interventions},
+number = {3},
+pages = {661--683},
+title = {{Causal mediation analysis for stochastic interventions}},
+volume = {82},
+year = {2020}
 }
 
 @book{vdl2018targeted,

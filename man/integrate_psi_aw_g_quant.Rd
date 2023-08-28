@@ -38,8 +38,6 @@ computed for the exposure \code{A}. This is passed to the internal}
 \item{use_multinomial}{TRUE/FALSE whether multinomial regression is used}
 
 \item{density_type}{Type of density estimation sl or hal}
-
-\item{n_bins}{Number of bins in the discrete exposure}
 }
 \value{
 A \code{data.table} with two columns, containing estimates of the

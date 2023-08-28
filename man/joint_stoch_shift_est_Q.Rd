@@ -4,7 +4,15 @@
 \alias{joint_stoch_shift_est_Q}
 \title{Estimate the Outcome Mechanism}
 \usage{
-joint_stoch_shift_est_Q(exposures, deltas, mu_learner, covars, av, at)
+joint_stoch_shift_est_Q(
+  exposures,
+  deltas,
+  mu_learner,
+  covars,
+  av,
+  at,
+  outcome_type
+)
 }
 \arguments{
 \item{exposures}{A \code{character} vector of exposures to be shifted.}
@@ -21,6 +29,8 @@ computed for the exposure \code{A}. This is passed to the internal
 \item{av}{A \code{dataframe} of validation data specific to the fold}
 
 \item{at}{A \code{dataframe} of training data specific to the fold}
+
+\item{outcome_type}{Variable type of the outcome}
 }
 \value{
 A \code{data.table} with two columns, containing estimates of the

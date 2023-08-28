@@ -29,28 +29,39 @@ knitr::opts_chunk$set(
 <!-- [![DOI](https://joss.theoj.org/papers/10.21105/joss.02447/status.svg)](https://doi.org/10.21105/joss.02447) -->
 <!-- badges: end -->
 
-> Efficient Estimation of the Causal Effects of Non-Parametric Interactions and Effect Modifications using Stochastic Interventions
+> Efficient Estimation of the Causal Effects of Non-Parametric Interactions, Effect Modifications and Mediation using Stochastic Interventions
 __Authors:__ [David McCoy](https://davidmccoy.org)
 
 ---
 
 ## What's `SuperNOVA`?
 
-The `SuperNOVA` R package provides users with the tools necessary to identify the most predictive variable sets for a given outcome and develop efficient estimators for the counterfactual mean of the outcome under stochastic interventions on those variables. These interventions are shifts to the exposures that are dependent on naturally observed values [@diaz2012population; @haneuse2013estimation]. Building on the `txshift` package, which implements the TML estimator for a stochastic shift causal parameter, `SuperNOVA` extends this methodology to include joint stochastic interventions on two variables, allowing for the construction of a non-parametric interaction parameter and mediation (in development). Additionally, `SuperNOVA` estimates individual stochastic intervention outcomes under some delta shift compared to the outcome under no intervention, and a target parameter for effect modification, which is the mean outcome under intervention in regions of the covariate space that are also data-adaptively determined.
+The `SuperNOVA` R package offers a comprehensive toolset for identifying predictive variable sets, be it subsets of exposures, exposure-covariates, or exposure-mediators, for a specified outcome. It further assists in creating efficient estimators for the counterfactual mean of the outcome under stochastic interventions on these variable sets. This means making exposure changes that depend on naturally observed values, as described in past literature [@diaz2012population; @haneuse2013estimation].
 
-The `SuperNOVA` package provides a comprehensive solution for identifying variable sets that interact or modify effects in the context of mixed exposures. To achieve this, we use a k-fold cross-validation framework to estimate a data-adaptive parameter, namely, stochastic shift target parameters for variable sets that are discovered to be predictive of the outcome. We ensure unbiased estimation of the data-adaptive parameter by employing cross-validated targeted maximum likelihood estimation. In this approach, we split the data into parameter-generating and estimation samples. In the parameter-generating sample, we fit an ensemble of basis function estimators to the data and select the estimator with the lowest cross-validated mean squared error. We then extract important variable sets using ANOVA-like variance decomposition of the linear combination of basis functions. In the estimation fold, we use targeted learning to estimate causal target parameters for interaction, effect modification, and individual variable shifts. That is, we estimate the counterfactual mean different of these discovered variable sets under a shift of $\delta$ (an amount to shift an exposure by) compared to the observed outcome under observed exposure. `SuperNOVA` is a versatile tool that provides researchers with k-fold specific and pooled results for each target parameter. More details are available in the accompanying vignette.
+`SuperNOVA` introduces several estimators, constructed based on the patterns found in the data. At present, semi-parametric estimators are available for various contexts: interaction, effect modification, marginal impacts, and mediation. The target parameters that this package calculates are grounded in previously published works: one regarding interaction and effect modification [@mccoy2023semiparametric] and another dedicated to mediation [McCoy2023mediation].
 
-Users simply input a vector for exposures, covariates, and an outcome. The user also specifies the respective $\delta$ for each exposure (the amount to shift by) and if this delta should be adaptive based on positivity violations (see vignette). `SuperNOVA` comes with flexible default machine learning algorithms used in the data-adaptive procedure and for estimation of each of the nuisance parameters. Given these inputs `SuperNOVA` outputs tables for fold specific results (say exposure 1 under shifts for each fold it was found predictive) and pooled results which uses a pooled TMLE fluctuation across the folds to esimate an average effect. 
+The `SuperNOVA` package builds upon the capabilities of the `txshift` package, which implements the TML estimator for a stochastic shift causal parameter [@diaz2012population]. A notable extension in SuperNOVA is its support for joint stochastic interventions on two exposures. This allows for the creation of a non-parametric interaction parameter, shedding light on the combined effect of concurrently shifting two variables relative to the cumulative effect of individual shifts. At this stage, the focus is on two-way shifts.
 
+Various parameters are calculated based on identified patterns:
 
-`SuperNOVA` integrates with the [`sl3`
-package](https://github.com/tlverse/sl3) [@coyle-sl3-rpkg] to allow for ensemble
-machine learning to be leveraged in the estimation procedure for each nuisance parameter 
-and estimation of the data-adaptive parameters. 
-There are several stacks of machine learning algorithms used that are 
-constructed from `sl3` automatically. If the stack parameters are NULL, 
-SuperNOVA automatically builds ensembles of machine learning algorithms
-that are flexible yet not overly computationally taxing.
+* Interaction Parameter: When two exposures show signs of interaction, this parameter is calculated.
+
+* Individual Stochastic Interventions: When marginal effects are identified, this estimates the difference in outcomes upon making a specific shift compared to no intervention.
+
+* Effect Modification: In scenarios where effect modification is evident, the target parameter for it is the mean outcome under intervention within specific regions of the covariate space that the data suggests. This contrasts with the marginal effect by diving deeper into strata of covariates, for example, gauging the effects of exposure shifts among distinct genders.
+
+* Mediation: In scenarios where mediation is found, the target parameter are the natural direct and indirect effects as defined by stochastic intervention. That is, for the natural indirect effect, `SuperNOVA` estimates the impact of shifting an exposure through a mediator and the direct effect which is not through the mediator.
+
+Mediation in `SuperNOVA` is a new feature. Here, `SuperNOVA` brings to the table estimates initially conceived in another work [@Diaz2020a], while also supporting mediation estimates for continuous exposures. 
+
+The package ensures robustness by employing a k-fold cross-validation framework. This framework helps in estimating a data-adaptive parameter, which is the stochastic shift target parameters for the variable sets identified as influential for the outcome. The process begins by partitioning the data into parameter-generating and estimation samples. The former sample assists in fitting a collection of basis function estimators to the data. The one with the lowest cross-validated mean squared error is selected. Key variable sets are then extracted using an ANOVA-like variance decomposition methodology. For the estimation sample, targeted learning is harnessed to gauge causal target parameters across different contexts: interaction, mediation, effect modification, and individual variable shifts.
+
+By using SuperNOVA, users get access to a tool that offers both k-fold specific and aggregated results for each target parameter, ensuring that researchers can glean the most information from their data. For a more in-depth exploration, there's an accompanying vignette.
+
+To utilize the package, users need to provide vectors for exposures, covariates, mediators, and outcomes. They also specify the respective $\delta$ for each exposure (indicating the degree of shift) and if this delta should be adaptive in response to positivity violations. A detailed guide is provided in the vignette. With these inputs, `SuperNOVA` processes the data and delivers tables showcasing fold-specific results and aggregated outcomes, allowing users to glean insights effectively.
+
+`SuperNOVA` also incorporates features from the `sl3` package [@coyle-sl3-rpkg], facilitating ensemble machine learning in the estimation process. If the user does not specify any stack parameters, `SuperNOVA` will automatically create an ensemble of machine learning algorithms that strike a balance between flexibility and computational efficiency.
+
 
 ---
 
@@ -114,9 +125,7 @@ set.seed(429153)
 n_obs <- 100000
 ```
 
-
-
-The `simulate_data` is a function for generating synthetic data with a complex structure to study the causal effects of shifting values in the mixtures of exposures The primary purpose of this simulation is to provide a controlled environment for testing and validating estimates given by the SuperNOVA package.
+The `simulate_data` is a function for generating synthetic data with a complex structure to study the causal effects of shifting values in the mixtures of exposures. The primary purpose of this simulation is to provide a controlled environment for testing and validating estimates given by the `SuperNOVA` package.
 
 The simulate_data function generates synthetic data for n_obs observations with a pre-specified covariance structure (sigma_mod) and a shift parameter (delta). It simulates four mixture components (M1, M2, M3, M4) and three covariates (W1, W2, W3) with specific relationships between them. The outcome variable Y is generated as a function of these mixtures and covariates.
 
@@ -209,7 +218,7 @@ Let's first look at the truth:
 ```{r em truth}
 sim_out$effect_mod
 ```
-When W3 is greater than 0 the truth effect is 11, our estimates are 10 with CI coverage. When W3 is 0 the truth is 1, our estimate is 1.9 with CIs that cover the truth as well. 
+When W3 is 1 the truth effect is 11, our estimates are 11 with CI coverage. When W3 is 0 the truth is 1, our estimate is 1.9 with CIs that cover the truth as well. 
 
 And finally results for the joint shift which is a joint shift compared to additive individual shifts.
 

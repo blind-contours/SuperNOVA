@@ -19,6 +19,8 @@
 #' learning to fit Y|A,W
 #' @param fold Current fold in the cross-validation
 #' @param seed Seed number for consistent results
+#' @param outcome_type Variable type of the outcome
+#' @param mediator_type Variable type of the mediator
 #' @import sl3
 #' @importFrom magrittr %>%
 #' @importFrom rlang .data

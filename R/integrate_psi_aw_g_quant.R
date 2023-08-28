@@ -11,7 +11,6 @@
 #' @param exposure A \code{numeric} indicating the magnitude of the shift to be
 #'  computed for the exposure \code{A}. This is passed to the internal
 #' @param psi_aw Vector of pseudo regression predictions
-#' @param n_bins Number of bins in the discrete exposure
 #' @param use_multinomial TRUE/FALSE whether multinomial regression is used
 #' @param density_type Type of density estimation sl or hal
 #' @importFrom stats glm as.formula predict

@@ -18,6 +18,7 @@
 #' @param at A \code{dataframe} of training data specific to the fold
 #' @param upper_bound Upper bound of exposure
 #' @param lower_bound Lower bound of exposure
+#' @param outcome_type Variable type of the outcome
 #'
 #' @importFrom stats glm as.formula predict
 #' @importFrom data.table as.data.table setnames copy set

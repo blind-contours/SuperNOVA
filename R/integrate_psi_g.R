@@ -23,7 +23,7 @@
 #' @importFrom data.table as.data.table setnames copy set
 #' @importFrom stringr str_detect
 #' @importFrom assertthat assert_that
-#' @import pracma
+#' @importFrom pracma integral2
 #' @export
 #' @return A \code{data.table} with two columns, containing estimates of the
 #'  outcome mechanism at the natural value of the exposure Q(A, W) and an

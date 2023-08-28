@@ -30,7 +30,6 @@ covariates <- c(
   "vigorous_intense_30_days",
   "two_year_exam_weight",
   "two_year_interview_weight",
-  "birth_country",
   "caff_mg_1999"
 )
 
@@ -81,6 +80,12 @@ discretize <- function(x) {
 
 df_imputed[, metals] <- lapply(df_imputed[, metals], discretize)
 
+# Convert all character columns to factors
+df_imputed[, covariates] <- lapply(df_imputed[, covariates], function(x) {
+  if(is.character(x)) as.factor(x) else x
+})
+
+
 # Run SuperNOVA
 nhanes_results <- SuperNOVA(
   w = df_imputed[, covariates],
@@ -89,7 +94,7 @@ nhanes_results <- SuperNOVA(
   y = ifelse(df_imputed[, outcome] ==1, 1, 0),
   deltas = metal_deltas,
   n_folds = 10,
-  num_cores = 20,
+  num_cores = 6,
   outcome_type = "binary",
   mediator_type = "continuous",
   quantile_thresh = 0,
@@ -98,6 +103,21 @@ nhanes_results <- SuperNOVA(
   mediator_quantized = FALSE,
   var_sets = NULL
 )
+
+nhanes_results$`Basis Fold Proportions` <- subset(nhanes_results$`Basis Fold Proportions`, Proportions >= 0.5)
+
+
+
+threshold <- 0.5
+selected_names <- names(nhanes_results$`Basis Fold Proportions`[nhanes_results$`Basis Fold Proportions` >= threshold])
+selected_results <- nhanes_results$`Mediation Shift Results`[str_replace(selected_names, "-", "")]
+
+nhanes_results$`Indiv Shift Results`$cesium %>% mutate_if(is.numeric, round, 3)
+
+nhanes_results$`Mediation Shift Results`$cesiummonocyte_perc %>% mutate_if(is.numeric, round, 3)
+xtable(nhanes_results$`Mediation Shift Results`$tungstenmonocyte_perc %>% mutate_if(is.numeric, round, 3))
+xtable(nhanes_results$`Mediation Shift Results`$leadvitamin_e %>% mutate_if(is.numeric, round, 3))
+
 
 # Save results
 saveRDS(nhanes_results, output_path)

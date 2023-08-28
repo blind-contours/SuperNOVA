@@ -25,7 +25,7 @@
 #' @importFrom data.table as.data.table setnames copy set
 #' @importFrom stringr str_detect
 #' @importFrom assertthat assert_that
-#' @import pracma
+#' @importFrom pracma integral2
 #' @import sl3
 #' @export
 integrate_psi_g_cont <- function(av, at, covars, w_names, q_model, r_model, g_model, exposure, mediator, delta, n_samples, density_type, integration_method) {

@@ -223,7 +223,6 @@ SuperNOVA <- function(w,
   data_internal <- data.table::data.table(w, a, z, y)
   `%notin%` <- Negate(`%in%`)
 
-
   if (outcome_type == "binary") {
     ## create the CV folds
     data_internal$folds <- create_cv_folds(n_folds, data_internal$y)
@@ -379,20 +378,17 @@ SuperNOVA <- function(w,
             )
 
             # Check if basis is one exposure and baseline covariates ---------
-          } else if (sum(stringr::str_count(matches, paste(c(a_names), collapse = "|"))) == 1 &
-            sum(stringr::str_count(matches, paste(c(w_names), collapse = "|"))) >= 1) {
+          } else if (sum(sapply(matches, function(x) sum(x %in% a_names))) == 1 &
+            sum(sapply(matches, function(x) sum(x %in% w_names))) >= 1) {
+
             at <- data_internal[data_internal$folds != fold_k, ]
             av <- data_internal[data_internal$folds == fold_k, ]
 
-            exposure <- stringr::str_extract(
-              matches,
-              paste(c(a_names), collapse = "|")
-            )
-            effect_m_name <- stringr::str_extract(matches, paste(c(w_names),
-              collapse = "|"
-            ))
-            exposure <- exposure[!is.na(exposure)]
-            effect_m_name <- effect_m_name[!is.na(effect_m_name)]
+            exposure <- matches[sapply(matches, function(x) x %in% a_names)]
+            effect_m_name <- matches[sapply(matches, function(x) x %in% w_names)]
+
+            # exposure <- exposure[!is.na(exposure)]
+            # effect_m_name <- effect_m_name[!is.na(effect_m_name)]
 
             delta <- deltas[[exposure]]
             covars <- c(w_names)
@@ -592,24 +588,6 @@ SuperNOVA <- function(w,
             ))
             exposure <- exposure[!is.na(exposure)]
             mediator <- mediator[!is.na(mediator)]
-
-            ## get delta from the list
-
-
-            # num_unique <- length(unique(data_internal[[exposure]]))
-            # num_total <- length(data_internal[[exposure]])
-            # exposure_numeric <- is.numeric(data_internal[[exposure]]) && !is.factor(data_internal[[exposure]]) && num_unique / num_total > 0.5
-
-            # if (exposure_numeric == TRUE & exposure_quantized == FALSE) {
-            #   data_internal_c <- data_internal
-            #   quantile_breaks <- quantile(data_internal_c[[exposure]], probs = seq(0, 1, length.out = n_bins + 1), na.rm = TRUE)
-            #   data_internal_c[[exposure]] <- as.numeric(cut(data_internal_c[[exposure]], breaks = quantile_breaks, labels = FALSE, include.lowest = TRUE))
-            #
-            #   at <- data_internal_c[data_internal_c$folds != fold_k, ]
-            #   av <- data_internal_c[data_internal_c$folds == fold_k, ]
-            # }else{
-
-            # }
 
             delta <- deltas[[exposure]]
 

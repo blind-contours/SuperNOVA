@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="David McCoy" />
+
+<meta name="date" content="2023-10-09" />
+
+<title>Analysis of Variance using Super Learner with Data-Adaptive Stochastic Interventions</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+<script>$(document).ready(function(){
+    if (typeof $('[data-toggle="tooltip"]').tooltip === 'function') {
+        $('[data-toggle="tooltip"]').tooltip();
+    }
+    if ($('[data-toggle="popover"]').popover === 'function') {
+        $('[data-toggle="popover"]').popover();
+    }
+});
+</script>
+<style type="text/css">
+.lightable-minimal {
+border-collapse: separate;
+border-spacing: 16px 1px;
+width: 100%;
+margin-bottom: 10px;
+}
+.lightable-minimal td {
+margin-left: 5px;
+margin-right: 5px;
+}
+.lightable-minimal th {
+margin-left: 5px;
+margin-right: 5px;
+}
+.lightable-minimal thead tr:last-child th {
+border-bottom: 2px solid #00000050;
+empty-cells: hide;
+}
+.lightable-minimal tbody tr:first-child td {
+padding-top: 0.5em;
+}
+.lightable-minimal.lightable-hover tbody tr:hover {
+background-color: #f5f5f5;
+}
+.lightable-minimal.lightable-striped tbody tr:nth-child(even) {
+background-color: #f5f5f5;
+}
+.lightable-classic {
+border-top: 0.16em solid #111111;
+border-bottom: 0.16em solid #111111;
+width: 100%;
+margin-bottom: 10px;
+margin: 10px 5px;
+}
+.lightable-classic tfoot tr td {
+border: 0;
+}
+.lightable-classic tfoot tr:first-child td {
+border-top: 0.14em solid #111111;
+}
+.lightable-classic caption {
+color: #222222;
+}
+.lightable-classic td {
+padding-left: 5px;
+padding-right: 5px;
+color: #222222;
+}
+.lightable-classic th {
+padding-left: 5px;
+padding-right: 5px;
+font-weight: normal;
+color: #222222;
+}
+.lightable-classic thead tr:last-child th {
+border-bottom: 0.10em solid #111111;
+}
+.lightable-classic.lightable-hover tbody tr:hover {
+background-color: #F9EEC1;
+}
+.lightable-classic.lightable-striped tbody tr:nth-child(even) {
+background-color: #f5f5f5;
+}
+.lightable-classic-2 {
+border-top: 3px double #111111;
+border-bottom: 3px double #111111;
+width: 100%;
+margin-bottom: 10px;
+}
+.lightable-classic-2 tfoot tr td {
+border: 0;
+}
+.lightable-classic-2 tfoot tr:first-child td {
+border-top: 3px double #111111;
+}
+.lightable-classic-2 caption {
+color: #222222;
+}
+.lightable-classic-2 td {
+padding-left: 5px;
+padding-right: 5px;
+color: #222222;
+}
+.lightable-classic-2 th {
+padding-left: 5px;
+padding-right: 5px;
+font-weight: normal;
+color: #222222;
+}
+.lightable-classic-2 tbody tr:last-child td {
+border-bottom: 3px double #111111;
+}
+.lightable-classic-2 thead tr:last-child th {
+border-bottom: 1px solid #111111;
+}
+.lightable-classic-2.lightable-hover tbody tr:hover {
+background-color: #F9EEC1;
+}
+.lightable-classic-2.lightable-striped tbody tr:nth-child(even) {
+background-color: #f5f5f5;
+}
+.lightable-material {
+min-width: 100%;
+white-space: nowrap;
+table-layout: fixed;
+font-family: Roboto, sans-serif;
+border: 1px solid #EEE;
+border-collapse: collapse;
+margin-bottom: 10px;
+}
+.lightable-material tfoot tr td {
+border: 0;
+}
+.lightable-material tfoot tr:first-child td {
+border-top: 1px solid #EEE;
+}
+.lightable-material th {
+height: 56px;
+padding-left: 16px;
+padding-right: 16px;
+}
+.lightable-material td {
+height: 52px;
+padding-left: 16px;
+padding-right: 16px;
+border-top: 1px solid #eeeeee;
+}
+.lightable-material.lightable-hover tbody tr:hover {
+background-color: #f5f5f5;
+}
+.lightable-material.lightable-striped tbody tr:nth-child(even) {
+background-color: #f5f5f5;
+}
+.lightable-material.lightable-striped tbody td {
+border: 0;
+}
+.lightable-material.lightable-striped thead tr:last-child th {
+border-bottom: 1px solid #ddd;
+}
+.lightable-material-dark {
+min-width: 100%;
+white-space: nowrap;
+table-layout: fixed;
+font-family: Roboto, sans-serif;
+border: 1px solid #FFFFFF12;
+border-collapse: collapse;
+margin-bottom: 10px;
+background-color: #363640;
+}
+.lightable-material-dark tfoot tr td {
+border: 0;
+}
+.lightable-material-dark tfoot tr:first-child td {
+border-top: 1px solid #FFFFFF12;
+}
+.lightable-material-dark th {
+height: 56px;
+padding-left: 16px;
+padding-right: 16px;
+color: #FFFFFF60;
+}
+.lightable-material-dark td {
+height: 52px;
+padding-left: 16px;
+padding-right: 16px;
+color: #FFFFFF;
+border-top: 1px solid #FFFFFF12;
+}
+.lightable-material-dark.lightable-hover tbody tr:hover {
+background-color: #FFFFFF12;
+}
+.lightable-material-dark.lightable-striped tbody tr:nth-child(even) {
+background-color: #FFFFFF12;
+}
+.lightable-material-dark.lightable-striped tbody td {
+border: 0;
+}
+.lightable-material-dark.lightable-striped thead tr:last-child th {
+border-bottom: 1px solid #FFFFFF12;
+}
+.lightable-paper {
+width: 100%;
+margin-bottom: 10px;
+color: #444;
+}
+.lightable-paper tfoot tr td {
+border: 0;
+}
+.lightable-paper tfoot tr:first-child td {
+border-top: 1px solid #00000020;
+}
+.lightable-paper thead tr:last-child th {
+color: #666;
+vertical-align: bottom;
+border-bottom: 1px solid #00000020;
+line-height: 1.15em;
+padding: 10px 5px;
+}
+.lightable-paper td {
+vertical-align: middle;
+border-bottom: 1px solid #00000010;
+line-height: 1.15em;
+padding: 7px 5px;
+}
+.lightable-paper.lightable-hover tbody tr:hover {
+background-color: #F9EEC1;
+}
+.lightable-paper.lightable-striped tbody tr:nth-child(even) {
+background-color: #00000008;
+}
+.lightable-paper.lightable-striped tbody td {
+border: 0;
+}
+</style>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">
+
+div.csl-bib-body { }
+div.csl-entry {
+clear: both;
+}
+.hanging div.csl-entry {
+margin-left:2em;
+text-indent:-2em;
+}
+div.csl-left-margin {
+min-width:2em;
+float:left;
+}
+div.csl-right-inline {
+margin-left:2em;
+padding-left:1em;
+}
+div.csl-indent {
+margin-left: 2em;
+}
+</style>
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Analysis of Variance using Super Learner
+with Data-Adaptive Stochastic Interventions</h1>
+<h4 class="author">David McCoy</h4>
+<h4 class="date">2023-10-09</h4>
+
+
+
+<div id="motivation" class="section level2">
+<h2>Motivation</h2>
+<p>The motivation behind the package SuperNOVA is to address the
+limitations of traditional statistical methods in environmental
+epidemiology studies. Analysts are often interested in understanding the
+joint impact of a mixed exposure, i.e. a vector of exposures, but the
+most important variables and variable sets remain unknown. Traditional
+methods make overly simplistic assumptions, such as linear and additive
+relationships, and the resulting statistical quantities may not be
+directly applicable to public policy decisions.</p>
+<p>To overcome these limitations, SuperNOVA uses data-adaptive machine
+learning methods to identify the variables and variable sets that have
+the most explanatory power on an outcome of interest. The package builds
+a discrete Super Learner, which is then analyzed using ANOVA style
+analysis to determine the variables that contribute most to the model
+fit through basis functions. The target parameter, which may be a single
+shift, effect modification, or interaction, is then applied to the
+data-adaptively determined variable sets.</p>
+<p>In this way, SuperNOVA allows analysts to explore modified treatment
+policies and ask causal questions, such as “If exposure to collections
+of PFAS chemicals increases, what is the change in cholesterol, immune
+function, or cancer?” By providing more nuanced and data-driven
+insights, SuperNOVA aims to inform public policy decisions and improve
+our understanding of the impact of mixed exposures on health
+outcomes.</p>
+<div id="data-adaptive-machine-learning" class="section level3">
+<h3>Data-Adaptive Machine Learning</h3>
+<p>The package SuperNOVA uses a data-adaptive approach to identify
+important variables and variable sets in mixed exposure studies. To
+avoid over-fitting and incorrect model assumptions, the package employs
+cross-validation procedures. In each fold, the training data is used
+to:</p>
+<ol style="list-style-type: decimal">
+<li>Identify the variable sets of interest using flexible machine
+learning algorithms.</li>
+<li>Fit estimators for the relevant nuisance parameters and the final
+target parameter of interest using the identified variable sets.</li>
+<li>Obtain estimates of the nuisance parameters and the final target
+parameter of interest using the held-out validation data.</li>
+<li>The process is repeated in each fold to provide an estimate specific
+to each validation data. To optimize the balance between bias and
+variance, SuperNOVA uses targeted minimum loss based estimation
+(TMLE).</li>
+<li>Estimates across the folds are then averaged and a pooled
+fluctuation step is performed to estimate the efficient influence
+function and derive pooled variance estimates.</li>
+</ol>
+</div>
+</div>
+<div id="data-and-notation" class="section level2">
+<h2>Data and Notation</h2>
+<div id="our-data-generating-system" class="section level3">
+<h3>Our Data-Generating System</h3>
+<p>Consider <span class="math inline">\(n\)</span> observed units <span class="math inline">\(O_1, \ldots, O_n\)</span>, where each unit <span class="math inline">\(O_i\)</span> is a random variable <span class="math inline">\((V \subset W, A, Y)\)</span>. The variable <span class="math inline">\(W\)</span> represents baseline covariates (such as
+age, sex, and education level), which are not considered to be effect
+modifiers. <span class="math inline">\(V\)</span> is a subset of <span class="math inline">\(W\)</span> that may be potential effect modifiers.
+<span class="math inline">\(A\)</span> is the exposure variable of
+interest (e.g., mixed pesticide biomarkers, metals, etc.), and <span class="math inline">\(Y\)</span> is the outcome of interest (e.g.,
+disease status).</p>
+<p>We use a nonparametric structural equation model (NPSEM) to define
+how the system changes under interventions on <span class="math inline">\(A\)</span>. The NPSEM is based on <span class="citation">Pearl (2000)</span> and the observed data is defined as
+<span class="math inline">\(O = (W, A, Y)\)</span>.</p>
+<p>The NPSEM assumes a temporal ordering of the variables, that <span class="math inline">\(Y\)</span> occurs after <span class="math inline">\(A\)</span>, which occurs after <span class="math inline">\(W\)</span>. Each variable is generated from its
+corresponding function, and each function depends on exogenous variables
+denoted by <span class="math inline">\(U\)</span>. The exogenous
+variables contain all unobserved causes of the corresponding observed
+variable.</p>
+<p><span class="math display">\[\begin{align*}\label{eqn:npsem}
+  W &amp;= f_W(U_W) \\ A &amp;= f_A(W, U_A) \\ Y &amp;= f_Y(A, W, U_Y),
+\end{align*}\]</span></p>
+<p>The likelihood of the data <span class="math inline">\(O\)</span> can
+be factorized, and the components of the likelihood are essential for
+understanding the impact of interventions and evaluating corresponding
+causal effects.</p>
+</div>
+<div id="factorizing-the-likelihood" class="section level3">
+<h3>Factorizing the Likelihood</h3>
+<p>The likelihood of the data <span class="math inline">\(O\)</span>
+admits a factorization, wherein, for <span class="math inline">\(p_0^O\)</span>, the density of <span class="math inline">\(O\)</span> with respect to the product measure,
+the density evaluated on a particular observation <span class="math inline">\(o\)</span> may be a written <span class="math display">\[\begin{equation}
+  p_0^O(o) = q^O_{0,Y}(y \mid A = a, W = w) q^O_{0,A}(a \mid W = w)
+  q^O_{0,W}(w)
+\end{equation}\]</span> where <span class="math inline">\(q_{0,
+Y}\)</span> is the conditional density of <span class="math inline">\(Y\)</span> given <span class="math inline">\((A,
+W)\)</span> with respect to some dominating measure, <span class="math inline">\(q_{0, A}\)</span> is the conditional density of
+<span class="math inline">\(A\)</span> given <span class="math inline">\(W\)</span> with respect to dominating measure
+<span class="math inline">\(\mu\)</span>, and <span class="math inline">\(q_{0, W}\)</span> is the density of <span class="math inline">\(W\)</span> with respect to dominating measure
+<span class="math inline">\(\nu\)</span>. Further, for ease of notation,
+let <span class="math inline">\(Q(A, W) = \mathbb{E}[Y \mid A,
+W]\)</span>, <span class="math inline">\(g(A \mid W) = \mathbb{P}(A \mid
+W)\)</span>, and <span class="math inline">\(q_W\)</span> the marginal
+distribution of <span class="math inline">\(W\)</span>. These components
+of the likelihood will be essential in developing an understanding of
+the manner in which stochastic treatment regimes perturb a system and
+how a corresponding causal effect may be evaluated.</p>
+</div>
+<div id="overview-stochastic-shifts" class="section level3">
+<h3>Overview Stochastic Shifts</h3>
+<p>In single exposure problems, we can use the stochastic shift
+framework to calculate the average outcome after shifting the exposure.
+A stochastic intervention changes the function that defines the exposure
+<span class="math inline">\(A\)</span> and its conditional density <span class="math inline">\(g(A \mid W)\)</span> with a candidate density
+<span class="math inline">\(g_{A_{\delta}}(A \mid W)\)</span>. The new
+density defines how the exposure is modified by a random draw from <span class="math inline">\(g_{A_{\delta}}(A \mid W)\)</span>. This can
+include static interventions, where all mass is placed on a single
+value, such as the average treatment effect, where all observations
+either receive or don’t receive treatment.</p>
+<p>Stochastic interventions give rise to a counterfactual outcome <span class="math inline">\(Y_{A_{\delta}} := f_Y(A_{\delta}, W,
+U_Y)\)</span>, which is obtained by replacing the natural value of the
+treatment with a shifted value. The degree of shift <span class="math inline">\(\delta\)</span> describes the reduction in
+exposure, based on the individual’s baseline characteristics <span class="math inline">\(W\)</span>. We can evaluate the causal effect of
+the intervention by finding the counterfactual mean of the outcome under
+the modified distribution, <span class="math inline">\(\psi_{0, \delta}
+= E_{P_0}^{A_{\delta}}{Y_{A_{\delta}}}\)</span>. To accurately estimate
+this target causal estimand, we must assume that the data is generated
+by independent and identically distributed units and that there is no
+unmeasured confounding or interference and there is consistency.</p>
+<p>Effectively, we estimate the the natural density of <span class="math inline">\(a\)</span> given <span class="math inline">\(W\)</span> and then get predicted values of this
+density under a shift, such as all individuals receive <span class="math inline">\(10\)</span> parts per trillion less exposure to
+endocrine disrupting compounds. We then estimate how this changes the
+health outcome under this shift.</p>
+</div>
+</div>
+<div id="target-parameters" class="section level2">
+<h2>Target Parameters</h2>
+<p>Of course, in the setting of mixed exposures we don’t know which
+individual exposures have a marginal impact, which exposures have a
+joint impact and which marginal or joint impacts may be modified by
+baseline covariates. Considering these variable(s) fixed for now, we
+develop non-parametric target parameters for interaction and effect
+modification based on stochastic interventions. Our target parameters
+are:</p>
+<ol style="list-style-type: decimal">
+<li>Marginal impact of an exposure: <span class="math inline">\(E[Y^{a +
+\delta}] - E[Y^a]\)</span> - the expected outcome given a shift compared
+to expected outcome under observed exposure.</li>
+<li>Interaction of exposures: <span class="math inline">\(\underbrace{E[E[Y_{A1_{\delta_1},
+A2_{\delta_2}}]}_{\text{1. Joint Shift of A1 and A2}} -
+[\underbrace{E[Y_{A1_{\delta_1}, A2}]}_{\text{2. Individual Shift of
+A1}} + \underbrace{ E[Y_{A2_{\delta_2}, A1}]]]}_{\text{3. Individual
+Shift of A2}}\)</span> - the expected outcome given a joint shift
+compared to the sum of individual shift of the respective variables</li>
+<li>Effect Modification of an exposure: <span class="math display">\[E[Y^{a + \delta} | V = 1]\]</span> - the expected
+outcome given a shift in an exposure within a covariate region</li>
+</ol>
+<p>With these target parameters for a fixed exposure(s) defined we now
+can think about data-adaptively identifying them.</p>
+</div>
+<div id="data-adative-variable-set-selection" class="section level2">
+<h2>Data-Adative Variable Set Selection</h2>
+<p><code>SuperNOVA</code> fits a Super Learner for of estimators which
+use varying smoothness orders of basis functions and their tensor
+products. These include estimators such as <code>earth</code>,
+<code>polySpline</code> and <code>hal9001</code> which are all varying
+types of non-parametric regression functions.</p>
+<p>Once Super Learner has identified the best model we construct a model
+matrix of the basis functions (the linear combination of different
+regions in the observation space that are used to predict the outcome.
+We then partition the variance using classic ANOVA decompositions by
+testing the null that some set of coefficient values (the <span class="math inline">\(\beta_{s,i}\)</span>) are 0 (e.g., all terms that
+contain a particular variable, or represent two-way basis functions). We
+can then aggregate partial F-statistics for the basis functions up to
+the variable level for variable/interaction importance measures.
+Algorithms used in <code>SuperNOVA</code> return tensor products of
+arbitrary order and include.</p>
+<div id="basis-functions" class="section level3">
+<h3>Basis functions</h3>
+<p>Indicator variables can be used to indicate if a variable <span class="math inline">\(A\)</span> is less than or equal to a specific
+value <span class="math inline">\(a_s\)</span>. The same can be done for
+multiple variable, <span class="math inline">\(A_1, A_2\)</span>, to
+determine if both variable are less than or equal to a specific value.
+Thus, a function of our outcome is written as:</p>
+<p><span class="math display">\[\psi_{\beta} = \beta_0 + \sum_{s\subset
+\{1,2,...,p\}}\sum_{i=1}^{n} \beta_{s,i} \phi_{s,i},
+    \text{ where } \phi_{s,i} = I(\tilde{A}_{i,s} \leq w_s), A \in
+\mathbb{R}^p\]</span></p>
+<p>and <span class="math inline">\(s\)</span> denotes indices of subsets
+of the <span class="math inline">\(W\)</span> (e.g., both functions of
+single variables and two variables). The placement of knot-points for
+every potential value is not feasible in most real-world scenarios and
+therefore <code>SuperNOVA</code> chooses the best estimator from a class
+of basis algorithms which approximate this exhaustive function.</p>
+</div>
+<div id="defining-important-basis-functions" class="section level3">
+<h3>Defining Important Basis Functions</h3>
+<p>The user can pass into <code>SuperNOVA</code> the parameter
+<code>quantile_thresh</code> which designates the F-statistic threshold
+by which basis functions are kept. For example, if the user uses
+<code>quantile_thresh = 0.25</code> and the resulting vector is <span class="math inline">\(M_1, M_1V_1, M_1M_3\)</span> then this indicates
+that the basis functions that had an F-statistic above the 25th quantile
+included basis functions for <span class="math inline">\(M_1\)</span>
+alone, basis functions for <span class="math inline">\(M_1\)</span> and
+<span class="math inline">\(V_1\)</span> (exposure and effect modifier)
+and basis functions for <span class="math inline">\(M_1\)</span> and
+<span class="math inline">\(M_3\)</span> (twp exposures).</p>
+<p>This means that, within this fold we would train estimators for each
+of our estimates of interest, that is, the individual stochastic shift
+of <span class="math inline">\(M_1\)</span>, how <span class="math inline">\(V_1\)</span> modifies the shift relationship
+between <span class="math inline">\(M_1\)</span> on <span class="math inline">\(Y\)</span>, and the joint shift of <span class="math inline">\(M1,M_3\)</span>.</p>
+<p>We mention folds above, this is because we use V-fold
+cross-validation wherein we split the full data into folds. In the
+parameter-generating sample, we find the variable sets from the best
+basis function estimator and we train our estimators for the nuisance
+parameters necessary for each parameter. In the estimation-sample, we
+then get our predictions from these models and our final plug-in
+targeted learning estimator for the fold specific estimates. This is
+explained in more detail next.</p>
+</div>
+</div>
+<div id="data-adaptive-esimation" class="section level2">
+<h2>Data-Adaptive Esimation</h2>
+<p>Because the data is being used to both identify a target parameter
+and make estimates given this parameter, sample splitting
+(cross-validation) is used to avoid bias from over fitting, but still
+uses the entire data set to estimate a data-adaptive parameter. V-fold
+cross-validation involves: (i) <span class="math inline">\({1,...,
+n}\)</span>, observations, is divided into <span class="math inline">\(V\)</span> equal size subgroups, (ii) for each
+<span class="math inline">\(v\)</span>, an estimation-sample,
+notationally <span class="math inline">\(P_{n,v}\)</span> , is defined
+by the v-th subgroup of size n/V, while the parameter-generating sample,
+<span class="math inline">\(P_{n,v^c}\)</span>, is its complement. More
+concretely, for split <span class="math inline">\(v\)</span> the
+empirical distribution, <span class="math inline">\(P_{n,v^c}\)</span>,
+is used to define the exposure(s) <span class="math inline">\(A\)</span>
+given our <span class="math inline">\(\textit{a priori}\)</span> basis
+function algorithm which outputs the target variables based on our ANOVA
+test of the basis functions used. The observations not in <span class="math inline">\(P_{n,v^c}\)</span>, namely the empirical
+distribution for <span class="math inline">\(P_{n,v}\)</span> then is
+used to generate the parameter of interest. That is, if we had 1000
+observations and 4 folds, our estimation sample <span class="math inline">\(P_{n,v}\)</span> would be of size 250. For each
+fold, the respective 750 observations would be used to train our
+estimators <span class="math inline">\(g_n\)</span> and <span class="math inline">\(Q_n\)</span> and given these estimators we then
+get predictions given the respective 250 observations. The predicted
+density, <span class="math inline">\(g_n\)</span> and outcome <span class="math inline">\(Q_n\)</span> are then used to construct our clever
+covariate for the shift intervention, <span class="math inline">\(H_n(a_i, w_i)\)</span> for the TMLE update within
+the fold. Therefore, TMLE updated estimates are given for each fold
+using the respective estimation sample data <span class="math inline">\(P_{n,v}\)</span>.</p>
+</div>
+<div id="targeted-learning" class="section level2">
+<h2>Targeted Learning</h2>
+<p>We use targeted minimum loss based estimation (TMLE) to debias our
+initial outcome estimates given a shift in exposure such that the
+resulting estimator is asymptotically unbiased and has the smallest
+variance. This procedure involves constructing a least favorable
+submodel which uses a ratio of conditional exposure densities under
+shift and now shift as a covariate to debias the initial estimates. More
+details of targeted learning for stochastic shifts are here <span class="citation">Dı́az and van der Laan (2012)</span></p>
+</div>
+<div id="pooling-estimates-found-across-the-folds" class="section level2">
+<h2>Pooling Estimates Found Across the Folds</h2>
+<p>Because <code>SuperNOVA</code> gets the TMLE updated shift parameter
+for each condition (individual, effect modification interaction and
+joint), for each fold, we can pool estimates that are found across all
+folds (are consistently found in the data adaptive procedure). We do
+this by stacking the nuisance parameter estimates across the folds to do
+a pooled fluctuation step, making use of the full data to solve the
+efficient influence function. This allows us to estimate variance for
+the full data which results in tighter confidence intervals. Point
+estimates across the folds are averaged. Thus, <code>SuperNOVA</code>
+outputs estimates for both V-fold specific results and pooled
+estimates.</p>
+</div>
+<div id="data-adaptive-delta" class="section level2">
+<h2>Data Adaptive Delta</h2>
+<p>For each exposure, the user inputs a respective delta, for example
+for exposures <span class="math inline">\(M1, M2, M3\)</span> the
+analyst puts in the <code>deltas</code> vector</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>deltas <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;M1&quot;</span> <span class="ot">=</span> <span class="dv">1</span>, <span class="st">&quot;M2&quot;</span> <span class="ot">=</span> <span class="fl">2.3</span>, <span class="st">&quot;M3&quot;</span> <span class="ot">=</span> <span class="fl">1.4</span>)</span></code></pre></div>
+<p>Which assigns a delta shift amount to each exposure. However, because
+the user doesn’t know the underlying experimentation in the data, a
+delta that is too big may result in positivity violations which leads to
+bias and high variance of the estimator. That is, if the user asks for a
+shift in exposure density that is very unlikely given the data. To solve
+this, the analyst can also choose to set
+<code>adaptive_delta = TRUE</code> which then makes the shift amount a
+data adaptive parameter as well. The delta will be reduced until the max
+of the ratio of densities for each exposure is less than or equal to
+<code>hn_trunc_thresh</code>.</p>
+</div>
+<div id="application" class="section level2">
+<h2>Application:</h2>
+<p>First, let’s load the packages we’ll use and set a seed for
+simulation:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(data.table)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="fu">library</span>(kableExtra)</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="fu">library</span>(SuperNOVA)</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>seed <span class="ot">&lt;-</span> <span class="dv">325911</span></span></code></pre></div>
+<p>Below we show implementation of <code>SuperNOVA</code> using
+simulated data. Because estimates are given for each data-adaptively
+identified parameter for each fold, after the demonstration we also show
+our pooled estimate approach for parameters that are found across all
+the folds.</p>
+</div>
+<div id="niehs-mixture-workshop-data" class="section level2">
+<h2>NIEHS Mixture Workshop Data</h2>
+<p>The <code>SupernOVA</code> package comes with 2 datasets from the
+2015-NIEHS-Mixtures-Workshop simulation data (<a href="https://github.com/niehs-prime/2015-NIEHS-MIxtures-Workshop" class="uri">https://github.com/niehs-prime/2015-NIEHS-MIxtures-Workshop</a>).
+Let’s load this data and run <code>SuperNOVA</code> to see if we
+identify 1. any interactions in the mixture variables or any marginally
+important mixture variables and/or 2. any effect modifying
+variables.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">data</span>(<span class="st">&quot;NIEHS_data_1&quot;</span>, <span class="at">package =</span> <span class="st">&quot;SuperNOVA&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>NIEHS_data_1<span class="sc">$</span>W <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="fu">nrow</span>(NIEHS_data_1), <span class="at">mean =</span> <span class="dv">0</span>, <span class="at">sd =</span> <span class="fl">0.1</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>w <span class="ot">&lt;-</span> NIEHS_data_1[, <span class="fu">c</span>(<span class="st">&quot;W&quot;</span>, <span class="st">&quot;Z&quot;</span>)]</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>a <span class="ot">&lt;-</span> NIEHS_data_1[, <span class="fu">c</span>(<span class="st">&quot;X1&quot;</span>, <span class="st">&quot;X2&quot;</span>, <span class="st">&quot;X3&quot;</span>, <span class="st">&quot;X4&quot;</span>, <span class="st">&quot;X5&quot;</span>, <span class="st">&quot;X6&quot;</span>, <span class="st">&quot;X7&quot;</span>)]</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>y <span class="ot">&lt;-</span> NIEHS_data_1<span class="sc">$</span>Y</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>deltas <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  <span class="st">&quot;X1&quot;</span> <span class="ot">=</span> <span class="dv">1</span>, <span class="st">&quot;X2&quot;</span> <span class="ot">=</span> <span class="dv">1</span>, <span class="st">&quot;X3&quot;</span> <span class="ot">=</span> <span class="dv">1</span>,</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>  <span class="st">&quot;X4&quot;</span> <span class="ot">=</span> <span class="dv">1</span>, <span class="st">&quot;X5&quot;</span> <span class="ot">=</span> <span class="dv">1</span>, <span class="st">&quot;X6&quot;</span> <span class="ot">=</span> <span class="dv">1</span>, <span class="st">&quot;X7&quot;</span> <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>)</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>ptm <span class="ot">&lt;-</span> <span class="fu">proc.time</span>()</span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>NIEH_results <span class="ot">&lt;-</span> <span class="fu">SuperNOVA</span>(</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>  <span class="at">w =</span> w,</span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>  <span class="at">a =</span> a,</span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>  <span class="at">y =</span> y,</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>  <span class="at">deltas =</span> deltas,</span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a>  <span class="at">estimator =</span> <span class="st">&quot;tmle&quot;</span>,</span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a>  <span class="at">fluctuation =</span> <span class="st">&quot;standard&quot;</span>,</span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a>  <span class="at">n_folds =</span> <span class="dv">2</span>,</span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a>  <span class="at">outcome_type =</span> <span class="st">&quot;continuous&quot;</span>,</span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a>  <span class="at">quantile_thresh =</span> <span class="dv">0</span>,</span>
+<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a>  <span class="at">verbose =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a>  <span class="at">parallel =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a>  <span class="at">parallel_type =</span> <span class="st">&quot;sequential&quot;</span>,</span>
+<span id="cb5-21"><a href="#cb5-21" tabindex="-1"></a>  <span class="at">num_cores =</span> <span class="dv">2</span>,</span>
+<span id="cb5-22"><a href="#cb5-22" tabindex="-1"></a>  <span class="at">seed =</span> seed,</span>
+<span id="cb5-23"><a href="#cb5-23" tabindex="-1"></a>  <span class="at">adaptive_delta =</span> <span class="cn">TRUE</span></span>
+<span id="cb5-24"><a href="#cb5-24" tabindex="-1"></a>)</span>
+<span id="cb5-25"><a href="#cb5-25" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-26"><a href="#cb5-26" tabindex="-1"></a><span class="co">#&gt; Attaching package: &#39;purrr&#39;</span></span>
+<span id="cb5-27"><a href="#cb5-27" tabindex="-1"></a><span class="co">#&gt; The following object is masked from &#39;package:data.table&#39;:</span></span>
+<span id="cb5-28"><a href="#cb5-28" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-29"><a href="#cb5-29" tabindex="-1"></a><span class="co">#&gt;     transpose</span></span>
+<span id="cb5-30"><a href="#cb5-30" tabindex="-1"></a></span>
+<span id="cb5-31"><a href="#cb5-31" tabindex="-1"></a><span class="fu">proc.time</span>() <span class="sc">-</span> ptm</span>
+<span id="cb5-32"><a href="#cb5-32" tabindex="-1"></a><span class="co">#&gt;    user  system elapsed </span></span>
+<span id="cb5-33"><a href="#cb5-33" tabindex="-1"></a><span class="co">#&gt;  28.612   0.520  30.039</span></span>
+<span id="cb5-34"><a href="#cb5-34" tabindex="-1"></a></span>
+<span id="cb5-35"><a href="#cb5-35" tabindex="-1"></a>indiv_shift_results <span class="ot">&lt;-</span> NIEH_results<span class="sc">$</span><span class="st">`</span><span class="at">Indiv Shift Results</span><span class="st">`</span></span>
+<span id="cb5-36"><a href="#cb5-36" tabindex="-1"></a>em_results <span class="ot">&lt;-</span> NIEH_results<span class="sc">$</span><span class="st">`</span><span class="at">Effect Mod Results</span><span class="st">`</span></span>
+<span id="cb5-37"><a href="#cb5-37" tabindex="-1"></a>joint_shift_results <span class="ot">&lt;-</span> NIEH_results<span class="sc">$</span><span class="st">`</span><span class="at">Joint Shift Results</span><span class="st">`</span></span></code></pre></div>
+<p>Let’s look at the results for the variable <span class="math inline">\(X7\)</span> which should have a positive effect
+given the data dictionary provided:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>indiv_shift_results<span class="sc">$</span>X7 <span class="sc">%&gt;%</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">kbl</span>(<span class="at">caption =</span> <span class="st">&quot;Effect Modification Results&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="fu">kable_classic</span>(<span class="at">full_width =</span> F, <span class="at">html_font =</span> <span class="st">&quot;Cambria&quot;</span>)</span></code></pre></div>
+<table class=" lightable-classic" style="font-family: Cambria; width: auto !important; margin-left: auto; margin-right: auto;">
+<caption>
+Effect Modification Results
+</caption>
+<tbody>
+<tr>
+</tr>
+</tbody>
+</table>
+<p>We ran <code>SuperNOVA</code> with two folds and above we see this
+exposure was identified in both folds. We also set
+<code>adaptive_delta</code> = TRUE, with an initial shift value of 1. As
+we can see - in both folds this exposure was found, the delta was
+reduced to 0.59 to ensure there are no positivity violations (incurring
+a shift that is unfeasible). The pooled estimate is an average across
+the folds and variance estimates for the pooled result are done via a
+pooled targeted estimation fluctuation step using nuisance parameters
+across the folds. Here, our interpretation of this finding is “If all
+individuals were exposed to a 0.59 increase in X7 the expected outcome
+increases by 2.37”. This result is significant for both the pooled
+estimate and the fold specific estimates.</p>
+<p>Now let’s look for effect modification:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>em_results<span class="sc">$</span>X7Z <span class="sc">%&gt;%</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">kbl</span>(<span class="at">caption =</span> <span class="st">&quot;Effect Modification Results&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">kable_classic</span>(<span class="at">full_width =</span> F, <span class="at">html_font =</span> <span class="st">&quot;Cambria&quot;</span>)</span></code></pre></div>
+<table class=" lightable-classic" style="font-family: Cambria; width: auto !important; margin-left: auto; margin-right: auto;">
+<caption>
+Effect Modification Results
+</caption>
+<tbody>
+<tr>
+</tr>
+</tbody>
+</table>
+<p>This shows there are differential effects on the impact of shifting
+<span class="math inline">\(X7\)</span> between strata of the baseline
+covariate Z. This result was found in 1 fold and so the fold specific
+and pooled results are the same. This is an example of a less consistent
+finding as it wasn’t found in all the folds. The user should incorporate
+this information into their interpretation of findings. Findings are
+more consistent with higher CV fold values.</p>
+<p>Here we see that when Z = 0 a 0.47 shift in X7 leads to an average
+outcome of 17.43 and when Z = 1 the average outcome for the same shift
+is 33.7.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>joint_shift_results<span class="sc">$</span>X2X7 <span class="sc">%&gt;%</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">kbl</span>(<span class="at">caption =</span> <span class="st">&quot;Interaction Results&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  kableExtra<span class="sc">::</span><span class="fu">kable_classic</span>(<span class="at">full_width =</span> T, <span class="at">html_font =</span> <span class="st">&quot;Cambria&quot;</span>)</span></code></pre></div>
+<table class=" lightable-classic" style="font-family: Cambria; margin-left: auto; margin-right: auto;">
+<caption>
+Interaction Results
+</caption>
+<tbody>
+<tr>
+</tr>
+</tbody>
+</table>
+<p>Here we see that in one of the folds an interaction between X2 and X7
+was found. The adaptive delta was set to 0.22 for X2 and 0.35 for X7. An
+increase of 0.22 in X2 leads to a 0.64 increase in Y and a 0.35 increase
+in X7 leads to a 1.23 increase in Y. An increase in both by these
+amounts changes Y by 1.87 compared to the additive sum 1.87 if we just
+add both these individual estimates together. Thus, there is no evidence
+of interaction given our definition in this case that is more than
+additive effects.</p>
+<div id="refs" class="references csl-bib-body hanging-indent">
+<div id="ref-diaz2012population" class="csl-entry">
+Dı́az, Iván, and Mark J van der Laan. 2012. <span>“Population
+Intervention Causal Effects Based on Stochastic Interventions.”</span>
+<em>Biometrics</em> 68 (2): 541–49.
+</div>
+<div id="ref-pearl2000causality" class="csl-entry">
+Pearl, Judea. 2000. <em>Causality</em>. Cambridge university press.
+</div>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

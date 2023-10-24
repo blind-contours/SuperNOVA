@@ -24,10 +24,10 @@ create_sls <- function() {
       sl3::Lrnr_glmnet$new(alpha = 1),
       # sl3::Lrnr_glmnet$new(alpha = 0),
       # sl3::Lrnr_glmnet$new(alpha = .5),
-      sl3::Lrnr_ranger$new(num.trees = 100)
-      # sl3::Lrnr_ranger$new(num.trees = 500),
+      sl3::Lrnr_ranger$new(num.trees = 100),
+      sl3::Lrnr_ranger$new(num.trees = 500),
       # sl3::Lrnr_xgboost$new(nrounds = 50),
-      # sl3::Lrnr_xgboost$new(nrounds = 200),
+      sl3::Lrnr_xgboost$new(nrounds = 200)
       # sl3::Lrnr_earth$new(degree = 2)
       # sl3::Lrnr_earth$new(degree = 3)
     )
@@ -98,9 +98,6 @@ create_sls <- function() {
     fast.k = 0
   )
 
-  lrnr_earth_12 <- Lrnr_earth$new(
-    degree = 3
-  )
 
   learners <- c(
     lrnr_earth_1,
@@ -108,12 +105,12 @@ create_sls <- function() {
     lrnr_earth_3,
     lrnr_earth_4,
     lrnr_earth_5,
-    lrnr_earth_6
-    # lrnr_earth_7,
-    # lrnr_earth_8,
-    # lrnr_earth_9,
-    # lrnr_earth_10,
-    # lrnr_earth_11
+    lrnr_earth_6,
+    lrnr_earth_7,
+    lrnr_earth_8,
+    lrnr_earth_9,
+    lrnr_earth_10,
+    lrnr_earth_11
   )
 
   names(learners) <- c(
@@ -122,13 +119,12 @@ create_sls <- function() {
     "full earth 3",
     "full earth 4",
     "full earth 5",
-    "full earth 6"
-    # "full earth 7",
-    # "full earth 8",
-    # "full earth 9",
-    # "full earth 10",
-    # "full earth 11",
-    # "full earth 12"
+    "full earth 6",
+    "full earth 7",
+    "full earth 8",
+    "full earth 9",
+    "full earth 10",
+    "full earth 11"
   )
 
   zeta_learner <- make_learner(Stack, learners)

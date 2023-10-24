@@ -14,18 +14,16 @@ authors:
     affiliation: 1
   - name: Alejandro Schuler
     orcid: 0000-0003-4853-6130
-    affiliation: 2
+    affiliation: 1
   - name: Alan Hubbard
     orcid: 0000-0002-3769-0127
-    affiliation: 2
+    affiliation: 1
   - name: Mark Van der Laan
     orcid: 0000-0003-1432-5511
-    affiliation: 2
+    affiliation: 1
 affiliations:
-  - name: Division of Environmental Health Sciences, University of California, Berkeley
-    index: 1
   - name: Department of Biostatistics, University of California, Berkeley
-    index: 2
+    index: 1
 date: 05 January 2022
 bibliography: paper.bib
 ---
@@ -43,7 +41,7 @@ Reliable and accurate estimation of treatment effects is essential in public hea
 
 The package SuperNOVA was developed to address the limitations of traditional statistical methods in environmental epidemiology studies. These traditional methods often make overly simplistic assumptions, such as linear and additive relationships, and the resulting statistical quantities may not be directly applicable to public policy decisions. SuperNOVA addresses these limitations by using data-adaptive machine learning methods to identify the variables and variable sets that have the most explanatory power on an outcome of interest. In the variable set discovery, the package builds a discrete Super Learner [@coyle2020sl3] which is a library of machine learning estimators that uses cross-validation to select the best fitting estimator. This Super Learner is composed of flexible basis function estimators, the best of which is analyzed using ANOVA style analysis to determine the variables that contribute most to the model fit through an F-statistic for basis functions. 
 
-The variable sets used in the basis functions drive the target parameters estimated. In the event of basis functions for an individual exposure $A$, the effects of an individual shift are estimated, for basis function with $A$ and $W$ (a baseline covariate), the effect modification parameter is estimated, which is an individual shift in a covariate region and if two exposures are included in a basis function $A_1, A_2$ the interaction target parameter is estimated, which is the expected outcome under dual shift of both exposures compared to the sum of expected outcomes given individual shifts independently. For each target parameter we use ensemble machine learning to ascertain the expected outcome under a shift and we use cross-validated targeted maximum likelihood estimation [@Hubbard2016] to debias our initial estimates thereby creating an asymptotically unbiased estimator with minimum variance. When we say shift, we mean a stochastic shift [@diaz2012population]. In this framework we calculate the average outcome after shifting the exposure. A stochastic intervention changes the function that defines the exposure $A$ and its conditional density $g(A \mid W)$ with a candidate density $g_{A_{\delta}}(A \mid W)$. The new density defines how the exposure is modified, for example a shift such as in pollution or drug where we increase all exposure by say 100 parts per million and observe the change in outcomes. Stochastic interventions give rise to a counterfactual outcome $Y_{A_{\delta}} := f_Y(A_{\delta}, W, U_Y)$, which is obtained by replacing the natural value of the exposure with a shifted value. The degree of shift $\delta$ describes the reduction in exposure, based on the individual's baseline characteristics $W$. We can evaluate the causal effect of the intervention by finding the counterfactual mean of the outcome under the modified distribution, $\psi_{0, \delta} = E_{P_0}^{A_{\delta}}{Y_{A_{\delta}}}$. In this way, SuperNOVA allows analysts to explore modified treatment policies and ask causal questions (under assumptions) about the impact of mixed exposures on health outcomes. `SuperNOVA` uses V-fold cross-validation procedures to avoid over-fitting and incorrect model assumptions by creating parameter generating samples wherein the variable sets are determined and estimators for nuisance parameters are trained, an estimation sample is then used to estimate the target parameters of interest [@Zheng2010]. Additionally, to avoid positivity violations (user inputs a shift amount that there isn't enough experimentation in the data to estimate) the shift amount can also be input as a data-adaptive parameter which finds the maximum shift possible for each exposure.
+The variable sets used in the basis functions drive the target parameters estimated. In the event of basis functions for an individual exposure $A$, the effects of an individual shift are estimated, for basis function with $A$ and $W$ (a baseline covariate), the effect modification parameter is estimated, which is an individual shift in a covariate region and if two exposures are included in a basis function $A_1, A_2$ the interaction target parameter is estimated, which is the expected outcome under dual shift of both exposures compared to the sum of expected outcomes given individual shifts independently. For each target parameter we use ensemble machine learning to ascertain the expected outcome under a shift and we use cross-validated targeted maximum likelihood estimation [@Hubbard2016] to debias our initial estimates thereby creating an asymptotically unbiased estimator with minimum variance. When we say shift, we mean a stochastic shift [@diaz2012population]. In this framework we calculate the average outcome after shifting the exposure. A stochastic intervention changes the function that defines the exposure $A$ and its conditional density $g(A \mid W)$ with a candidate density $g_{A_{\delta}}(A \mid W)$. The new density defines how the exposure is modified, for example a shift such as in pollution or drug where we increase all exposure by say 100 parts per million and observe the change in outcomes. Stochastic interventions give rise to a counterfactual outcome $Y_{A_{\delta}} := f_Y(A_{\delta}, W, U_Y)$, which is obtained by replacing the natural value of the exposure with a shifted value. The degree of shift $\delta$ describes the reduction in exposure, based on the individual's baseline characteristics $W$. We can evaluate the causal effect of the intervention by finding the counterfactual mean of the outcome under the modified distribution, $\psi_{0, \delta} = E_{P_0}^{A_{\delta}}{Y_{A_{\delta}}}$. In this way, SuperNOVA allows analysts to explore modified treatment policies and ask causal questions (under assumptions) about the impact of mixed exposures on health outcomes. `SuperNOVA` uses V-fold cross-validation procedures to avoid over-fitting and incorrect model assumptions. This is done by creating parameter generating samples wherein the variable sets are determined and estimators for nuisance parameters are trained, an estimation sample is then used to estimate the target parameters of interest [@Zheng2010]. Additionally, to avoid positivity violations (user inputs a shift amount that there isn't enough experimentation in the data to estimate) the shift amount can also be input as a data-adaptive parameter which finds the maximum shift possible for each exposure.
 
 # `SuperNOVA`'s Scope
 
@@ -55,7 +53,7 @@ As input, SuperNOVA takes in variable sets $A$ (exposures), $W$ (covariates), $Y
 
 # Availability
 
-The `SuperNOVA` package has been made publicly available  [via GitHub](https://github.com/blind-contours/SuperNOVA). Use of the `SuperNOVA`package has been extensively documented in the package's `README` and a vignette. 
+The `SuperNOVA` package has been made publicly available  [via GitHub](https://github.com/blind-contours/SuperNOVA). Use of the `SuperNOVA` package has been extensively documented in the package's `README` and a vignette. 
 
 
 # Acknowledgments

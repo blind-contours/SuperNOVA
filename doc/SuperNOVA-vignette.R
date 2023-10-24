@@ -4,6 +4,10 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 
+## ----figure, echo=FALSE, out.width='100%', fig.align='center'-----------------
+library(knitr)
+include_graphics("Biometrics_Flow_Chart.png")
+
 ## ----deltas, message=FALSE, warning=FALSE-------------------------------------
 deltas <- c("M1" = 1, "M2" = 2.3, "M3" = 1.4)
 

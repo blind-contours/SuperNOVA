@@ -101,6 +101,49 @@ fit_basis_estimators <- function(at,
   full_residual_SS <- (at[, get(outcome)] - sl_fit$predict())^2
 
 
+  if (grepl("ranger", learner_name)) {
+    # Initialize a list to hold terminal leaf information
+
+    fit <- selected_learner$fit_object
+
+    # Function to extract the path leading to a node
+    get_path <- function(node_id, tree) {
+      path <- c()
+
+      while(node_id != 0) {
+        parent_id <- which(tree$leftChild == node_id | tree$rightChild == node_id)
+        if (length(parent_id) == 0) {
+          break
+        }
+
+        path <- c(path, tree$splitvarName[parent_id])
+        node_id <- parent_id
+      }
+
+      return(rev(path))
+    }
+
+    # Extract terminal nodes and their paths for a specific tree
+    extract_paths_from_tree <- function(tree) {
+      terminal_nodes <- tree$nodeID[tree$terminal]
+      paths <- lapply(terminal_nodes, function(node) get_path(node, tree))
+      names(paths) <- terminal_nodes
+      return(paths)
+    }
+
+    # Using treeInfo on your fit to get the tree details for the first tree (as an example)
+    tree <- treeInfo(fit, 1)
+
+    # Extract terminal node paths for the first tree
+    paths_for_tree_1 <- extract_paths_from_tree(tree)
+
+    # Print the paths
+    str(paths_for_tree_1)
+
+
+
+  }
+
   if (grepl("earth", learner_name)) {
     best_model_basis <- as.data.frame(model.matrix(
       selected_learner$fit_object
@@ -123,74 +166,82 @@ fit_basis_estimators <- function(at,
   }
 
   if (grepl("polspline", learner_name)) {
+
+    get_pred_knot <- function(i, covars, pred, knot) {
+      for (j in 1:length(covars)) {
+        pred_match <- sub(paste("^", j, sep = ""), covars[j], pred)
+      }
+      return(list(pred = pred, knot = round(as.numeric(knot), 2)))
+    }
+
+    covars <- colnames(selected_learner$training_task$X)
+    # n_covars <- length(covars)
+
     best_model_basis <- polspline::design.polymars(
       selected_learner$fit_object,
-      x = at[, ..covars]
+      x = selected_learner$fit_object$call$predictors
     )
 
     best_model_basis <- best_model_basis[, -1]
 
-    pred1 <- selected_learner$fit_object$model$pred1
-    pred1 <- pred1[-1]
+    if (is.null(dim(best_model_basis))) {
+      single_pred <- covars[selected_learner$fit_object$model$pred1[-1]]
 
-    pred2 <- selected_learner$fit_object$model$pred2
-    pred2 <- pred2[-1]
+      anova_fit <- as.data.frame(single_pred)
+      rownames(anova_fit) <- anova_fit
 
-    for (i in 1:length(covars)) {
-      pred1 <- sub(paste("^", i, sep = ""), covars[i], pred1)
-      pred2 <- sub(paste("^", i, sep = ""), covars[i], pred2)
-    }
+    } else {
+      pred1_res <- get_pred_knot(1, covars, selected_learner$fit_object$model$pred1[-1],
+                                 selected_learner$fit_object$model$knot1[-1])
 
-    knot1 <- selected_learner$fit_object$model$knot1[-1]
-    knot2 <- selected_learner$fit_object$model$knot2[-1]
+      pred2_res <- get_pred_knot(2, covars, selected_learner$fit_object$model$pred2[-1],
+                                 selected_learner$fit_object$model$knot2[-1])
 
-    splines <- cbind(
-      pred1,
-      knot1,
-      pred2,
-      knot2
-    )
+      splines <- data.frame(
+        pred1 = pred1_res$pred,
+        knot1 = pred1_res$knot,
+        pred2 = pred2_res$pred,
+        knot2 = pred2_res$knot
+      )
 
-    colnames(splines) <- c("pred1", "knot1", "pred2", "knot2")
-    splines <- as.data.frame(splines)
+      splines[is.na(splines)] <- ""
+      splines[splines == 0] <- ""
 
-    splines$knot1 <- round(as.numeric(splines$knot1), 2)
-    splines$knot2 <- round(as.numeric(splines$knot2), 2)
+      colnames(best_model_basis) <- paste(splines$pred1, splines$knot1,
+                                          splines$pred2, splines$knot2,
+                                          sep = "")
 
-    splines[is.na(splines)] <- ""
-    splines[splines == 0] <- ""
+      polymars_model <- lm(data[, get(outcome)] ~ ., data = as.data.frame(best_model_basis))
 
-    colnames(best_model_basis) <- paste(splines$pred1, splines$knot1,
-      splines$pred2, splines$knot2,
-      sep = ""
-    )
-    polymars_model <- lm(data[, get(outcome)] ~ .,
-      data = as.data.frame(best_model_basis)
-    )
+      anova_fit <- stats::anova(polymars_model)
 
-    anova_fit <- stats::anova(polymars_model)
-
-    if (quantile_thresh != 0) {
-      anova_fit <- subset(anova_fit, `F value` > quantile(anova_fit$`F value`,
-        quantile_thresh,
-        na.rm = TRUE
-      ))
+      if (quantile_thresh != 0) {
+        anova_fit <- subset(anova_fit, `F value` > quantile(anova_fit$`F value`,
+                                                            quantile_thresh,
+                                                            na.rm = TRUE))
+      }
     }
   }
 
-  match_list <- list()
-  i <- 1
+  # Extract variables from a basis function
+  extract_vars_from_basis <- function(basis) {
+    matches <- str_extract_all(basis, paste(covars, collapse = "|"))
+    return(paste0(unique(unlist(matches)), collapse = "-"))
+  }
+
+  # Define covariates
   covars <- c(a_names, z_names, w_names)
-  for (j in covars) {
-    matches <- stringr::str_match(rownames(anova_fit), j)
-    matches[is.na(matches)] <- ""
-    match_list[[i]] <- matches
-    i <- i + 1
-  }
 
-  matches <- do.call(cbind, match_list)
-  basis_used <- unique(apply(matches, 1, paste, collapse = ""))
+  # Extract variables from each basis function and store them
+  basis_used <- sapply(rownames(anova_fit), extract_vars_from_basis)
+
+  # Filter out any empty strings
   basis_used <- basis_used[basis_used != ""]
+
+  # Get unique variable sets
+  unique_sets <- unique(basis_used)
+
+  basis_used <- unique_sets
 
   exposure_mediator_pairs <- list()
   for (basis_name_i in seq(basis_used)) {

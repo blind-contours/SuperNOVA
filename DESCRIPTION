@@ -1,6 +1,6 @@
 Package: SuperNOVA
 Title: Semi-Parametric Identification and Estimation of Interaction and Effect Modification in Mixed Exposures using Stochastic Interventions
-Version: 1.0
+Version: v1.0.0-JOSS
 Authors@R: 
     person(given = "David",
            family = "McCoy",

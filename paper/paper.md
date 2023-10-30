@@ -18,7 +18,7 @@ authors:
   - name: Alan Hubbard
     orcid: 0000-0002-3769-0127
     affiliation: 1
-  - name: Mark Van der Laan
+  - name: Mark van der Laan
     orcid: 0000-0003-1432-5511
     affiliation: 1
 affiliations:
